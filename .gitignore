@@ -1,0 +1,24 @@
+# Mathematica generated files
+*.nb.bak
+*.mx
+*.wlnet
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Logs (keep directory, ignore contents)
+logs/*
+!logs/.gitkeep
+
+# Data (keep directory, ignore contents)
+data/*
+!data/.gitkeep
+
+# Notebook outputs (keep directory, ignore contents)
+notebook/*
+!notebook/.gitkeep
