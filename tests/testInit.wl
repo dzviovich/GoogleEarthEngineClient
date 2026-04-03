@@ -1,6 +1,10 @@
 (* GoogleEarthEngineClient test setup *)
 
-AppendTo[$Path, FileNameJoin[{DirectoryName[$TestFileName], "..", "src"}]];
+With[{kernelDir = FileNameJoin[{DirectoryName[$TestFileName], "..", "Kernel"}]},
+  If[!MemberQ[$Path, kernelDir],
+    PrependTo[$Path, kernelDir]
+  ]
+];
 Needs["GoogleEarthEngineClient`"]
 
 $TestKeyFile = Environment["GEE_SERVICE_ACCOUNT_KEY"];

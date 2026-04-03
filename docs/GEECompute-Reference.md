@@ -15,53 +15,83 @@ GEECompute[expression, "Project" -> projectId]
 |--------|---------|-------------|
 | `"Project"` | `Automatic` | GCP project ID |
 
-- `expression` is an Association representing a GEE expression tree.
-- Expression trees use the format: `<|"type" -> "Invocation", "functionName" -> "...", "arguments" -> <|...|>|>`.
-- Constants are wrapped as `<|"constantValue" -> value|>`.
-- Returns the computed result (number, string, list, or Association).
+- `expression` is an Association representing a GEE v1 expression tree.
+- Expression nodes use `"functionInvocationValue"` for function calls and `"constantValue"` for constants.
+- Returns the computed result: a number, string, list, or Association depending on the expression.
+- Common function names include `Image.load`, `Image.select`, `Image.reduceRegion`, `ImageCollection.load`, `Collection.loadTable`, `Collection.size`, `Collection.filter`, `GeometryConstructors.Rectangle`, `GeometryConstructors.Point`, `Geometry.area`, `Geometry.centroid`, `Reducer.mean`, `Reducer.min`, `Reducer.max`, `Reducer.sum`, `Reducer.first`.
+- Constant expressions (`"constantValue"`) are evaluated and returned as-is.
 
 ## Examples
 
-### Simple Arithmetic
+### Image Statistics (reduceRegion)
 
 ```wolfram
-GEECompute[
-  <|"type" -> "Invocation",
-    "functionName" -> "Number.add",
-    "arguments" -> <|
-      "left" -> <|"constantValue" -> 2|>,
-      "right" -> <|"constantValue" -> 3|>
-    |>|>
-]
-(* 5 *)
-```
-
-### Image Statistics
-
-```wolfram
-expr = <|"type" -> "Invocation",
+expr = <|"functionInvocationValue" -> <|
   "functionName" -> "Image.reduceRegion",
   "arguments" -> <|
-    "input" -> <|"type" -> "Invocation",
+    "image" -> <|"functionInvocationValue" -> <|
       "functionName" -> "Image.load",
-      "arguments" -> <|
-        "id" -> <|"constantValue" -> "USGS/SRTMGL1_003"|>
-      |>|>,
-    "reducer" -> <|"type" -> "Invocation",
+      "arguments" -> <|"id" -> <|"constantValue" -> "USGS/SRTMGL1_003"|>|>
+    |>|>,
+    "reducer" -> <|"functionInvocationValue" -> <|
       "functionName" -> "Reducer.mean",
-      "arguments" -> <||>|>,
-    "geometry" -> <|"type" -> "Invocation",
+      "arguments" -> <||>
+    |>|>,
+    "geometry" -> <|"functionInvocationValue" -> <|
       "functionName" -> "GeometryConstructors.Rectangle",
       "arguments" -> <|
-        "coordinates" -> <|
-          "constantValue" -> {-97.8, 30.2, -97.7, 30.3}
-        |>
-      |>|>,
+        "coordinates" -> <|"constantValue" -> {-97.8, 30.2, -97.7, 30.3}|>
+      |>
+    |>|>,
     "scale" -> <|"constantValue" -> 30|>,
     "bestEffort" -> <|"constantValue" -> True|>
-  |>|>;
-GEECompute[expr]
+  |>
+|>|>;
+GEECompute[expr]  (* <|"elevation" -> 213.5...|> *)
 ```
+
+### Geometry Area
+
+```wolfram
+expr = <|"functionInvocationValue" -> <|
+  "functionName" -> "Geometry.area",
+  "arguments" -> <|
+    "geometry" -> <|"functionInvocationValue" -> <|
+      "functionName" -> "GeometryConstructors.Rectangle",
+      "arguments" -> <|
+        "coordinates" -> <|"constantValue" -> {-97.8, 30.2, -97.7, 30.3}|>
+      |>
+    |>|>
+  |>
+|>|>;
+GEECompute[expr]  (* 1.068...e8 (square meters) *)
+```
+
+### Collection Size
+
+```wolfram
+expr = <|"functionInvocationValue" -> <|
+  "functionName" -> "Collection.size",
+  "arguments" -> <|
+    "collection" -> <|"functionInvocationValue" -> <|
+      "functionName" -> "ImageCollection.load",
+      "arguments" -> <|"id" -> <|"constantValue" -> "MODIS/061/MCD12Q1"|>|>
+    |>|>
+  |>
+|>|>;
+GEECompute[expr]  (* integer count of images *)
+```
+
+### Constant Value
+
+```wolfram
+GEECompute[<|"constantValue" -> 42|>]  (* 42 *)
+```
+
+## Possible Issues
+
+- The `GEECompute::apierr` message surfaces the actual GEE API error when an expression is invalid.
+- Geometry functions that accept `maxError` require an `ErrorMargin` function invocation, not a plain number (omit `maxError` to use the default).
 
 ## See Also
 

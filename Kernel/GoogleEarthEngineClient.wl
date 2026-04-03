@@ -85,6 +85,7 @@ GEEListAssets::fetchfail = "Failed to list assets from `1`.";
 GEEListAssets::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEComputePixels::fetchfail = "Failed to compute pixels from `1`.";
+GEEComputePixels::apierr = "GEE API error for `1`: `2`";
 GEEComputePixels::notimage = "Server returned `1` instead of an image.";
 GEEComputePixels::badbbox = "Expected bbox as {west, south, east, north}, got `1`.";
 GEEComputePixels::noauth = "Not authenticated. Call GEEConnect first.";
@@ -101,6 +102,7 @@ GEEGetTile::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEIdentify::fetchfail = "Failed to identify at `1`.";
 GEEIdentify::parsefail = "Response from identify is not valid JSON.";
+GEEIdentify::apierr = "`1`";
 GEEIdentify::badpoint = "Expected a GeoPosition, got `1`.";
 GEEIdentify::noauth = "Not authenticated. Call GEEConnect first.";
 
@@ -109,10 +111,12 @@ GEEGetSamples::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEComputeFeatures::fetchfail = "Failed to query features from `1`.";
 GEEComputeFeatures::parsefail = "Query response is not valid JSON.";
+GEEComputeFeatures::apierr = "`1`";
 GEEComputeFeatures::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEECompute::fetchfail = "Failed to compute value.";
 GEECompute::parsefail = "Compute response is not valid JSON.";
+GEECompute::apierr = "`1`";
 GEECompute::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEGeoGraphics::bboxfail = "Could not compute bounding box from the provided primitives.";
@@ -248,14 +252,14 @@ buildJWT[email_String, privateKeyPEM_String, scope_String] :=
     claimsB64 = base64URLEncode[claims];
     sigInput = headerB64 <> "." <> claimsB64;
 
-    privateKey = ImportString[privateKeyPEM, {"PEM", "PrivateKey"}];
+    privateKey = First[ImportString[privateKeyPEM, {"PEM", "PrivateKey"}]];
     signature = GenerateDigitalSignature[
       StringToByteArray[sigInput, "UTF-8"],
-      PrivateKey[privateKey],
-      Method -> <|"Type" -> "SHA256withRSA"|>
+      privateKey,
+      Method -> <|"Type" -> "RSA", "HashingMethod" -> "SHA256"|>
     ];
 
-    sigB64 = base64URLEncode[signature];
+    sigB64 = base64URLEncode[signature["Signature"]];
     sigInput <> "." <> sigB64
   ]
 
@@ -351,52 +355,77 @@ geePOST[path_String, body_Association, project_ : Automatic] :=
   ]
 
 geePOSTRaw[path_String, body_Association, project_ : Automatic] :=
-  Module[{url, token, bodyJSON},
+  Module[{url, token, bodyJSON, resp, statusCode, bodyBytes},
     url = buildURL[path, project];
     token = $GEEConnection["AccessToken"];
     bodyJSON = ExportString[body, "JSON", "Compact" -> True];
-    URLRead[
+    resp = URLRead[
       HTTPRequest[url,
         <|Method -> "POST",
           "Headers" -> {
             "Authorization" -> "Bearer " <> token,
             "Content-Type" -> "application/json"
           },
-          "Body" -> bodyJSON|>],
-      "BodyByteArray"
+          "Body" -> bodyJSON|>]
+    ];
+    statusCode = resp["StatusCode"];
+    bodyBytes = resp["BodyByteArray"];
+    If[statusCode =!= 200,
+      Module[{errorMsg},
+        errorMsg = Quiet[
+          With[{json = ImportByteArray[bodyBytes, "RawJSON"]},
+            If[AssociationQ[json] && KeyExistsQ[json, "error"],
+              json["error"]["message"],
+              ByteArrayToString[bodyBytes]
+            ]
+          ]
+        ];
+        If[!StringQ[errorMsg], errorMsg = "HTTP " <> ToString[statusCode]];
+        Failure["GEEAPIError",
+          <|"MessageTemplate" -> errorMsg, "StatusCode" -> statusCode|>
+        ]
+      ],
+      bodyBytes
     ]
   ]
 
 (* --- GEE expression tree builders --- *)
 
+wrapExpression[expr_Association] :=
+  <|"result" -> "0", "values" -> <|"0" -> expr|>|>
+
 buildImageExpression[assetId_String] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "Image.load",
-    "arguments" -> <|"id" -> <|"constantValue" -> assetId|>|>|>
+    "arguments" -> <|"id" -> <|"constantValue" -> assetId|>|>
+  |>|>
 
 buildCollectionExpression[assetId_String] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "ImageCollection.load",
-    "arguments" -> <|"id" -> <|"constantValue" -> assetId|>|>|>
+    "arguments" -> <|"id" -> <|"constantValue" -> assetId|>|>
+  |>|>
 
 buildFeatureCollectionExpression[assetId_String] :=
-  <|"type" -> "Invocation",
-    "functionName" -> "FeatureCollection.load",
-    "arguments" -> <|"id" -> <|"constantValue" -> assetId|>|>|>
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.loadTable",
+    "arguments" -> <|"tableId" -> <|"constantValue" -> assetId|>|>
+  |>|>
 
 buildBandSelection[imageExpr_Association, bands_List] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "Image.select",
     "arguments" -> <|
       "input" -> imageExpr,
       "bandSelectors" -> <|
         "constantValue" -> bands
       |>
-    |>|>
+    |>
+  |>|>
 
 buildVisualization[imageExpr_Association, visParams_Association] :=
   Module[{args},
-    args = <|"input" -> imageExpr|>;
+    args = <|"image" -> imageExpr|>;
     If[KeyExistsQ[visParams, "min"],
       args = Append[args, "min" -> <|"constantValue" -> {visParams["min"]}|>]
     ];
@@ -415,27 +444,30 @@ buildVisualization[imageExpr_Association, visParams_Association] :=
       args = Append[args,
         "gamma" -> <|"constantValue" -> {visParams["gamma"]}|>]
     ];
-    <|"type" -> "Invocation",
+    <|"functionInvocationValue" -> <|
       "functionName" -> "Image.visualize",
-      "arguments" -> args|>
+      "arguments" -> args
+    |>|>
   ]
 
 buildGeometryPoint[lat_?NumericQ, lon_?NumericQ] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "GeometryConstructors.Point",
     "arguments" -> <|
       "coordinates" -> <|"constantValue" -> {N[lon], N[lat]}|>
-    |>|>
+    |>
+  |>|>
 
 buildGeometryRectangle[west_?NumericQ, south_?NumericQ,
     east_?NumericQ, north_?NumericQ] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "GeometryConstructors.Rectangle",
     "arguments" -> <|
       "coordinates" -> <|
         "constantValue" -> {N[west], N[south], N[east], N[north]}
       |>
-    |>|>
+    |>
+  |>|>
 
 buildGridSpec[{west_, south_, east_, north_}, {width_, height_}, crs_String] :=
   <|"dimensions" -> <|"width" -> width, "height" -> height|>,
@@ -447,74 +479,163 @@ buildGridSpec[{west_, south_, east_, north_}, {width_, height_}, crs_String] :=
       "scaleY" -> N[(south - north) / height],
       "translateY" -> N[north]
     |>,
-    "crsCode" -> crs|>
+    "crsCode" -> "EPSG:4326"|>
 
 buildReduceRegion[imageExpr_Association, geometry_Association, scale_?NumericQ] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "Image.reduceRegion",
     "arguments" -> <|
-      "input" -> imageExpr,
-      "reducer" -> <|
-        "type" -> "Invocation",
+      "image" -> imageExpr,
+      "reducer" -> <|"functionInvocationValue" -> <|
         "functionName" -> "Reducer.first",
         "arguments" -> <||>
-      |>,
+      |>|>,
       "geometry" -> geometry,
       "scale" -> <|"constantValue" -> scale|>,
       "bestEffort" -> <|"constantValue" -> True|>
-    |>|>
+    |>
+  |>|>
 
 buildSortAndFirst[collectionExpr_Association, property_String, ascending_?BooleanQ] :=
-  Module[{sorted},
-    sorted = <|"type" -> "Invocation",
-      "functionName" -> "Collection.sort",
+  Module[{limited},
+    limited = <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.limit",
       "arguments" -> <|
         "collection" -> collectionExpr,
-        "property" -> <|"constantValue" -> property|>,
+        "limit" -> <|"constantValue" -> 1|>,
+        "key" -> <|"constantValue" -> property|>,
         "ascending" -> <|"constantValue" -> ascending|>
-      |>|>;
-    <|"type" -> "Invocation",
+      |>
+    |>|>;
+    <|"functionInvocationValue" -> <|
       "functionName" -> "Collection.first",
-      "arguments" -> <|"collection" -> sorted|>|>
+      "arguments" -> <|"collection" -> limited|>
+    |>|>
   ]
 
 buildFilterBounds[collectionExpr_Association, geometry_Association] :=
-  <|"type" -> "Invocation",
+  <|"functionInvocationValue" -> <|
     "functionName" -> "Collection.filter",
     "arguments" -> <|
       "collection" -> collectionExpr,
-      "filter" -> <|
-        "type" -> "Invocation",
+      "filter" -> <|"functionInvocationValue" -> <|
         "functionName" -> "Filter.intersects",
         "arguments" -> <|
-          "leftValue" -> <|"constantValue" -> ".geo"|>,
-          "rightField" -> <|"constantValue" -> ""|>,
+          "leftField" -> <|"constantValue" -> ".geo"|>,
           "rightValue" -> geometry
         |>
-      |>
-    |>|>
+      |>|>
+    |>
+  |>|>
 
 buildFilterDate[collectionExpr_Association, start_String, end_String] :=
-  <|"type" -> "Invocation",
+  Module[{gteFilter, ltFilter, filtered},
+    gteFilter = <|"functionInvocationValue" -> <|
+      "functionName" -> "Filter.greaterThanOrEquals",
+      "arguments" -> <|
+        "leftField" -> <|"constantValue" -> "system:time_start"|>,
+        "rightValue" -> <|"functionInvocationValue" -> <|
+          "functionName" -> "Date",
+          "arguments" -> <|"value" -> <|"constantValue" -> start|>|>
+        |>|>
+      |>
+    |>|>;
+    ltFilter = <|"functionInvocationValue" -> <|
+      "functionName" -> "Filter.lessThan",
+      "arguments" -> <|
+        "leftField" -> <|"constantValue" -> "system:time_start"|>,
+        "rightValue" -> <|"functionInvocationValue" -> <|
+          "functionName" -> "Date",
+          "arguments" -> <|"value" -> <|"constantValue" -> end|>|>
+        |>|>
+      |>
+    |>|>;
+    filtered = <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.filter",
+      "arguments" -> <|
+        "collection" -> collectionExpr,
+        "filter" -> gteFilter
+      |>
+    |>|>;
+    <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.filter",
+      "arguments" -> <|
+        "collection" -> filtered,
+        "filter" -> ltFilter
+      |>
+    |>|>
+  ]
+
+(* --- Spatial filter for image collections --- *)
+
+buildBBoxGeometry[{west_, south_, east_, north_}] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "GeometryConstructors.BBox",
+    "arguments" -> <|
+      "west" -> <|"constantValue" -> N[west]|>,
+      "south" -> <|"constantValue" -> N[south]|>,
+      "east" -> <|"constantValue" -> N[east]|>,
+      "north" -> <|"constantValue" -> N[north]|>
+    |>
+  |>|>
+
+buildSpatialFilter[collectionExpr_Association, bbox_List] :=
+  <|"functionInvocationValue" -> <|
     "functionName" -> "Collection.filter",
     "arguments" -> <|
       "collection" -> collectionExpr,
-      "filter" -> <|
-        "type" -> "Invocation",
+      "filter" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Filter.intersects",
+        "arguments" -> <|
+          "leftField" -> <|"constantValue" -> ".geo"|>,
+          "rightValue" -> buildBBoxGeometry[bbox]
+        |>
+      |>|>
+    |>
+  |>|>
+
+buildDateFilter[collectionExpr_Association, startDate_String, endDate_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.filter",
+    "arguments" -> <|
+      "collection" -> collectionExpr,
+      "filter" -> <|"functionInvocationValue" -> <|
         "functionName" -> "Filter.dateRangeContains",
         "arguments" -> <|
-          "leftValue" -> <|"constantValue" -> "system:time_start"|>,
-          "rightValue" -> <|"constantValue" -> start|>,
-          "rightValue2" -> <|"constantValue" -> end|>
+          "leftValue" -> <|"functionInvocationValue" -> <|
+            "functionName" -> "DateRange",
+            "arguments" -> <|
+              "start" -> <|"constantValue" -> startDate|>,
+              "end" -> <|"constantValue" -> endDate|>
+            |>
+          |>|>,
+          "rightField" -> <|"constantValue" -> "system:time_start"|>
         |>
-      |>
-    |>|>
+      |>|>
+    |>
+  |>|>
 
 (* --- Prepare image expression with optional band selection and visualization --- *)
 
-prepareImageExpression[assetId_String, bands_, visParams_Association] :=
-  Module[{expr},
-    expr = buildImageExpression[assetId];
+prepareImageExpression[assetId_String, bands_, visParams_Association,
+    bbox_ : None] :=
+  Module[{expr, info, assetType, collExpr, endDate, startDate},
+    info = Quiet[GEEGetAssetInfo[assetId]];
+    assetType = If[AssociationQ[info], Lookup[info, "Type", "IMAGE"], "IMAGE"];
+    If[assetType === "IMAGE_COLLECTION",
+      collExpr = buildCollectionExpression[assetId];
+      If[MatchQ[bbox, {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}],
+        collExpr = buildSpatialFilter[collExpr, bbox];
+        endDate = DateString[Now, "ISODate"];
+        startDate = DateString[DatePlus[Now, {-3, "Year"}], "ISODate"];
+        collExpr = buildDateFilter[collExpr, startDate, endDate];
+      ];
+      expr = <|"functionInvocationValue" -> <|
+        "functionName" -> "ImageCollection.mosaic",
+        "arguments" -> <|"collection" -> collExpr|>
+      |>|>,
+      expr = buildImageExpression[assetId]
+    ];
     If[ListQ[bands],
       expr = buildBandSelection[expr, bands]
     ];
@@ -522,6 +643,23 @@ prepareImageExpression[assetId_String, bands_, visParams_Association] :=
       expr = buildVisualization[expr, visParams]
     ];
     expr
+  ]
+
+autoBandsForFormat[assetId_String, fileFormat_String] :=
+  Module[{info, bandNames, n},
+    If[!MatchQ[ToUpperCase[fileFormat], "PNG" | "JPEG" | "JPG"],
+      Return[Automatic]
+    ];
+    info = Quiet[GEEGetAssetInfo[assetId]];
+    If[!AssociationQ[info] || !ListQ[info["Bands"]],
+      Return[Automatic]
+    ];
+    bandNames = info["Bands"][[All, "Name"]];
+    n = Length[bandNames];
+    Which[
+      n <= 3, Automatic,
+      n > 3, Take[bandNames, UpTo[3]]
+    ]
   ]
 
 (* --- Asset ID normalization --- *)
@@ -532,27 +670,99 @@ normalizeAssetId[assetId_String] :=
 assetPath[assetId_String] :=
   "assets/" <> assetId
 
+resolveAssetProject[assetId_String] :=
+  If[StringStartsQ[assetId, "projects/" | "users/"],
+    Automatic,
+    "earthengine-public"
+  ]
+
 (* --- Parse asset info response --- *)
 
+stripHTML[html_String] :=
+  Module[{text},
+    text = StringReplace[html, {
+      "<br>" | "<br/>" | "<br />" -> "\n",
+      "<p>" -> "", "</p>" -> "\n\n",
+      "<li>" -> "  - ", "</li>" -> "\n",
+      "<ul>" | "</ul>" | "<ol>" | "</ol>" -> "\n",
+      RegularExpression["<[^>]+>"] -> ""
+    }];
+    text = StringReplace[text, {
+      "\n\n\n" .. -> "\n\n",
+      RegularExpression["[ \\t]+\n"] -> "\n"
+    }];
+    StringTrim[text]
+  ]
+stripHTML[_] := ""
+
+fetchSTACMetadata[assetId_String] :=
+  Quiet@Module[{top, stacId, url, resp, stac, producers, producer},
+    top = First[StringSplit[assetId, "/"], ""];
+    stacId = StringReplace[assetId, "/" -> "_"];
+    url = "https://storage.googleapis.com/earthengine-stac/catalog/" <>
+      top <> "/" <> stacId <> ".json";
+    resp = URLRead[HTTPRequest[url], "Body"];
+    If[!StringQ[resp] || StringLength[resp] === 0, Return[<||>]];
+    stac = ImportString[resp, "RawJSON"];
+    If[!AssociationQ[stac], Return[<||>]];
+    producers = Select[
+      Lookup[stac, "providers", {}],
+      MemberQ[Lookup[#, "roles", {}], "producer"] &
+    ];
+    producer = If[Length[producers] > 0, First[producers], <||>];
+    <|
+      "Title" -> Lookup[stac, "title", None],
+      "Description" -> Lookup[stac, "description", None],
+      "Provider" -> Lookup[producer, "name", None],
+      "ProviderURL" -> Lookup[producer, "url", None]
+    |>
+  ]
+
+fetchCollectionBandNames[assetId_String, project_] :=
+  Quiet@Module[{expr, bandExpr, requestBody, result},
+    expr = <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.first",
+      "arguments" -> <|
+        "collection" -> buildCollectionExpression[assetId]
+      |>
+    |>|>;
+    bandExpr = <|"functionInvocationValue" -> <|
+      "functionName" -> "Image.bandNames",
+      "arguments" -> <|"image" -> expr|>
+    |>|>;
+    requestBody = <|"expression" -> wrapExpression[bandExpr]|>;
+    result = geePOST["value:compute", requestBody, project];
+    If[AssociationQ[result] && ListQ[result["result"]],
+      Map[<|"Name" -> #, "DataType" -> <||>, "Grid" -> <||>|> &,
+        result["result"]],
+      {}
+    ]
+  ]
+
 parseAssetInfo[json_Association] :=
-  Module[{assetType, bands},
+  Module[{assetType, bands, props, rawDesc},
     assetType = Lookup[json, "type", "UNKNOWN"];
+    props = Lookup[json, "properties", <||>];
     bands = Map[
       <|"Name" -> Lookup[#, "id", ""],
         "DataType" -> Lookup[#, "dataType", <||>],
         "Grid" -> Lookup[#, "grid", <||>]|> &,
       Lookup[json, "bands", {}]
     ];
+    rawDesc = Lookup[json, "description",
+      Lookup[props, "description", ""]];
     <|"Type" -> assetType,
       "Name" -> Lookup[json, "name", ""],
-      "Title" -> Lookup[json, "title",
-        Lookup[json, "id", ""]],
-      "Description" -> Lookup[json, "description", ""],
+      "Title" -> Lookup[props, "title",
+        Lookup[json, "title", Lookup[json, "id", ""]]],
+      "Description" -> stripHTML[rawDesc],
+      "Provider" -> Lookup[props, "provider", None],
+      "ProviderURL" -> Lookup[props, "provider_url", None],
       "StartTime" -> Lookup[json, "startTime", None],
       "EndTime" -> Lookup[json, "endTime", None],
       "Geometry" -> Lookup[json, "geometry", None],
       "Bands" -> bands,
-      "Properties" -> Lookup[json, "properties", <||>],
+      "Properties" -> props,
       "SizeBytes" -> Lookup[json, "sizeBytes", None]
     |>
   ]
@@ -663,6 +873,16 @@ geoToTile[lat_?NumericQ, lon_?NumericQ, level_Integer] :=
     row = Floor[(1.0 - Log[Tan[latRad] + 1.0 / Cos[latRad]] / Pi) /
       2.0 * 2^level];
     {row, col}
+  ]
+
+tileToBBox[z_Integer, x_Integer, y_Integer] :=
+  Module[{n, west, east, north, south},
+    n = 2^z;
+    west = x / n * 360.0 - 180.0;
+    east = (x + 1) / n * 360.0 - 180.0;
+    north = ArcTan[Sinh[Pi (1.0 - 2.0 y / n)]] * 180.0 / Pi;
+    south = ArcTan[Sinh[Pi (1.0 - 2.0 (y + 1) / n)]] * 180.0 / Pi;
+    {west, south, east, north}
   ]
 
 (* --- Coordinate projection --- *)
@@ -855,7 +1075,7 @@ GEEConnect[keyFile_String, opts : OptionsPattern[]] := Enclose[
 
     <|"Project" -> project,
       "Status" -> "Connected",
-      "Expiry" -> DateObject[$GEEConnection["Expiry"], TimeZone -> 0]|>
+      "Expiry" -> FromUnixTime[$GEEConnection["Expiry"]]|>
   ],
   Function[failure,
     If[!StringQ[keyFile] || !FileExistsQ[keyFile],
@@ -874,19 +1094,49 @@ GEEConnect[other___] := (
 (* --- GEEGetAssetInfo --- *)
 
 GEEGetAssetInfo[assetId_String, opts : OptionsPattern[]] := Enclose[
-  Module[{project, json},
+  Module[{project, json, info},
     ConfirmBy[ensureAuthenticated[], AssociationQ,
       Message[GEEGetAssetInfo::noauth]
     ];
 
-    project = OptionValue["Project"];
+    project = If[OptionValue["Project"] === Automatic,
+      resolveAssetProject[assetId],
+      OptionValue["Project"]
+    ];
     json = ConfirmBy[
       geeGET[assetPath[assetId], project],
       AssociationQ,
       Message[GEEGetAssetInfo::parsefail, assetId]
     ];
 
-    parseAssetInfo[json]
+    info = parseAssetInfo[json];
+    If[info["Type"] === "IMAGE_COLLECTION" && info["Bands"] === {},
+      info = Append[info, "Bands" -> fetchCollectionBandNames[assetId, project]]
+    ];
+
+    (* STAC catalog fallback for missing metadata *)
+    If[info["Provider"] === None ||
+       info["Title"] === assetId || info["Title"] === Lookup[json, "id", ""],
+      Module[{stac},
+        stac = fetchSTACMetadata[assetId];
+        If[AssociationQ[stac] && Length[stac] > 0,
+          If[info["Title"] === assetId || info["Title"] === Lookup[json, "id", ""],
+            info = Append[info, "Title" -> Lookup[stac, "Title", info["Title"]]]
+          ];
+          If[info["Description"] === "" && StringQ[stac["Description"]],
+            info = Append[info, "Description" -> stac["Description"]]
+          ];
+          If[info["Provider"] === None,
+            info = Append[info, "Provider" -> stac["Provider"]]
+          ];
+          If[info["ProviderURL"] === None,
+            info = Append[info, "ProviderURL" -> stac["ProviderURL"]]
+          ];
+        ]
+      ]
+    ];
+
+    info
   ],
   Function[failure,
     Message[GEEGetAssetInfo::fetchfail, assetId];
@@ -907,7 +1157,10 @@ GEEListAssets[parent_String, opts : OptionsPattern[]] := Enclose[
       Message[GEEListAssets::noauth]
     ];
 
-    project = OptionValue["Project"];
+    project = If[OptionValue["Project"] === Automatic,
+      resolveAssetProject[parent],
+      OptionValue["Project"]
+    ];
     maxResults = OptionValue["MaxResults"];
     filter = OptionValue["Filter"];
 
@@ -944,7 +1197,7 @@ GEEComputePixels[assetId_String,
     opts : OptionsPattern[]] :=
   Enclose[
     Module[{project, imageSize, fileFormat, bands, crs, visParams,
-        expr, grid, requestBody, responseBytes, img},
+        expr, grid, requestBody, responseBytes, img, internalFormat},
       ConfirmBy[ensureAuthenticated[], AssociationQ,
         Message[GEEComputePixels::noauth]
       ];
@@ -956,12 +1209,25 @@ GEEComputePixels[assetId_String,
       crs = OptionValue["CRS"];
       visParams = OptionValue["VisParams"];
 
-      expr = prepareImageExpression[assetId, bands, visParams];
+      If[!ListQ[bands] && Length[visParams] === 0,
+        bands = autoBandsForFormat[assetId, fileFormat]
+      ];
+
+      expr = prepareImageExpression[assetId, bands, visParams, bbox];
+
+      (* When user provides visParams, honor their requested format.
+         Otherwise use GEO_TIFF internally to preserve full dynamic range
+         and let Mathematica handle display scaling. *)
+      internalFormat = If[Length[visParams] > 0,
+        ToUpperCase[fileFormat],
+        "GEO_TIFF"
+      ];
+
       grid = buildGridSpec[bbox, imageSize, crs];
 
       requestBody = <|
-        "expression" -> expr,
-        "fileFormat" -> ToUpperCase[fileFormat],
+        "expression" -> wrapExpression[expr],
+        "fileFormat" -> internalFormat,
         "grid" -> grid
       |>;
 
@@ -969,18 +1235,54 @@ GEEComputePixels[assetId_String,
         requestBody = Append[requestBody, "bandIds" -> bands]
       ];
 
-      responseBytes = ConfirmBy[
-        geePOSTRaw["image:computePixels", requestBody, project],
-        ByteArrayQ,
+      responseBytes = geePOSTRaw["image:computePixels", requestBody, project];
+      If[FailureQ[responseBytes],
+        Message[GEEComputePixels::apierr, assetId,
+          responseBytes["MessageTemplate"]];
+        Confirm[$Failed]
+      ];
+      ConfirmBy[responseBytes, ByteArrayQ,
         Message[GEEComputePixels::fetchfail, assetId]
       ];
 
-      img = ImportByteArray[responseBytes,
-        Switch[ToUpperCase[fileFormat],
-          "PNG", "PNG",
-          "JPEG" | "JPG", "JPEG",
-          "GEO_TIFF" | "GEOTIFF" | "TIFF", "TIFF",
-          _, "PNG"
+      If[internalFormat === "GEO_TIFF" && ToUpperCase[fileFormat] =!= "GEO_TIFF",
+        (* Internal TIFF fetch: import as GeoTIFF data to get correct
+           signed values, then rescale to 0-1 for display.
+           Single-band: returns a 2D matrix {h, w}.
+           Multi-band: returns a list of 2D matrices {band1, band2, ...}.
+           Nodata values (detected as statistical outliers far below the
+           data range) are clamped to the valid minimum before rescaling. *)
+        Module[{rawData, stacked, flat, validMin, validMax},
+          rawData = ImportByteArray[responseBytes, {"GeoTIFF", "Data"}];
+          img = Which[
+            Length[Dimensions[rawData]] === 2,
+              Module[{arr},
+                arr = N@Normal[rawData];
+                flat = Flatten[arr];
+                {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
+                arr = Clip[arr, {validMin, validMax}];
+                Image[Rescale[arr], "Real32"]
+              ],
+            ListQ[rawData] && Length[Dimensions[rawData[[1]]]] === 2,
+              stacked = MapThread[List, Normal /@ rawData, 2];
+              stacked = N@stacked;
+              flat = Flatten[stacked];
+              {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
+              stacked = Clip[stacked, {validMin, validMax}];
+              Image[Rescale[stacked], "Real32", ColorSpace -> "RGB"],
+            True,
+              Message[GEEComputePixels::notimage, Head[rawData]];
+              Confirm[$Failed]
+          ]
+        ],
+        (* User-requested format: import directly *)
+        img = ImportByteArray[responseBytes,
+          Switch[internalFormat,
+            "PNG", "PNG",
+            "JPEG" | "JPG", "JPEG",
+            "GEO_TIFF" | "GEOTIFF" | "TIFF", "TIFF",
+            _, "PNG"
+          ]
         ]
       ];
 
@@ -1094,7 +1396,7 @@ GEEImage[other___] := (
 GEEGetTile[assetId_String, z_Integer, x_Integer, y_Integer,
     opts : OptionsPattern[]] :=
   Enclose[
-    Module[{project, bands, visParams, expr, mapBody, mapResponse,
+    Module[{project, bands, visParams, bbox, expr, mapBody, mapResponse,
         mapName, tileURL, result},
       ConfirmBy[ensureAuthenticated[], AssociationQ,
         Message[GEEGetTile::noauth]
@@ -1103,10 +1405,12 @@ GEEGetTile[assetId_String, z_Integer, x_Integer, y_Integer,
       project = OptionValue["Project"];
       bands = OptionValue["Bands"];
       visParams = OptionValue["VisParams"];
+      bbox = tileToBBox[z, x, y];
 
-      expr = prepareImageExpression[assetId, bands, visParams];
+      expr = prepareImageExpression[assetId, bands, visParams, bbox];
 
-      mapBody = <|"expression" -> expr|>;
+      mapBody = <|"expression" -> wrapExpression[expr],
+        "fileFormat" -> "PNG"|>;
 
       mapResponse = ConfirmBy[
         geePOST["maps", mapBody, project],
@@ -1158,7 +1462,7 @@ GEEGetTile[other___] := (
 GEEIdentify[point_GeoPosition, assetId_String,
     opts : OptionsPattern[]] :=
   Enclose[
-    Module[{project, bands, lat, lon, imageExpr, geometry,
+    Module[{project, bands, lat, lon, bbox, imageExpr, geometry,
         reduceExpr, requestBody, json, result},
       ConfirmBy[ensureAuthenticated[], AssociationQ,
         Message[GEEIdentify::noauth]
@@ -1168,20 +1472,25 @@ GEEIdentify[point_GeoPosition, assetId_String,
       bands = OptionValue["Bands"];
       {lat, lon} = point[[1]];
 
-      imageExpr = buildImageExpression[assetId];
-      If[ListQ[bands],
-        imageExpr = buildBandSelection[imageExpr, bands]
-      ];
+      bbox = {lon - 0.01, lat - 0.01, lon + 0.01, lat + 0.01};
+      imageExpr = prepareImageExpression[assetId, bands,
+        <||>, bbox];
 
       geometry = buildGeometryPoint[lat, lon];
       reduceExpr = buildReduceRegion[imageExpr, geometry, 30];
 
-      requestBody = <|"expression" -> reduceExpr|>;
+      requestBody = <|"expression" -> wrapExpression[reduceExpr]|>;
 
       json = ConfirmBy[
         geePOST["value:compute", requestBody, project],
         AssociationQ,
         Message[GEEIdentify::parsefail]
+      ];
+
+      If[KeyExistsQ[json, "error"],
+        Message[GEEIdentify::apierr,
+          Lookup[Lookup[json, "error", <||>], "message", "Unknown error"]];
+        Confirm[$Failed]
       ];
 
       result = Lookup[json, "result", <||>];
@@ -1263,21 +1572,21 @@ GEEComputeFeatures[assetId_String, filter_String,
       ];
 
       If[StringLength[filter] > 0,
-        collExpr = <|"type" -> "Invocation",
+        collExpr = <|"functionInvocationValue" -> <|
           "functionName" -> "Collection.filter",
           "arguments" -> <|
             "collection" -> collExpr,
-            "filter" -> <|
-              "type" -> "Invocation",
+            "filter" -> <|"functionInvocationValue" -> <|
               "functionName" -> "Filter.expression",
               "arguments" -> <|
                 "expression" -> <|"constantValue" -> filter|>
               |>
-            |>
-          |>|>
+            |>|>
+          |>
+        |>|>
       ];
 
-      requestBody = <|"expression" -> collExpr|>;
+      requestBody = <|"expression" -> wrapExpression[collExpr]|>;
       If[IntegerQ[maxFeatures],
         requestBody = Append[requestBody,
           "pageSize" -> Min[maxFeatures, 1000]]
@@ -1287,6 +1596,12 @@ GEEComputeFeatures[assetId_String, filter_String,
         geePOST["table:computeFeatures", requestBody, project],
         AssociationQ,
         Message[GEEComputeFeatures::parsefail]
+      ];
+
+      If[KeyExistsQ[json, "error"],
+        Message[GEEComputeFeatures::apierr,
+          Lookup[Lookup[json, "error", <||>], "message", "Unknown error"]];
+        Confirm[$Failed]
       ];
 
       features = Lookup[json, "features", {}];
@@ -1320,12 +1635,18 @@ GEECompute[expression_Association, opts : OptionsPattern[]] :=
       ];
 
       project = OptionValue["Project"];
-      requestBody = <|"expression" -> expression|>;
+      requestBody = <|"expression" -> wrapExpression[expression]|>;
 
       json = ConfirmBy[
         geePOST["value:compute", requestBody, project],
         AssociationQ,
         Message[GEECompute::parsefail]
+      ];
+
+      If[KeyExistsQ[json, "error"],
+        Message[GEECompute::apierr,
+          Lookup[Lookup[json, "error", <||>], "message", "Unknown error"]];
+        Confirm[$Failed]
       ];
 
       Lookup[json, "result", json]
@@ -1445,3 +1766,19 @@ GEEGeoGraphics[other___] := (
 End[]
 
 EndPackage[]
+
+(* Remove any Global` shadows created by interactive loading *)
+Quiet[
+  If[NameQ["Global`GEEConnect"], Remove["Global`GEEConnect"]];
+  If[NameQ["Global`GEEGetAssetInfo"], Remove["Global`GEEGetAssetInfo"]];
+  If[NameQ["Global`GEEListAssets"], Remove["Global`GEEListAssets"]];
+  If[NameQ["Global`GEEComputePixels"], Remove["Global`GEEComputePixels"]];
+  If[NameQ["Global`GEEImage"], Remove["Global`GEEImage"]];
+  If[NameQ["Global`GEEGetTile"], Remove["Global`GEEGetTile"]];
+  If[NameQ["Global`GEEIdentify"], Remove["Global`GEEIdentify"]];
+  If[NameQ["Global`GEEGetSamples"], Remove["Global`GEEGetSamples"]];
+  If[NameQ["Global`GEEComputeFeatures"], Remove["Global`GEEComputeFeatures"]];
+  If[NameQ["Global`GEECompute"], Remove["Global`GEECompute"]];
+  If[NameQ["Global`GEEGeoGraphics"], Remove["Global`GEEGeoGraphics"]];
+  If[NameQ["Global`$GEEConnection"], Remove["Global`$GEEConnection"]];
+]

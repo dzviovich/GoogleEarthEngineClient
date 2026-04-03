@@ -10,11 +10,12 @@
 
 ### Key Directories
 
-- `src/` — Wolfram Language packages (`.wl`)
+- `Kernel/` — Wolfram Language packages (`.wl`)
 - `tests/` — Test files (`.wlt`) and test helpers
+- `Documentation/English/` — Paclet documentation notebooks (`.nb`)
 - `notebook/` — Mathematica notebooks (`.nb`) for exploration
 - `data/` — Input data files
-- `docs/` — Project documentation
+- `docs/` — Documentation specs and reference (`.md`)
 - `logs/` — Output logs
 
 ### Common Commands
@@ -26,8 +27,8 @@ wolframscript -file tests/run_tests.wls
 # Run a specific test file
 wolframscript -code 'TestReport["tests/<Name>_test.wlt"]'
 
-# Execute a script
-wolframscript -file src/main.wls
+# Run live integration tests
+wolframscript -file tests/live_test.wls
 
 # Open notebook
 mathematica notebook/<Name>.nb

@@ -23,41 +23,41 @@ Requires a Google Cloud service account with the Earth Engine API enabled and th
 
 | Function | Description |
 |----------|-------------|
-| `GEEGetAssetInfo` | Fetch metadata for a GEE asset (image, collection, table) |
+| `GEEGetAssetInfo` | Fetch metadata for a GEE asset (image, collection, table). Falls back to STAC catalog for missing fields. |
 | `GEEListAssets` | List assets in a folder or collection |
 
 ### Image Retrieval
 
 | Function | Description |
 |----------|-------------|
-| `GEEComputePixels` | Low-level pixel computation for a bounding box |
-| `GEEImage` | High-level geo-tagged image retrieval |
-| `GEEGetTile` | Fetch a rendered map tile |
+| `GEEComputePixels` | Low-level pixel computation for a bounding box (supports IMAGE and IMAGE_COLLECTION assets, auto-filters collections by region and date) |
+| `GEEImage` | High-level geo-tagged image retrieval (auto-filters and mosaics collections, auto-rescales for display) |
+| `GEEGetTile` | Fetch a rendered Web Mercator map tile (supports IMAGE and IMAGE_COLLECTION assets, auto-filters collections by tile extent and date) |
 
 ### Point Queries
 
 | Function | Description |
 |----------|-------------|
-| `GEEIdentify` | Get pixel values at a single point |
+| `GEEIdentify` | Get pixel values at a single point (supports IMAGE and IMAGE_COLLECTION assets, auto-filters collections by region and date) |
 | `GEEGetSamples` | Batch pixel value extraction at multiple points |
 
 ### Feature Queries
 
 | Function | Description |
 |----------|-------------|
-| `GEEComputeFeatures` | Query features from a FeatureCollection |
+| `GEEComputeFeatures` | Query features from a TABLE asset with optional spatial and expression filters |
 
 ### Computation
 
 | Function | Description |
 |----------|-------------|
-| `GEECompute` | Evaluate an arbitrary GEE expression tree |
+| `GEECompute` | Evaluate an arbitrary GEE expression tree (reduceRegion, geometry operations, collection counts, constants) |
 
 ### Visualization
 
 | Function | Description |
 |----------|-------------|
-| `GEEGeoGraphics` | Render geo primitives on a GEE background map |
+| `GEEGeoGraphics` | Render geo primitives (markers, paths, polygons, disks, circles) on a GEE background map with styling support |
 
 ## Quick Examples
 
@@ -71,6 +71,12 @@ GEEIdentify[GeoPosition[{30.25, -97.75}], "USGS/SRTMGL1_003"]
 (* Fetch a geo-tagged image *)
 img = GEEImage[GeoPosition[{30.25, -97.75}], "USGS/SRTMGL1_003",
   GeoRange -> Quantity[10, "Kilometers"]]
+
+(* Fetch from an ImageCollection (auto-mosaicked) *)
+img = GEEImage[GeoPosition[{0, 20}], "MODIS/061/MCD12Q1",
+  GeoRange -> Quantity[2000, "Kilometers"],
+  "Bands" -> {"LC_Type1"},
+  "VisParams" -> <|"min" -> 0, "max" -> 17|>]
 
 (* Query protected areas near Austin, TX *)
 GEEComputeFeatures["WCMC/WDPA/current/polygons", "",

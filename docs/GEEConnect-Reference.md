@@ -17,7 +17,7 @@ GEEConnect[keyFile, "Project" -> projectId]
 
 - `keyFile` must be a path to a valid service account JSON key file.
 - The key file must contain `client_email`, `private_key`, and `project_id` fields.
-- On success, stores the connection in `$GEEConnection` and returns a status Association.
+- On success, stores the connection in `$GEEConnection` and returns a status Association with keys `"Project"`, `"Status"`, and `"Expiry"` (a `DateObject` in local time).
 - The access token is automatically refreshed when it expires (1-hour lifetime).
 - All other `GEE*` functions require `GEEConnect` to be called first.
 

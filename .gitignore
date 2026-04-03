@@ -22,3 +22,7 @@ data/*
 # Notebook outputs (keep directory, ignore contents)
 notebook/*
 !notebook/.gitkeep
+
+# Paclet build artifacts
+build/
+*.paclet
