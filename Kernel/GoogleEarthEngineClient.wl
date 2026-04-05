@@ -94,7 +94,12 @@ GEEFilterDate[start, end] operator form for use with //."
 
 GEEFilterBounds::usage = "GEEFilterBounds[collection, bbox] filter a \
 collection expression by spatial bounds {west, south, east, north}.\n\
-GEEFilterBounds[bbox] operator form for use with //."
+GEEFilterBounds[bbox] operator form for use with //.\n\
+GEEFilterBounds[region] also accepts GeoPosition, Polygon, GeoPolygon, \
+GeoDisk, GeoCircle, Rectangle, Entity, and other geo primitives; the \
+bounding box is computed automatically via GeoBoundingBox."
+
+GEEFilterBounds::bboxfail = "Could not compute a bounding box from `1`."
 
 GEEFilterProperty::usage = "GEEFilterProperty[collection, property, op, \
 value] filter a collection by a metadata property. op can be \
@@ -185,8 +190,12 @@ GEEDivide::usage = "GEEDivide[image, other] per-pixel division.\n\
 GEEDivide[other] operator form for use with //."
 
 GEEExpression::usage = "GEEExpression[image, expr, bindings] evaluate a \
-math expression string with band variable bindings.\n\
+math expression string with band variable bindings. Supports +, -, *, \
+/, ** (power), and parentheses.\n\
 GEEExpression[expr, bindings] operator form for use with //."
+
+GEEExpression::badvar = "Unknown variable `1` in expression. Check bindings."
+GEEExpression::badexpr = "Could not parse expression: `1`."
 
 GEEGreaterThan::usage = "GEEGreaterThan[image, other] per-pixel greater \
 than comparison returning 0/1.\n\
@@ -250,6 +259,136 @@ to the per-pixel count of non-masked values."
 GEEReducePercentile::usage = "GEEReducePercentile[collection, percentiles] \
 reduce a collection to specified percentiles.\n\
 GEEReducePercentile[percentiles] operator form for use with //."
+
+GEETerrain::usage = "GEETerrain[image] compute slope, aspect, and hillshade \
+from a DEM image using Algorithms.Terrain."
+
+GEEReproject::usage = "GEEReproject[image, crs, scale] reproject an image to \
+the given CRS at the specified scale in meters.\n\
+GEEReproject[crs, scale] operator form for use with //."
+
+GEEResample::usage = "GEEResample[image, method] set the resampling method \
+for an image. method can be \"bilinear\" or \"bicubic\".\n\
+GEEResample[method] operator form for use with //."
+
+GEEFocalMean::usage = "GEEFocalMean[image, radius] apply a focal mean \
+filter with the given radius in meters.\n\
+GEEFocalMean[radius] operator form for use with //."
+
+GEEFocalMax::usage = "GEEFocalMax[image, radius] apply a focal max filter \
+with the given radius in meters.\n\
+GEEFocalMax[radius] operator form for use with //."
+
+GEEFocalMin::usage = "GEEFocalMin[image, radius] apply a focal min filter \
+with the given radius in meters.\n\
+GEEFocalMin[radius] operator form for use with //."
+
+GEEFocalMedian::usage = "GEEFocalMedian[image, radius] apply a focal \
+median filter with the given radius in meters.\n\
+GEEFocalMedian[radius] operator form for use with //."
+
+GEEConvolve::usage = "GEEConvolve[image, kernel] convolve an image with a \
+kernel expression.\n\
+GEEConvolve[kernel] operator form for use with //."
+
+GEEGradient::usage = "GEEGradient[image] compute the x and y gradient of \
+an image."
+
+GEEEntropy::usage = "GEEEntropy[image, radius] compute entropy within a \
+neighborhood of the given radius in meters.\n\
+GEEEntropy[radius] operator form for use with //."
+
+GEEPixelArea::usage = "GEEPixelArea[] create an image where each pixel \
+value is its area in square meters."
+
+GEEPixelLonLat::usage = "GEEPixelLonLat[] create an image with longitude \
+and latitude coordinate bands."
+
+GEEConstant::usage = "GEEConstant[value] create a constant-value image."
+
+GEEReduceRegions::usage = "GEEReduceRegions[image, featureCollection, \
+reducer, scale] reduce an image over multiple geometries at once.\n\
+GEEReduceRegions[featureCollection, reducer, scale] operator form for \
+use with //."
+
+GEESample::usage = "GEESample[image, region, scale] sample pixel values \
+from an image within a region at the specified scale.\n\
+GEESample[region, scale] operator form for use with //."
+
+GEEReduceToVectors::usage = "GEEReduceToVectors[image, geometry, scale] \
+vectorize an image within a geometry at the specified scale.\n\
+GEEReduceToVectors[geometry, scale] operator form for use with //."
+
+GEEPow::usage = "GEEPow[image, other] per-pixel exponentiation.\n\
+GEEPow[other] operator form for use with //."
+
+GEEMod::usage = "GEEMod[image, other] per-pixel modulo.\n\
+GEEMod[other] operator form for use with //."
+
+GEEAbs::usage = "GEEAbs[image] per-pixel absolute value."
+
+GEESqrt::usage = "GEESqrt[image] per-pixel square root."
+
+GEELog::usage = "GEELog[image] per-pixel natural logarithm."
+
+GEELog10::usage = "GEELog10[image] per-pixel base-10 logarithm."
+
+GEEExp::usage = "GEEExp[image] per-pixel exponential (e^x)."
+
+GEEPolygon::usage = "GEEPolygon[coordinates] create a GEE polygon geometry \
+from a list of {lon, lat} coordinate pairs."
+
+GEELineString::usage = "GEELineString[coordinates] create a GEE line \
+geometry from a list of {lon, lat} coordinate pairs.\n\
+GEELineString[{GeoPosition[{lat1,lon1}], ...}] create a GEE line \
+geometry from a list of GeoPosition objects."
+
+GEEBuffer::usage = "GEEBuffer[geometry, distance] buffer a geometry by \
+distance in meters.\n\
+GEEBuffer[distance] operator form for use with //."
+
+GEECentroid::usage = "GEECentroid[geometry] compute the centroid of a \
+geometry."
+
+GEEBounds::usage = "GEEBounds[geometry] compute the bounding box of a \
+geometry."
+
+GEEArea::usage = "GEEArea[geometry] compute the area of a geometry in \
+square meters."
+
+GEEGet::usage = "GEEGet[image, property] get a metadata property value \
+from an image.\n\
+GEEGet[property] operator form for use with //."
+
+GEESet::usage = "GEESet[image, properties] set metadata properties on an \
+image. properties is an Association.\n\
+GEESet[properties] operator form for use with //."
+
+GEEDate::usage = "GEEDate[image] get the acquisition date of an image."
+
+GEECast::usage = "GEECast[image, bandTypes] cast band types. bandTypes is \
+an Association mapping band names to type strings.\n\
+GEECast[bandTypes] operator form for use with //."
+
+GEEToFloat::usage = "GEEToFloat[image] convert all bands to float type."
+
+GEEToInt::usage = "GEEToInt[image] convert all bands to integer type."
+
+GEEJoinSimple::usage = "GEEJoinSimple[primary, secondary, condition] \
+perform a simple join of two collections using a filter condition."
+
+GEEJoinInner::usage = "GEEJoinInner[primary, secondary, condition] \
+perform an inner join of two collections using a filter condition."
+
+GEEJoinSaveBest::usage = "GEEJoinSaveBest[primary, secondary, condition, \
+propertyName] join and save the best match as a property.\n\
+GEEJoinSaveBest[secondary, condition, propertyName] operator form for \
+use with //."
+
+GEEJoinSaveAll::usage = "GEEJoinSaveAll[primary, secondary, condition, \
+propertyName] join and save all matches as a property.\n\
+GEEJoinSaveAll[secondary, condition, propertyName] operator form for \
+use with //."
 
 (* --- Error message templates --- *)
 
@@ -600,6 +739,14 @@ wrapExpression[expr_Association] :=
             "argumentNames" -> fdef["argumentNames"],
             "body" -> bodyKey
           |>|>
+        ],
+      KeyExistsQ[e, "dictionaryValue"],
+        Module[{dv = e["dictionaryValue"], newVals},
+          newVals = Association @ KeyValueMap[
+            Function[{k, v}, k -> flatten[v]],
+            dv["values"]
+          ];
+          <|"dictionaryValue" -> <|"values" -> newVals|>|>
         ],
       True,
         e
@@ -1059,6 +1206,20 @@ computeBBox[region_, geoRange_, geoCenter_, padding_] :=
         GeoBoundingBox[region, padding],
         GeoBoundingBox[region]
       ]
+  ]
+
+(* Convert any geo primitive to {west, south, east, north} bbox *)
+toBoundingBox[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] :=
+  bbox
+
+toBoundingBox[region_] :=
+  Module[{result, sw, ne},
+    result = Quiet[GeoBoundingBox[region]];
+    If[MatchQ[result, {_GeoPosition, _GeoPosition}],
+      {sw, ne} = result;
+      {sw[[1, 2]], sw[[1, 1]], ne[[1, 2]], ne[[1, 1]]},
+      $Failed
+    ]
   ]
 
 (* --- RasterSize from GeoResolution/GeoZoomLevel --- *)
@@ -2038,6 +2199,26 @@ GEEFilterBounds[collection_Association,
 GEEFilterBounds[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] :=
   Function[collection, buildSpatialFilter[collection, bbox]]
 
+GEEFilterBounds[collection_Association, region_] :=
+  Module[{bbox},
+    bbox = toBoundingBox[region];
+    If[bbox === $Failed,
+      Message[GEEFilterBounds::bboxfail, InputForm[region]];
+      $Failed,
+      buildSpatialFilter[collection, bbox]
+    ]
+  ]
+
+GEEFilterBounds[region_] :=
+  Module[{bbox},
+    bbox = toBoundingBox[region];
+    If[bbox === $Failed,
+      Message[GEEFilterBounds::bboxfail, InputForm[region]];
+      $Failed,
+      Function[collection, buildSpatialFilter[collection, bbox]]
+    ]
+  ]
+
 GEEFilterProperty[collection_Association, property_String,
     op_String, value_] :=
   Module[{filterName},
@@ -2122,7 +2303,8 @@ GEESelectBands[expr_Association, bands_List] :=
     fn = Lookup[
       Lookup[expr, "functionInvocationValue", <||>],
       "functionName", ""];
-    If[StringContainsQ[fn, "Collection"],
+    If[StringMatchQ[fn, "Collection.*" | "ImageCollection.load" |
+        "ImageCollection.merge"],
       mapSelectBands[expr, bands],
       buildBandSelection[expr, bands]
     ]
@@ -2214,7 +2396,11 @@ GEEGeometry[{west_?NumericQ, south_?NumericQ, east_?NumericQ, north_?NumericQ}] 
 (* --- Tier 1 expression builder helpers --- *)
 
 wrapImageArg[x_Association] := x
-wrapImageArg[x_?NumericQ] := <|"constantValue" -> x|>
+wrapImageArg[x_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.constant",
+    "arguments" -> <|"value" -> <|"constantValue" -> x|>|>
+  |>|>
 
 GEENormalizedDifference[image_Association, bands : {_String, _String}] :=
   <|"functionInvocationValue" -> <|
@@ -2252,12 +2438,12 @@ GEEUpdateMask[image_Association, mask_Association] :=
 GEEUpdateMask[mask_Association] :=
   Function[image, GEEUpdateMask[image, mask]]
 
-GEEUnmask[image_Association, value_?NumericQ] :=
+GEEUnmask[image_Association, value_] :=
   <|"functionInvocationValue" -> <|
     "functionName" -> "Image.unmask",
     "arguments" -> <|
       "input" -> image,
-      "value" -> <|"constantValue" -> value|>
+      "value" -> wrapImageArg[value]
     |>
   |>|>
 
@@ -2270,7 +2456,7 @@ GEEUnmask[image_Association] :=
 GEESelfMask[image_Association] :=
   <|"functionInvocationValue" -> <|
     "functionName" -> "Image.selfMask",
-    "arguments" -> <|"input" -> image|>
+    "arguments" -> <|"image" -> image|>
   |>|>
 
 GEEAddBands[image_Association, other_Association] :=
@@ -2346,24 +2532,87 @@ GEEDivide[other_] :=
   Function[image, GEEDivide[image, other]]
 
 GEEExpression[image_Association, expr_String, bindings_Association] :=
-  <|"functionInvocationValue" -> <|
-    "functionName" -> "Image.expression",
-    "arguments" -> <|
-      "expression" -> <|"constantValue" -> expr|>,
-      "map" -> Association[
-        KeyValueMap[
-          #1 -> <|"functionInvocationValue" -> <|
-            "functionName" -> "Image.select",
-            "arguments" -> <|
-              "input" -> image,
-              "bandSelectors" -> <|"constantValue" -> {#2}|>
-            |>
+  Module[{bandExprs, parsed, toGEE, preparedExpr},
+    bandExprs = Association @ KeyValueMap[
+      #1 -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Image.select",
+        "arguments" -> <|
+          "input" -> image,
+          "bandSelectors" -> <|"constantValue" -> {#2}|>
+        |>
+      |>|> &,
+      bindings
+    ];
+
+    toGEE[Plus[a_, b__]] :=
+      Module[{terms = {a, b}, positives, negatives, result},
+        positives = Cases[terms, Except[Times[-1, _]]];
+        negatives = Cases[terms, Times[-1, x_] :> x];
+        result = If[positives =!= {},
+          Fold[
+            <|"functionInvocationValue" -> <|
+              "functionName" -> "Image.add",
+              "arguments" -> <|"image1" -> #1, "image2" -> #2|>
+            |>|> &,
+            toGEE[First[positives]], toGEE /@ Rest[positives]
+          ],
+          toGEE[0]
+        ];
+        Fold[
+          <|"functionInvocationValue" -> <|
+            "functionName" -> "Image.subtract",
+            "arguments" -> <|"image1" -> #1, "image2" -> #2|>
           |>|> &,
-          bindings
+          result, toGEE /@ negatives
         ]
-      ]
-    |>
-  |>|>
+      ];
+    toGEE[Times[a_, b__]] :=
+      Fold[
+        <|"functionInvocationValue" -> <|
+          "functionName" -> "Image.multiply",
+          "arguments" -> <|"image1" -> #1, "image2" -> #2|>
+        |>|> &,
+        toGEE[a], toGEE /@ {b}
+      ];
+    toGEE[Power[a_, -1]] :=
+      <|"functionInvocationValue" -> <|
+        "functionName" -> "Image.divide",
+        "arguments" -> <|"image1" -> wrapImageArg[1], "image2" -> toGEE[a]|>
+      |>|>;
+    toGEE[Power[a_, Rational[-1, n_]]] :=
+      <|"functionInvocationValue" -> <|
+        "functionName" -> "Image.divide",
+        "arguments" -> <|
+          "image1" -> wrapImageArg[1],
+          "image2" -> toGEE[Power[a, Rational[1, n]]]
+        |>
+      |>|>;
+    toGEE[Power[a_, b_]] :=
+      <|"functionInvocationValue" -> <|
+        "functionName" -> "Image.pow",
+        "arguments" -> <|"image1" -> toGEE[a], "image2" -> toGEE[b]|>
+      |>|>;
+    toGEE[Rational[a_, b_]] := toGEE[N[a / b]];
+    toGEE[n_?NumericQ] := wrapImageArg[n];
+    toGEE[sym_Symbol] :=
+      With[{name = SymbolName[sym]},
+        If[KeyExistsQ[bandExprs, name],
+          bandExprs[name],
+          Message[GEEExpression::badvar, name]; $Failed
+        ]
+      ];
+    toGEE[other_] := (
+      Message[GEEExpression::badexpr, InputForm[other]]; $Failed
+    );
+
+    (* Preprocess: replace ** with ^ for Wolfram parsing *)
+    preparedExpr = StringReplace[expr, "**" -> "^"];
+    parsed = Quiet[ToExpression[preparedExpr, InputForm]];
+    If[FailureQ[parsed] || parsed === Null,
+      Message[GEEExpression::badexpr, expr]; $Failed,
+      toGEE[parsed]
+    ]
+  ]
 
 GEEExpression[expr_String, bindings_Association] :=
   Function[image, GEEExpression[image, expr, bindings]]
@@ -2571,6 +2820,407 @@ GEEReducePercentile[collection_Association, percentiles_List] :=
 GEEReducePercentile[percentiles_List] :=
   Function[collection, GEEReducePercentile[collection, percentiles]]
 
+(* --- Tier 3 expression builder helpers --- *)
+
+(* Terrain, Projection, Resampling *)
+
+GEETerrain[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Terrain",
+    "arguments" -> <|
+      "input" -> image
+    |>
+  |>|>
+
+GEEReproject[image_Association, crs_String, scale_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.reproject",
+    "arguments" -> <|
+      "image" -> image,
+      "crs" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Projection",
+        "arguments" -> <|"crs" -> <|"constantValue" -> crs|>|>
+      |>|>,
+      "scale" -> <|"constantValue" -> scale|>
+    |>
+  |>|>
+
+GEEReproject[crs_String, scale_?NumericQ] :=
+  Function[image, GEEReproject[image, crs, scale]]
+
+GEEResample[image_Association, method_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.resample",
+    "arguments" -> <|
+      "image" -> image,
+      "mode" -> <|"constantValue" -> method|>
+    |>
+  |>|>
+
+GEEResample[method_String] :=
+  Function[image, GEEResample[image, method]]
+
+(* Focal operations *)
+
+buildFocal[fnName_String][image_Association, radius_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> fnName,
+    "arguments" -> <|
+      "image" -> image,
+      "radius" -> <|"constantValue" -> radius|>,
+      "units" -> <|"constantValue" -> "meters"|>
+    |>
+  |>|>
+
+GEEFocalMean[image_Association, radius_?NumericQ] :=
+  buildFocal["Image.focalMean"][image, radius]
+GEEFocalMean[radius_?NumericQ] :=
+  Function[image, GEEFocalMean[image, radius]]
+
+GEEFocalMax[image_Association, radius_?NumericQ] :=
+  buildFocal["Image.focalMax"][image, radius]
+GEEFocalMax[radius_?NumericQ] :=
+  Function[image, GEEFocalMax[image, radius]]
+
+GEEFocalMin[image_Association, radius_?NumericQ] :=
+  buildFocal["Image.focalMin"][image, radius]
+GEEFocalMin[radius_?NumericQ] :=
+  Function[image, GEEFocalMin[image, radius]]
+
+GEEFocalMedian[image_Association, radius_?NumericQ] :=
+  buildFocal["Image.focalMedian"][image, radius]
+GEEFocalMedian[radius_?NumericQ] :=
+  Function[image, GEEFocalMedian[image, radius]]
+
+(* Convolution, Gradient, Entropy *)
+
+GEEConvolve[image_Association, kernel_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.convolve",
+    "arguments" -> <|
+      "image" -> image,
+      "kernel" -> kernel
+    |>
+  |>|>
+
+GEEConvolve[kernel_Association] :=
+  Function[image, GEEConvolve[image, kernel]]
+
+GEEGradient[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.gradient",
+    "arguments" -> <|
+      "input" -> image
+    |>
+  |>|>
+
+GEEEntropy[image_Association, radius_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.entropy",
+    "arguments" -> <|
+      "image" -> image,
+      "kernel" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Kernel.circle",
+        "arguments" -> <|
+          "radius" -> <|"constantValue" -> radius|>,
+          "units" -> <|"constantValue" -> "meters"|>
+        |>
+      |>|>
+    |>
+  |>|>
+
+GEEEntropy[radius_?NumericQ] :=
+  Function[image, GEEEntropy[image, radius]]
+
+(* Pixel utilities *)
+
+GEEPixelArea[] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.pixelArea",
+    "arguments" -> <||>
+  |>|>
+
+GEEPixelLonLat[] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.pixelLonLat",
+    "arguments" -> <||>
+  |>|>
+
+GEEConstant[value_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.constant",
+    "arguments" -> <|
+      "value" -> <|"constantValue" -> value|>
+    |>
+  |>|>
+
+(* Advanced queries *)
+
+GEEReduceRegions[image_Association, featureCollection_Association,
+    reducer_String, scale_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.reduceRegions",
+    "arguments" -> <|
+      "image" -> image,
+      "collection" -> featureCollection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer." <> reducer,
+        "arguments" -> <||>
+      |>|>,
+      "scale" -> <|"constantValue" -> scale|>
+    |>
+  |>|>
+
+GEEReduceRegions[featureCollection_Association, reducer_String,
+    scale_?NumericQ] :=
+  Function[image, GEEReduceRegions[image, featureCollection, reducer, scale]]
+
+GEESample[image_Association, region_Association, scale_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.sample",
+    "arguments" -> <|
+      "image" -> image,
+      "region" -> region,
+      "scale" -> <|"constantValue" -> scale|>
+    |>
+  |>|>
+
+GEESample[region_Association, scale_?NumericQ] :=
+  Function[image, GEESample[image, region, scale]]
+
+GEEReduceToVectors[image_Association, geometry_Association,
+    scale_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.reduceToVectors",
+    "arguments" -> <|
+      "image" -> image,
+      "geometry" -> geometry,
+      "scale" -> <|"constantValue" -> scale|>
+    |>
+  |>|>
+
+GEEReduceToVectors[geometry_Association, scale_?NumericQ] :=
+  Function[image, GEEReduceToVectors[image, geometry, scale]]
+
+(* Additional image math *)
+
+GEEPow[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.pow",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEPow[other_] := Function[image, GEEPow[image, other]]
+
+GEEMod[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.mod",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEMod[other_] := Function[image, GEEMod[image, other]]
+
+buildUnaryImageOp[fnName_String][image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> fnName,
+    "arguments" -> <|
+      "value" -> image
+    |>
+  |>|>
+
+GEEAbs[image_Association] := buildUnaryImageOp["Image.abs"][image]
+GEESqrt[image_Association] := buildUnaryImageOp["Image.sqrt"][image]
+GEELog[image_Association] := buildUnaryImageOp["Image.log"][image]
+GEELog10[image_Association] := buildUnaryImageOp["Image.log10"][image]
+GEEExp[image_Association] := buildUnaryImageOp["Image.exp"][image]
+
+(* Geometry builders *)
+
+GEEPolygon[coordinates_List] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "GeometryConstructors.Polygon",
+    "arguments" -> <|
+      "coordinates" -> <|"constantValue" -> {coordinates}|>
+    |>
+  |>|>
+
+GEELineString[geoPositions:{__GeoPosition}] :=
+  GEELineString[{#[[1, 2]], #[[1, 1]]}& /@ geoPositions]
+
+GEELineString[coordinates_List] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "GeometryConstructors.LineString",
+    "arguments" -> <|
+      "coordinates" -> <|"constantValue" -> coordinates|>
+    |>
+  |>|>
+
+GEEBuffer[geometry_Association, distance_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Geometry.buffer",
+    "arguments" -> <|
+      "geometry" -> geometry,
+      "distance" -> <|"constantValue" -> distance|>
+    |>
+  |>|>
+
+GEEBuffer[distance_?NumericQ] :=
+  Function[geometry, GEEBuffer[geometry, distance]]
+
+GEECentroid[geometry_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Geometry.centroid",
+    "arguments" -> <|
+      "geometry" -> geometry
+    |>
+  |>|>
+
+GEEBounds[geometry_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Geometry.bounds",
+    "arguments" -> <|
+      "geometry" -> geometry
+    |>
+  |>|>
+
+GEEArea[geometry_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Geometry.area",
+    "arguments" -> <|
+      "geometry" -> geometry
+    |>
+  |>|>
+
+(* Property / Metadata *)
+
+GEEGet[image_Association, property_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.get",
+    "arguments" -> <|
+      "object" -> image,
+      "property" -> <|"constantValue" -> property|>
+    |>
+  |>|>
+
+GEEGet[property_String] :=
+  Function[image, GEEGet[image, property]]
+
+GEESet[image_Association, properties_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.set",
+    "arguments" -> Join[
+      <|"object" -> image|>,
+      Association[KeyValueMap[
+        #1 -> <|"constantValue" -> #2|> &,
+        properties
+      ]]
+    ]
+  |>|>
+
+GEESet[properties_Association] :=
+  Function[image, GEESet[image, properties]]
+
+GEEDate[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.date",
+    "arguments" -> <|
+      "image" -> image
+    |>
+  |>|>
+
+GEECast[image_Association, bandTypes_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.cast",
+    "arguments" -> <|
+      "image" -> image,
+      "bandTypes" -> <|"constantValue" -> bandTypes|>
+    |>
+  |>|>
+
+GEECast[bandTypes_Association] :=
+  Function[image, GEECast[image, bandTypes]]
+
+GEEToFloat[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.toFloat",
+    "arguments" -> <|
+      "value" -> image
+    |>
+  |>|>
+
+GEEToInt[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.toInt",
+    "arguments" -> <|
+      "value" -> image
+    |>
+  |>|>
+
+(* Joins *)
+
+buildJoinFilter[condition_Association] :=
+  condition
+
+GEEJoinSimple[primary_Association, secondary_Association,
+    condition_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Join.simple",
+    "arguments" -> <|
+      "primary" -> primary,
+      "secondary" -> secondary,
+      "condition" -> condition
+    |>
+  |>|>
+
+GEEJoinInner[primary_Association, secondary_Association,
+    condition_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Join.inner",
+    "arguments" -> <|
+      "primary" -> primary,
+      "secondary" -> secondary,
+      "condition" -> condition
+    |>
+  |>|>
+
+GEEJoinSaveBest[primary_Association, secondary_Association,
+    condition_Association, propertyName_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Join.saveBest",
+    "arguments" -> <|
+      "primary" -> primary,
+      "secondary" -> secondary,
+      "condition" -> condition,
+      "propertyName" -> <|"constantValue" -> propertyName|>
+    |>
+  |>|>
+
+GEEJoinSaveBest[secondary_Association, condition_Association,
+    propertyName_String] :=
+  Function[primary, GEEJoinSaveBest[primary, secondary, condition, propertyName]]
+
+GEEJoinSaveAll[primary_Association, secondary_Association,
+    condition_Association, propertyName_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Join.saveAll",
+    "arguments" -> <|
+      "primary" -> primary,
+      "secondary" -> secondary,
+      "condition" -> condition,
+      "propertyName" -> <|"constantValue" -> propertyName|>
+    |>
+  |>|>
+
+GEEJoinSaveAll[secondary_Association, condition_Association,
+    propertyName_String] :=
+  Function[primary, GEEJoinSaveAll[primary, secondary, condition, propertyName]]
+
 End[]
 
 EndPackage[]
@@ -2635,4 +3285,43 @@ Quiet[
   If[NameQ["Global`GEEReduceStdDev"], Remove["Global`GEEReduceStdDev"]];
   If[NameQ["Global`GEEReduceCount"], Remove["Global`GEEReduceCount"]];
   If[NameQ["Global`GEEReducePercentile"], Remove["Global`GEEReducePercentile"]];
+  If[NameQ["Global`GEETerrain"], Remove["Global`GEETerrain"]];
+  If[NameQ["Global`GEEReproject"], Remove["Global`GEEReproject"]];
+  If[NameQ["Global`GEEResample"], Remove["Global`GEEResample"]];
+  If[NameQ["Global`GEEFocalMean"], Remove["Global`GEEFocalMean"]];
+  If[NameQ["Global`GEEFocalMax"], Remove["Global`GEEFocalMax"]];
+  If[NameQ["Global`GEEFocalMin"], Remove["Global`GEEFocalMin"]];
+  If[NameQ["Global`GEEFocalMedian"], Remove["Global`GEEFocalMedian"]];
+  If[NameQ["Global`GEEConvolve"], Remove["Global`GEEConvolve"]];
+  If[NameQ["Global`GEEGradient"], Remove["Global`GEEGradient"]];
+  If[NameQ["Global`GEEEntropy"], Remove["Global`GEEEntropy"]];
+  If[NameQ["Global`GEEPixelArea"], Remove["Global`GEEPixelArea"]];
+  If[NameQ["Global`GEEPixelLonLat"], Remove["Global`GEEPixelLonLat"]];
+  If[NameQ["Global`GEEConstant"], Remove["Global`GEEConstant"]];
+  If[NameQ["Global`GEEReduceRegions"], Remove["Global`GEEReduceRegions"]];
+  If[NameQ["Global`GEESample"], Remove["Global`GEESample"]];
+  If[NameQ["Global`GEEReduceToVectors"], Remove["Global`GEEReduceToVectors"]];
+  If[NameQ["Global`GEEPow"], Remove["Global`GEEPow"]];
+  If[NameQ["Global`GEEMod"], Remove["Global`GEEMod"]];
+  If[NameQ["Global`GEEAbs"], Remove["Global`GEEAbs"]];
+  If[NameQ["Global`GEESqrt"], Remove["Global`GEESqrt"]];
+  If[NameQ["Global`GEELog"], Remove["Global`GEELog"]];
+  If[NameQ["Global`GEELog10"], Remove["Global`GEELog10"]];
+  If[NameQ["Global`GEEExp"], Remove["Global`GEEExp"]];
+  If[NameQ["Global`GEEPolygon"], Remove["Global`GEEPolygon"]];
+  If[NameQ["Global`GEELineString"], Remove["Global`GEELineString"]];
+  If[NameQ["Global`GEEBuffer"], Remove["Global`GEEBuffer"]];
+  If[NameQ["Global`GEECentroid"], Remove["Global`GEECentroid"]];
+  If[NameQ["Global`GEEBounds"], Remove["Global`GEEBounds"]];
+  If[NameQ["Global`GEEArea"], Remove["Global`GEEArea"]];
+  If[NameQ["Global`GEEGet"], Remove["Global`GEEGet"]];
+  If[NameQ["Global`GEESet"], Remove["Global`GEESet"]];
+  If[NameQ["Global`GEEDate"], Remove["Global`GEEDate"]];
+  If[NameQ["Global`GEECast"], Remove["Global`GEECast"]];
+  If[NameQ["Global`GEEToFloat"], Remove["Global`GEEToFloat"]];
+  If[NameQ["Global`GEEToInt"], Remove["Global`GEEToInt"]];
+  If[NameQ["Global`GEEJoinSimple"], Remove["Global`GEEJoinSimple"]];
+  If[NameQ["Global`GEEJoinInner"], Remove["Global`GEEJoinInner"]];
+  If[NameQ["Global`GEEJoinSaveBest"], Remove["Global`GEEJoinSaveBest"]];
+  If[NameQ["Global`GEEJoinSaveAll"], Remove["Global`GEEJoinSaveAll"]];
 ]

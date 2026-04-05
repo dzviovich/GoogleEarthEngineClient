@@ -73,7 +73,7 @@ the GEE REST API v1.
 | 1-Line | `GEELoadImage`         | load a single Image asset                          |
 | 1-Line | `GEEFeatureCollection` | load a FeatureCollection (table) asset             |
 | 1-Line | `GEEFilterDate`        | filter collection by date range                    |
-| 1-Line | `GEEFilterBounds`      | filter collection by spatial bounding box          |
+| 1-Line | `GEEFilterBounds`      | filter collection by spatial region (bbox, geo primitives, or list) |
 | 1-Line | `GEEFilterProperty`    | filter collection by metadata property             |
 | 1-Line | `GEESelectBands`       | select specific bands from an image or collection  |
 | 1-Line | `GEEMosaic`            | mosaic collection into a single image              |
@@ -115,6 +115,45 @@ the GEE REST API v1.
 | 1-Line | `GEEReduceStdDev`      | per-pixel standard deviation                       |
 | 1-Line | `GEEReduceCount`       | per-pixel count of non-masked values               |
 | 1-Line | `GEEReducePercentile`  | reduce to specified percentiles                    |
+| 1-Line | `GEETerrain`           | compute slope, aspect, hillshade from DEM          |
+| 1-Line | `GEEReproject`         | force projection and pixel scale                   |
+| 1-Line | `GEEResample`          | set resampling method (bilinear, bicubic)          |
+| 1-Line | `GEEFocalMean`         | focal mean (spatial smoothing)                     |
+| 1-Line | `GEEFocalMax`          | focal maximum                                      |
+| 1-Line | `GEEFocalMin`          | focal minimum                                      |
+| 1-Line | `GEEFocalMedian`       | focal median                                       |
+| 1-Line | `GEEConvolve`          | convolve image with a kernel                       |
+| 1-Line | `GEEGradient`          | compute x/y gradient                               |
+| 1-Line | `GEEEntropy`           | entropy within a neighborhood                      |
+| 1-Line | `GEEPixelArea`         | image of pixel areas in square meters              |
+| 1-Line | `GEEPixelLonLat`       | image with lon/lat coordinate bands                |
+| 1-Line | `GEEConstant`          | create a constant-value image                      |
+| 1-Line | `GEEReduceRegions`     | reduce over multiple geometries                    |
+| 1-Line | `GEESample`            | sample pixel values within a region                |
+| 1-Line | `GEEReduceToVectors`   | vectorize an image                                 |
+| 1-Line | `GEEPow`               | per-pixel exponentiation                           |
+| 1-Line | `GEEMod`               | per-pixel modulo                                   |
+| 1-Line | `GEEAbs`               | per-pixel absolute value                           |
+| 1-Line | `GEESqrt`              | per-pixel square root                              |
+| 1-Line | `GEELog`               | per-pixel natural logarithm                        |
+| 1-Line | `GEELog10`             | per-pixel base-10 logarithm                        |
+| 1-Line | `GEEExp`               | per-pixel exponential (e^x)                        |
+| 1-Line | `GEEPolygon`           | construct a polygon geometry                       |
+| 1-Line | `GEELineString`        | construct a line geometry                          |
+| 1-Line | `GEEBuffer`            | buffer a geometry by distance                      |
+| 1-Line | `GEECentroid`          | centroid of a geometry                             |
+| 1-Line | `GEEBounds`            | bounding box of a geometry                         |
+| 1-Line | `GEEArea`              | area of a geometry in square meters                |
+| 1-Line | `GEEGet`               | get a metadata property value                      |
+| 1-Line | `GEESet`               | set metadata properties                            |
+| 1-Line | `GEEDate`              | get acquisition date                               |
+| 1-Line | `GEECast`              | cast band types                                    |
+| 1-Line | `GEEToFloat`           | convert all bands to float                         |
+| 1-Line | `GEEToInt`             | convert all bands to integer                       |
+| 1-Line | `GEEJoinSimple`        | simple join of two collections                     |
+| 1-Line | `GEEJoinInner`         | inner join of two collections                      |
+| 1-Line | `GEEJoinSaveBest`      | join and save best match                           |
+| 1-Line | `GEEJoinSaveAll`       | join and save all matches                          |
 
 ### Related Tech Notes
 

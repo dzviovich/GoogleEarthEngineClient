@@ -76,7 +76,7 @@ Build composable GEE processing pipelines using Wolfram Language's `//` (postfix
 | Function             | Description                                          |
 | -------------------- | ---------------------------------------------------- |
 | `GEEFilterDate`      | Filter collection by date range (ISO 8601 strings)   |
-| `GEEFilterBounds`    | Filter collection by spatial bounding box            |
+| `GEEFilterBounds`    | Filter collection by spatial region (bbox, geo primitives, or list) |
 | `GEEFilterProperty`  | Filter collection by metadata property comparison    |
 
 **Band Selection**

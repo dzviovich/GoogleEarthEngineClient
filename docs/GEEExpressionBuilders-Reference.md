@@ -107,13 +107,32 @@ filtered = coll // GEEFilterDate["2023-06-01", "2023-09-01"]
 ```wolfram
 GEEFilterBounds[collection, bbox]
 GEEFilterBounds[bbox]                      (* operator form *)
+GEEFilterBounds[collection, region]
+GEEFilterBounds[region]                    (* operator form *)
 ```
 
-Filter a collection to images that intersect the bounding box `{west, south, east, north}` in EPSG:4326 coordinates.
+Filter a collection to images that intersect a geographic region. The region can be:
+
+- A bounding box `{west, south, east, north}` in EPSG:4326 coordinates
+- Any geo primitive accepted by `GeoBoundingBox`: `GeoPosition`, `Polygon`, `GeoPolygon`, `GeoDisk`, `GeoCircle`, `Rectangle`, `Entity`, `GeoPath`, `Line`, `GeoMarker`, etc.
+- A list of geo primitives — the bounding box is computed to cover all of them
 
 ```wolfram
-(* Filter to images covering Madrid, Spain *)
+(* Bounding box coordinates *)
 filtered = coll // GEEFilterBounds[{-3.8, 40.3, -3.6, 40.5}]
+
+(* Country entity *)
+filtered = coll // GEEFilterBounds[Entity["Country", "Switzerland"]]
+
+(* Geo primitive *)
+filtered = coll // GEEFilterBounds[
+  GeoDisk[GeoPosition[{40.4, -3.7}], Quantity[20, "Kilometers"]]]
+
+(* List of primitives — bbox covers all *)
+filtered = coll // GEEFilterBounds[{
+  Polygon[{GeoPosition[{30.2, -97.8}], GeoPosition[{30.3, -97.7}],
+    GeoPosition[{30.3, -97.8}]}],
+  GeoDisk[GeoPosition[{29.5, -95.0}], Quantity[10, "Kilometers"]]}]
 ```
 
 #### GEEFilterProperty
@@ -777,6 +796,544 @@ Reduce a collection to specified percentiles. `percentiles` is a list of numbers
 pctls = ndviCollection // GEEReducePercentile[{10, 90}]
 ```
 
+### Terrain, Projection & Resampling
+
+#### GEETerrain
+
+```wolfram
+GEETerrain[image]
+```
+
+Compute slope, aspect, and hillshade from a DEM image using `Algorithms.Terrain`. The output is a multi-band image with bands `"slope"`, `"aspect"`, and `"hillshade"`.
+
+```wolfram
+(* Compute terrain from SRTM *)
+terrain = GEELoadImage["USGS/SRTMGL1_003"] // GEETerrain
+```
+
+#### GEEReproject
+
+```wolfram
+GEEReproject[image, crs, scale]
+GEEReproject[crs, scale]                   (* operator form *)
+```
+
+Force an image to a specific projection and pixel scale (in meters). `crs` is an EPSG code string.
+
+```wolfram
+(* Reproject to UTM zone 33N at 30m resolution *)
+reprojected = img // GEEReproject["EPSG:32633", 30]
+```
+
+#### GEEResample
+
+```wolfram
+GEEResample[image, method]
+GEEResample[method]                        (* operator form *)
+```
+
+Set the resampling method for an image. `method` is `"bilinear"` or `"bicubic"`.
+
+```wolfram
+(* Smooth resampling for visualization *)
+smooth = dem // GEEResample["bilinear"]
+```
+
+### Focal Operations
+
+Focal operations compute statistics within a neighborhood around each pixel. The `radius` parameter specifies the kernel radius in meters.
+
+#### GEEFocalMean
+
+```wolfram
+GEEFocalMean[image, radius]
+GEEFocalMean[radius]                       (* operator form *)
+```
+
+Apply a focal mean (smoothing) filter.
+
+```wolfram
+(* Smooth NDVI with a 500m radius *)
+smoothed = ndvi // GEEFocalMean[500]
+```
+
+#### GEEFocalMax
+
+```wolfram
+GEEFocalMax[image, radius]
+GEEFocalMax[radius]                        (* operator form *)
+```
+
+Focal maximum — the maximum value within the neighborhood.
+
+```wolfram
+localMax = dem // GEEFocalMax[1000]
+```
+
+#### GEEFocalMin
+
+```wolfram
+GEEFocalMin[image, radius]
+GEEFocalMin[radius]                        (* operator form *)
+```
+
+Focal minimum — the minimum value within the neighborhood.
+
+```wolfram
+localMin = dem // GEEFocalMin[1000]
+```
+
+#### GEEFocalMedian
+
+```wolfram
+GEEFocalMedian[image, radius]
+GEEFocalMedian[radius]                     (* operator form *)
+```
+
+Focal median — robust to outliers.
+
+```wolfram
+denoised = img // GEEFocalMedian[300]
+```
+
+### Convolution & Analysis
+
+#### GEEConvolve
+
+```wolfram
+GEEConvolve[image, kernel]
+GEEConvolve[kernel]                        (* operator form *)
+```
+
+Convolve an image with a kernel expression. The kernel must be a GEE kernel expression tree (e.g., from a `Kernel.*` function invocation).
+
+```wolfram
+(* Convolve with a custom kernel expression *)
+convolved = img // GEEConvolve[kernelExpr]
+```
+
+#### GEEGradient
+
+```wolfram
+GEEGradient[image]
+```
+
+Compute the x and y gradient of an image. Returns a two-band image with bands `"x"` and `"y"` representing the horizontal and vertical gradients.
+
+```wolfram
+(* Compute gradient of a DEM *)
+grad = dem // GEEGradient
+```
+
+#### GEEEntropy
+
+```wolfram
+GEEEntropy[image, radius]
+GEEEntropy[radius]                         (* operator form *)
+```
+
+Compute entropy within a neighborhood of the given radius in meters. Higher entropy indicates more texture/heterogeneity.
+
+```wolfram
+(* Texture analysis: high entropy = complex land cover *)
+texture = landcover // GEEEntropy[500]
+```
+
+### Pixel Utilities
+
+#### GEEPixelArea
+
+```wolfram
+GEEPixelArea[]
+```
+
+Create an image where each pixel value is its area in square meters. Pixel area varies with latitude in geographic projections. No input image required.
+
+```wolfram
+area = GEEPixelArea[]
+```
+
+#### GEEPixelLonLat
+
+```wolfram
+GEEPixelLonLat[]
+```
+
+Create an image with two bands: `"longitude"` and `"latitude"`, containing the geographic coordinates of each pixel center. No input image required.
+
+```wolfram
+coords = GEEPixelLonLat[]
+```
+
+#### GEEConstant
+
+```wolfram
+GEEConstant[value]
+```
+
+Create a constant-value image. Useful for initializing masks, thresholds, or fill values.
+
+```wolfram
+(* Create a constant image with value 1 *)
+ones = GEEConstant[1]
+
+(* Create a zero-fill image *)
+zeros = GEEConstant[0]
+```
+
+### Advanced Queries
+
+#### GEEReduceRegions
+
+```wolfram
+GEEReduceRegions[image, featureCollection, reducer, scale]
+GEEReduceRegions[featureCollection, reducer, scale]  (* operator form *)
+```
+
+Reduce an image over multiple geometries at once. `featureCollection` is a GEE FeatureCollection expression, `reducer` is a reducer name (e.g., `"mean"`, `"sum"`), and `scale` is the pixel resolution in meters.
+
+```wolfram
+(* Compute mean elevation across all US states *)
+states = GEEFeatureCollection["TIGER/2018/States"];
+result = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEEReduceRegions[states, "mean", 1000]
+```
+
+#### GEESample
+
+```wolfram
+GEESample[image, region, scale]
+GEESample[region, scale]                   (* operator form *)
+```
+
+Sample pixel values from an image within a region at the specified scale in meters. Returns a FeatureCollection of point samples.
+
+```wolfram
+(* Sample NDVI values across a region *)
+samples = ndviImage //
+  GEESample[GEEGeometry[{-97.8, 30.2, -97.7, 30.3}], 30]
+```
+
+#### GEEReduceToVectors
+
+```wolfram
+GEEReduceToVectors[image, geometry, scale]
+GEEReduceToVectors[geometry, scale]        (* operator form *)
+```
+
+Vectorize an image within a geometry. Converts contiguous regions of equal pixel values into polygon features.
+
+```wolfram
+(* Vectorize a classified image *)
+vectors = classification //
+  GEEReduceToVectors[GEEGeometry[{-97.8, 30.2, -97.7, 30.3}], 30]
+```
+
+### Additional Image Math
+
+#### GEEPow
+
+```wolfram
+GEEPow[image, other]
+GEEPow[other]                             (* operator form *)
+```
+
+Per-pixel exponentiation. `other` can be an image or a number.
+
+```wolfram
+(* Square pixel values *)
+squared = img // GEEPow[2]
+```
+
+#### GEEMod
+
+```wolfram
+GEEMod[image, other]
+GEEMod[other]                             (* operator form *)
+```
+
+Per-pixel modulo.
+
+```wolfram
+(* Modulo 360 for aspect values *)
+wrapped = aspect // GEEMod[360]
+```
+
+#### GEEAbs
+
+```wolfram
+GEEAbs[image]
+```
+
+Per-pixel absolute value.
+
+```wolfram
+(* Absolute value of a difference image *)
+absDiff = changeImage // GEEAbs
+```
+
+#### GEESqrt
+
+```wolfram
+GEESqrt[image]
+```
+
+Per-pixel square root.
+
+```wolfram
+sqrtImg = img // GEESqrt
+```
+
+#### GEELog
+
+```wolfram
+GEELog[image]
+```
+
+Per-pixel natural logarithm.
+
+```wolfram
+logImg = img // GEELog
+```
+
+#### GEELog10
+
+```wolfram
+GEELog10[image]
+```
+
+Per-pixel base-10 logarithm.
+
+```wolfram
+(* Convert radar backscatter to dB *)
+dB = sigma0 // GEELog10 // GEEMultiply[10]
+```
+
+#### GEEExp
+
+```wolfram
+GEEExp[image]
+```
+
+Per-pixel exponential (e^x).
+
+```wolfram
+expImg = img // GEEExp
+```
+
+### Geometry Builders
+
+#### GEEPolygon
+
+```wolfram
+GEEPolygon[coordinates]
+```
+
+Create a GEE polygon geometry from a list of `{lon, lat}` coordinate pairs. The polygon is automatically closed (no need to repeat the first point).
+
+```wolfram
+(* Triangle over central London *)
+poly = GEEPolygon[{
+  {-0.13, 51.50}, {-0.08, 51.53}, {-0.03, 51.50}
+}]
+```
+
+#### GEELineString
+
+```wolfram
+GEELineString[coordinates]
+```
+
+Create a GEE line geometry from a list of `{lon, lat}` coordinate pairs.
+
+```wolfram
+(* A transect line *)
+line = GEELineString[{
+  {-122.4, 37.78}, {-122.3, 37.78}
+}]
+```
+
+#### GEEBuffer
+
+```wolfram
+GEEBuffer[geometry, distance]
+GEEBuffer[distance]                        (* operator form *)
+```
+
+Buffer a geometry by a distance in meters. Positive distance expands, negative distance shrinks.
+
+```wolfram
+(* Buffer a point to create a 5km circle *)
+circle = GEEGeometry[{-122.4, 37.78}] // GEEBuffer[5000]
+```
+
+#### GEECentroid
+
+```wolfram
+GEECentroid[geometry]
+```
+
+Compute the centroid of a geometry.
+
+```wolfram
+center = GEEGeometry[{-105.3, 39.6, -105.1, 39.8}] // GEECentroid
+```
+
+#### GEEBounds
+
+```wolfram
+GEEBounds[geometry]
+```
+
+Compute the bounding box of a geometry. Returns a rectangle geometry.
+
+```wolfram
+bbox = complexPolygon // GEEBounds
+```
+
+#### GEEArea
+
+```wolfram
+GEEArea[geometry]
+```
+
+Compute the area of a geometry in square meters.
+
+```wolfram
+(* Area of a bounding box *)
+areaM2 = GEECompute[GEEGeometry[{-73.0, 40.7, -72.0, 41.1}] // GEEArea]
+```
+
+### Property & Metadata
+
+#### GEEGet
+
+```wolfram
+GEEGet[image, property]
+GEEGet[property]                           (* operator form *)
+```
+
+Get a metadata property value from an image.
+
+```wolfram
+(* Get cloud cover percentage *)
+cloudPct = img // GEEGet["CLOUDY_PIXEL_PERCENTAGE"]
+```
+
+#### GEESet
+
+```wolfram
+GEESet[image, properties]
+GEESet[properties]                         (* operator form *)
+```
+
+Set metadata properties on an image. `properties` is an Association mapping property names to values.
+
+```wolfram
+(* Tag an image with custom metadata *)
+tagged = img // GEESet[<|"source" -> "composite", "version" -> 2|>]
+```
+
+#### GEEDate
+
+```wolfram
+GEEDate[image]
+```
+
+Get the acquisition date of an image.
+
+```wolfram
+date = img // GEEDate
+```
+
+#### GEECast
+
+```wolfram
+GEECast[image, bandTypes]
+GEECast[bandTypes]                         (* operator form *)
+```
+
+Cast band types. `bandTypes` is an Association mapping band names to type strings (e.g., `"float"`, `"int32"`, `"byte"`).
+
+```wolfram
+(* Cast specific bands to float *)
+casted = img // GEECast[<|"B4" -> "float", "B3" -> "float"|>]
+```
+
+#### GEEToFloat
+
+```wolfram
+GEEToFloat[image]
+```
+
+Convert all bands to float type.
+
+```wolfram
+floatImg = img // GEEToFloat
+```
+
+#### GEEToInt
+
+```wolfram
+GEEToInt[image]
+```
+
+Convert all bands to integer type.
+
+```wolfram
+intImg = img // GEEToInt
+```
+
+### Joins
+
+Joins combine two collections based on a filter condition. The condition is typically a time or spatial filter expression built as a raw expression tree.
+
+#### GEEJoinSimple
+
+```wolfram
+GEEJoinSimple[primary, secondary, condition]
+```
+
+Simple join — returns features from `primary` that have at least one match in `secondary` according to the `condition`.
+
+#### GEEJoinInner
+
+```wolfram
+GEEJoinInner[primary, secondary, condition]
+```
+
+Inner join — returns pairs of matching features from both collections.
+
+#### GEEJoinSaveBest
+
+```wolfram
+GEEJoinSaveBest[primary, secondary, condition, propertyName]
+GEEJoinSaveBest[secondary, condition, propertyName]  (* operator form *)
+```
+
+Join and save the best (closest) match from `secondary` as a property named `propertyName` on each `primary` feature.
+
+```wolfram
+(* Find the closest-in-time Landsat image for each Sentinel-2 image *)
+joined = s2Collection //
+  GEEJoinSaveBest[landsatCollection, timeFilter, "closest_landsat"]
+```
+
+#### GEEJoinSaveAll
+
+```wolfram
+GEEJoinSaveAll[primary, secondary, condition, propertyName]
+GEEJoinSaveAll[secondary, condition, propertyName]  (* operator form *)
+```
+
+Join and save all matches from `secondary` as a list property named `propertyName` on each `primary` feature.
+
+```wolfram
+(* Save all matching secondary images within a time window *)
+joined = primaryColl //
+  GEEJoinSaveAll[secondaryColl, timeFilter, "matches"]
+```
+
 ## Complete Examples
 
 ### Sentinel-2 True Color RGB (Cloud-Filtered Median)
@@ -1293,6 +1850,396 @@ GEEComputePixels[bbox, maxLST,
     "palette" -> {"blue", "white", "red"}|>]
 ```
 
+### Hillshade Visualization from DEM
+
+Use `GEETerrain` to compute slope, aspect, and hillshade from SRTM, then visualize the hillshade band:
+
+```wolfram
+bbox = {6.5, 45.8, 8.5, 47.0};  (* Swiss Alps *)
+hillshade = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEETerrain //
+  GEESelectBands[{"hillshade"}];
+GEEComputePixels[bbox, hillshade,
+  "VisParams" -> <|"min" -> 0, "max" -> 255|>,
+  "ImageSize" -> {1024, 1024}]
+```
+
+### Slope Map for Terrain Analysis
+
+Extract the slope band from terrain analysis and visualize steep vs. flat areas:
+
+```wolfram
+bbox = {-112.3, 36.0, -111.7, 36.5};  (* Grand Canyon *)
+slope = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEETerrain //
+  GEESelectBands[{"slope"}];
+GEEComputePixels[bbox, slope,
+  "VisParams" -> <|"min" -> 0, "max" -> 60,
+    "palette" -> {"green", "yellow", "red", "purple"}|>,
+  "ImageSize" -> {1024, 1024}]
+(* Green = flat, Purple = near-vertical cliffs *)
+```
+
+### Smoothed Elevation with Focal Mean
+
+Apply a focal mean filter to smooth a DEM, reducing noise while preserving large-scale terrain features:
+
+```wolfram
+bbox = {-112.3, 36.0, -111.7, 36.5};  (* Grand Canyon *)
+smoothDEM = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEEFocalMean[1000];
+GEEComputePixels[bbox, smoothDEM,
+  "VisParams" -> <|"min" -> 700, "max" -> 2500,
+    "palette" -> {"green", "yellow", "brown", "white"}|>]
+```
+
+### Local Relief with Focal Max/Min
+
+Compute local relief (the elevation range within a neighborhood) by subtracting the focal minimum from the focal maximum:
+
+```wolfram
+bbox = {-105.5, 39.5, -105.0, 40.0};  (* Colorado Front Range *)
+dem = GEELoadImage["USGS/SRTMGL1_003"];
+localRelief = GEESubtract[
+  dem // GEEFocalMax[2000],
+  dem // GEEFocalMin[2000]];
+GEEComputePixels[bbox, localRelief,
+  "VisParams" -> <|"min" -> 0, "max" -> 1000,
+    "palette" -> {"white", "yellow", "orange", "red"}|>,
+  "ImageSize" -> {1024, 1024}]
+(* White = flat plains, Red = high local relief (canyons, ridgelines) *)
+```
+
+### Terrain Gradient for Edge Detection
+
+Use `GEEGradient` to compute x/y gradients of a DEM, then combine into gradient magnitude to highlight ridges and valleys:
+
+```wolfram
+bbox = {138.6, 35.2, 138.9, 35.45};  (* Mount Fuji *)
+grad = GEELoadImage["USGS/SRTMGL1_003"] // GEEGradient;
+(* The gradient x and y bands show the rate of elevation change *)
+GEEComputePixels[bbox, grad // GEESelectBands[{"x"}],
+  "VisParams" -> <|"min" -> -0.05, "max" -> 0.05,
+    "palette" -> {"blue", "white", "red"}|>]
+(* Blue = falling westward, Red = rising eastward *)
+```
+
+### Logarithmic Nightlight Visualization
+
+Nighttime radiance values span several orders of magnitude. Use `GEELog10` to compress the dynamic range for better visualization:
+
+```wolfram
+bbox = {139.5, 35.5, 140.0, 35.85};  (* Tokyo *)
+radiance = GEECollection["NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG"] //
+  GEEFilterDate["2024-01-01", "2024-07-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"avg_rad"}] //
+  GEEMedian;
+(* Log10 compression: turns 0.1–1000 range into -1 to 3 *)
+logRadiance = radiance // GEELog10;
+GEEComputePixels[bbox, logRadiance,
+  "VisParams" -> <|"min" -> -1, "max" -> 3,
+    "palette" -> {"black", "blue", "yellow", "white"}|>,
+  "ImageSize" -> {1024, 1024}]
+```
+
+### Radar Backscatter in Decibels
+
+Convert Sentinel-1 SAR backscatter from linear power to decibels using `GEELog10`:
+
+```wolfram
+bbox = {-4.0, 40.3, -3.6, 40.55};  (* Madrid *)
+sar = GEECollection["COPERNICUS/S1_GRD"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["instrumentMode", "Equals", "IW"] //
+  GEESelectBands[{"VV"}] //
+  GEEMedian;
+dB = sar // GEELog10 // GEEMultiply[10];
+GEEComputePixels[bbox, dB,
+  "VisParams" -> <|"min" -> -25, "max" -> 0,
+    "palette" -> {"black", "gray", "white"}|>]
+(* Dark = smooth surfaces (water), Bright = rough surfaces (buildings) *)
+```
+
+### Power-Law Contrast Enhancement
+
+Use `GEEPow` with a fractional exponent to enhance low-value contrast in nightlight data (gamma correction):
+
+```wolfram
+bbox = {55.0, 25.0, 55.5, 25.35};  (* Dubai *)
+radiance = GEECollection["NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG"] //
+  GEEFilterDate["2024-01-01", "2024-07-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"avg_rad"}] //
+  GEEMedian;
+(* Gamma < 1 brightens dark areas, revealing dim suburban lights *)
+enhanced = radiance // GEEDivide[100] // GEEPow[0.4] // GEEMultiply[100];
+GEEComputePixels[bbox, enhanced,
+  "VisParams" -> <|"min" -> 0, "max" -> 100,
+    "palette" -> {"black", "purple", "yellow", "white"}|>]
+```
+
+### Absolute NDVI Change Detection
+
+Use `GEEAbs` to compute the absolute magnitude of vegetation change, regardless of direction:
+
+```wolfram
+bbox = {-122.0, 37.0, -121.5, 37.5};  (* San Jose / Santa Cruz *)
+buildNDVI[start_, end_] :=
+  GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+    GEEFilterDate[start, end] //
+    GEEFilterBounds[bbox] //
+    GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+    GEESelectBands[{"B8", "B4"}] //
+    GEEMedian //
+    GEENormalizedDifference[{"B8_median", "B4_median"}];
+absChange = GEESubtract[
+  buildNDVI["2023-09-01", "2023-11-01"],
+  buildNDVI["2023-03-01", "2023-05-01"]] // GEEAbs;
+GEEComputePixels[bbox, absChange,
+  "VisParams" -> <|"min" -> 0, "max" -> 0.4,
+    "palette" -> {"white", "yellow", "orange", "red"}|>,
+  "ImageSize" -> {1024, 1024}]
+(* White = stable, Red = large change (gain or loss) *)
+```
+
+### Custom Polygon Clipping
+
+Clip a satellite image to a custom polygon boundary instead of a rectangle:
+
+```wolfram
+(* Polygon around Lake Como, Italy *)
+lakePoly = GEEPolygon[{
+  {9.20, 45.98}, {9.28, 46.17}, {9.35, 46.20},
+  {9.42, 46.17}, {9.40, 46.00}, {9.30, 45.95}
+}];
+img = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[{9.15, 45.90, 9.50, 46.25}] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B4", "B3", "B2"}] //
+  GEEMedian //
+  GEEClip[lakePoly];
+GEEComputePixels[{9.15, 45.90, 9.50, 46.25}, img,
+  "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
+```
+
+### Buffered Point Analysis
+
+Create a circular region around a point by buffering, then compute mean elevation:
+
+```wolfram
+(* 10km buffer around Mount Rainier summit *)
+summit = GEEGeometry[{-121.7603, 46.8523}];
+buffer = summit // GEEBuffer[10000];
+result = GEECompute[
+  GEELoadImage["USGS/SRTMGL1_003"] //
+    GEEReduceRegion[buffer, "mean", 30]
+]
+(* Mean elevation within 10km of Mount Rainier summit *)
+```
+
+### Geometry Area Computation
+
+Compute the area of a bounding box in square kilometers using `GEEArea`:
+
+```wolfram
+geom = GEEGeometry[{-73.0, 40.7, -72.0, 41.1}];
+areaM2 = GEECompute[geom // GEEArea];
+areaKm2 = areaM2 / 10^6
+(* Area in km² of a rectangle over Long Island, NY *)
+```
+
+### Centroid and Bounds of Complex Geometry
+
+Compute the centroid and bounding box of a polygon:
+
+```wolfram
+poly = GEEPolygon[{
+  {12.45, 41.88}, {12.50, 41.92}, {12.55, 41.88}, {12.50, 41.84}
+}];
+centroid = GEECompute[poly // GEECentroid]
+bounds = GEECompute[poly // GEEBounds]
+```
+
+### Reprojected Image at Fixed Scale
+
+Force a consistent projection and resolution for multi-source comparison:
+
+```wolfram
+bbox = {13.2, 52.4, 13.6, 52.6};  (* Berlin *)
+dem = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEEReproject["EPSG:32633", 30];
+GEEComputePixels[bbox, dem,
+  "VisParams" -> <|"min" -> 20, "max" -> 120,
+    "palette" -> {"green", "yellow", "brown"}|>]
+```
+
+### Bilinear Resampling for Smooth Visualization
+
+Apply bilinear resampling to a coarse MODIS product for smoother rendering:
+
+```wolfram
+bbox = {-5.0, 35.5, -3.5, 37.0};  (* Southern Spain *)
+lst = GEECollection["MODIS/061/MOD11A2"] //
+  GEEFilterDate["2023-07-01", "2023-08-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"LST_Day_1km"}] //
+  GEEMedian //
+  GEEMultiply[0.02] //
+  GEEResample["bilinear"];
+GEEComputePixels[bbox, lst,
+  "VisParams" -> <|"min" -> 290, "max" -> 320,
+    "palette" -> {"blue", "yellow", "red"}|>]
+```
+
+### Pixel Area for Weighted Statistics
+
+Use `GEEPixelArea` with `GEEMultiply` to compute area-weighted sums. This accounts for pixel area distortion in geographic projections:
+
+```wolfram
+bbox = {-62.0, -4.0, -60.0, -2.0};  (* Amazon rainforest *)
+ndvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-07-01", "2023-10-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 20] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B8_median", "B4_median"}];
+(* Mask to vegetation: NDVI > 0.5 *)
+vegMask = ndvi // GEEGreaterThan[0.5];
+(* Multiply pixel area by mask to get vegetated area per pixel *)
+vegArea = GEEPixelArea[] // GEEMultiply[vegMask];
+(* Sum the vegetated area in square meters *)
+totalVegM2 = GEECompute[
+  vegArea // GEEReduceRegion[GEEGeometry[bbox], "sum", 10]
+]
+```
+
+### Constant Image for Threshold Masking
+
+Use `GEEConstant` to create a fill value for replacing masked pixels:
+
+```wolfram
+(* Replace masked areas with a constant background value *)
+filled = cloudMaskedImage // GEEUnmask[0] //
+  GEEWhere[cloudMask, GEEConstant[-9999]]
+```
+
+### Type Casting for Export
+
+Convert bands to float before performing division to avoid integer truncation:
+
+```wolfram
+bbox = {-3.8, 40.3, -3.6, 40.5};  (* Madrid *)
+img = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B4", "B3", "B2"}] //
+  GEEMedian //
+  GEEToFloat //
+  GEEDivide[10000];  (* Scale to 0-1 reflectance *)
+GEEComputePixels[bbox, img,
+  "VisParams" -> <|"min" -> 0, "max" -> 0.3|>]
+```
+
+### Convert to Integer for Compact Export
+
+Round and cast to integer for smaller file sizes when precision is not critical:
+
+```wolfram
+bbox = {-3.8, 40.3, -3.6, 40.5};
+ndvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B8_median", "B4_median"}] //
+  GEEMultiply[10000] //
+  GEEToInt;  (* NDVI scaled to -10000..10000 as integer *)
+GEEComputePixels[bbox, ndvi, "FileFormat" -> "GEO_TIFF"]
+```
+
+### Entropy Texture Map
+
+Compute spatial entropy to distinguish between homogeneous areas (farmland, water) and heterogeneous areas (urban, forests):
+
+```wolfram
+bbox = {113.8, 22.2, 114.3, 22.5};  (* Hong Kong *)
+img = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-01-01", "2023-12-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B4"}] //
+  GEEMedian;
+texture = img // GEEEntropy[300];
+GEEComputePixels[bbox, texture,
+  "VisParams" -> <|"min" -> 0, "max" -> 4,
+    "palette" -> {"blue", "white", "red"}|>]
+(* Blue = uniform (water, bare land), Red = high texture (urban, mixed land) *)
+```
+
+### Multi-Region Statistics with ReduceRegions
+
+Compute mean elevation across multiple US states in a single call:
+
+```wolfram
+states = GEEFeatureCollection["TIGER/2018/States"];
+dem = GEELoadImage["USGS/SRTMGL1_003"];
+result = GEECompute[
+  dem // GEEReduceRegions[states, "mean", 1000]
+]
+(* Returns a FeatureCollection with mean elevation per state *)
+```
+
+### Focal Median for Salt-and-Pepper Noise Removal
+
+Remove isolated noisy pixels from a classified image using focal median:
+
+```wolfram
+bbox = {12.4, 41.8, 12.6, 42.0};  (* Rome *)
+classified = GEELoadImage["ESA/WorldCover/v200"] //
+  GEESelectBands[{"Map"}];
+(* 100m radius median filter removes isolated misclassified pixels *)
+cleaned = classified // GEEFocalMedian[100];
+GEEComputePixels[bbox, cleaned,
+  "VisParams" -> <|"min" -> 10, "max" -> 100,
+    "palette" -> {"green", "yellow", "red", "blue", "gray"}|>]
+```
+
+### Setting Metadata Properties
+
+Tag a derived image with custom metadata for downstream identification:
+
+```wolfram
+ndvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[{-97.8, 30.2, -97.7, 30.3}] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B8_median", "B4_median"}] //
+  GEESet[<|"index" -> "NDVI", "season" -> "summer_2023"|>];
+```
+
+### Line Transect for Elevation Profile
+
+Create a line geometry for sampling elevation along a transect:
+
+```wolfram
+(* Transect across a mountain pass *)
+transect = GEELineString[{
+  {6.85, 46.10}, {7.05, 46.05}, {7.20, 46.10}
+}];
+(* Sample elevation every 100m along the transect *)
+samples = GEELoadImage["USGS/SRTMGL1_003"] //
+  GEESample[transect, 100];
+GEECompute[samples]
+```
+
 ## String vs. Expression: When to Use Each
 
 | Approach | Syntax | Best For |
@@ -1308,7 +2255,7 @@ GEEComputePixels[bbox, maxLST,
 - **Heterogeneous band structures**: Some collections (e.g., Sentinel-2) changed their band structure over time. Always filter by date and optionally by bounds before selecting bands to avoid errors from mismatched bands across images.
 - **Filter order for performance**: While filters can technically be applied in any order, applying date and spatial filters first reduces the number of images that subsequent operations must process. This improves performance and avoids timeouts on large collections.
 - **GEESelectBands on collections**: `GEESelectBands` automatically detects whether the input is a collection or a single image and uses the appropriate API call (`Collection.map` with `Image.select` for collections, or `Image.select` directly for images).
-- **GEEFilterBounds bbox must match**: When using `GEEFilterBounds` with `GEEComputePixels`, the filter bounding box should cover at least the same area as the `GEEComputePixels` bounding box, otherwise the result may contain gaps.
+- **GEEFilterBounds region must cover the output area**: When using `GEEFilterBounds` with `GEEComputePixels`, the filter region should cover at least the same area as the `GEEComputePixels` bounding box, otherwise the result may contain gaps. `GEEFilterBounds` accepts a bounding box `{west, south, east, north}`, any geo primitive (`Entity`, `GeoDisk`, `Polygon`, `GeoPosition`, etc.), or a list of primitives — the bounding box is computed automatically via `GeoBoundingBox`.
 - **Common metadata properties**: Use `GEEGetAssetInfo` to discover available metadata properties for any asset. Properties vary by dataset -- `"CLOUDY_PIXEL_PERCENTAGE"` is Sentinel-2 specific while `"CLOUD_COVER"` is used by Landsat.
 - **Band name suffixes with NormalizedDifference**: After `GEEMedian` or `GEEMean`, band names are suffixed (e.g., `"B8"` becomes `"B8_median"`). When chaining `GEENormalizedDifference` after an aggregation, use the suffixed band names: `GEENormalizedDifference[{"B8_median", "B4_median"}]`.
 - **GEEAdd/Subtract/Multiply/Divide with numbers**: When passing a numeric constant as the second argument, it is automatically wrapped as a `constantValue`. When passing an image expression, it is used directly. Both forms work with the `//` operator.
@@ -1320,7 +2267,24 @@ GEEComputePixels[bbox, maxLST,
 - **GEECollectionMap function argument**: The function passed to `GEECollectionMap` receives an expression tree node (Association), not raw pixel data. It must return an expression tree. Use existing helpers (e.g., `GEENormalizedDifference`, `GEESelectBands`) inside the function body.
 - **GEEWhere replaces only where test is true**: `GEEWhere[image, test, value]` keeps original pixel values where `test` is 0 and replaces with `value` where `test` is non-zero. This is different from `GEEUpdateMask`, which masks (removes) pixels rather than replacing them.
 - **GEEMerge band structure**: Both collections passed to `GEEMerge` should have the same band structure. Merging collections with different bands may cause errors during aggregation.
+- **GEETerrain output bands**: `GEETerrain` produces a multi-band image with bands `"slope"` (degrees), `"aspect"` (degrees from north), and `"hillshade"` (0--255). Use `GEESelectBands` to extract the band you need.
+- **Focal operation radius units**: All focal operations (`GEEFocalMean`, `GEEFocalMax`, `GEEFocalMin`, `GEEFocalMedian`) use meters as the radius unit. The actual kernel size depends on the image's pixel resolution.
+- **GEEReproject caution**: Reprojecting forces computation at a specific scale and can cause performance issues if the scale is much finer than the source data. Use sparingly and only when projection consistency is required.
+- **GEEResample must precede reprojection**: `GEEResample` sets the resampling method for the *next* reprojection. Apply it before `GEEReproject` or before a function that triggers reprojection.
+- **GEEPixelArea and GEEPixelLonLat take no arguments**: These are zero-argument constructors that create synthetic images. They are not applied to an existing image — use `GEEAddBands` to combine them with other data.
+- **GEEConstant creates a global image**: `GEEConstant[value]` creates an image covering the entire globe. Clip or mask it before using with `GEEComputePixels` to avoid processing unnecessary area.
+- **GEELog and GEELog10 domain**: Logarithm functions produce `NaN` for zero or negative pixel values. Ensure the input image has positive values, or mask non-positive pixels first.
+- **GEEPow/GEEMod with numbers**: Like other binary image math, the second argument is automatically wrapped as a `constantValue` if numeric. Both image-image and image-number forms are supported.
+- **GEEPolygon coordinate order**: Coordinates are `{lon, lat}` pairs (GeoJSON order), not `{lat, lon}`. The polygon is automatically closed — do not repeat the first coordinate.
+- **GEEBuffer distance sign**: Positive distance expands the geometry, negative distance shrinks it. A point buffered by a positive distance produces a circle.
+- **GEEArea returns square meters**: Divide by `10^6` for square kilometers or by `4047` for acres.
+- **GEECast type strings**: Valid type strings include `"float"`, `"double"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"byte"`, `"uint8"`, `"uint16"`, `"uint32"`.
+- **GEEToFloat/GEEToInt affect all bands**: These convenience functions convert every band. Use `GEECast` for selective band type conversion.
+- **Join condition expressions**: `GEEJoinSimple`, `GEEJoinInner`, `GEEJoinSaveBest`, and `GEEJoinSaveAll` require a filter condition as a raw GEE expression tree (Association). There are no built-in helpers for join filters yet — construct them manually using `"functionInvocationValue"` with `"Filter.maxDifference"` or similar.
+- **GEEReduceRegions scale**: The `scale` parameter determines the resolution at which pixels are sampled. A larger scale is faster but less precise. Match the scale to your data's native resolution when possible.
+- **GEEGradient output**: Returns a two-band image with bands `"x"` (horizontal gradient) and `"y"` (vertical gradient). To compute gradient magnitude, use `GEEExpression` or combine `GEEPow` and `GEESqrt`.
+- **GEEEntropy input**: Works best on integer-valued or classified images. For continuous data, consider binning values first (e.g., with `GEEMultiply` and `GEEToInt`).
 
 ## See Also
 
-`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`, `GEENormalizedDifference`, `GEEClip`, `GEEUpdateMask`, `GEEUnmask`, `GEESelfMask`, `GEEAddBands`, `GEERename`, `GEEAdd`, `GEESubtract`, `GEEMultiply`, `GEEDivide`, `GEEExpression`, `GEEGreaterThan`, `GEELessThan`, `GEEEquals`, `GEENotEquals`, `GEEAnd`, `GEEOr`, `GEENot`, `GEEWhere`, `GEECollectionMap`, `GEEQualityMosaic`, `GEEMerge`, `GEECollectionMax`, `GEECollectionMin`, `GEECollectionSum`, `GEEToBands`, `GEEReduceStdDev`, `GEEReduceCount`, `GEEReducePercentile`
+`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`, `GEENormalizedDifference`, `GEEClip`, `GEEUpdateMask`, `GEEUnmask`, `GEESelfMask`, `GEEAddBands`, `GEERename`, `GEEAdd`, `GEESubtract`, `GEEMultiply`, `GEEDivide`, `GEEExpression`, `GEEGreaterThan`, `GEELessThan`, `GEEEquals`, `GEENotEquals`, `GEEAnd`, `GEEOr`, `GEENot`, `GEEWhere`, `GEECollectionMap`, `GEEQualityMosaic`, `GEEMerge`, `GEECollectionMax`, `GEECollectionMin`, `GEECollectionSum`, `GEEToBands`, `GEEReduceStdDev`, `GEEReduceCount`, `GEEReducePercentile`, `GEETerrain`, `GEEReproject`, `GEEResample`, `GEEFocalMean`, `GEEFocalMax`, `GEEFocalMin`, `GEEFocalMedian`, `GEEConvolve`, `GEEGradient`, `GEEEntropy`, `GEEPixelArea`, `GEEPixelLonLat`, `GEEConstant`, `GEEReduceRegions`, `GEESample`, `GEEReduceToVectors`, `GEEPow`, `GEEMod`, `GEEAbs`, `GEESqrt`, `GEELog`, `GEELog10`, `GEEExp`, `GEEPolygon`, `GEELineString`, `GEEBuffer`, `GEECentroid`, `GEEBounds`, `GEEArea`, `GEEGet`, `GEESet`, `GEEDate`, `GEECast`, `GEEToFloat`, `GEEToInt`, `GEEJoinSimple`, `GEEJoinInner`, `GEEJoinSaveBest`, `GEEJoinSaveAll`
