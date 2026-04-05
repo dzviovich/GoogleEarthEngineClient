@@ -140,14 +140,14 @@ BeginTestSection["GEEComputePixels"]
 
 If[$Authenticated,
   VerificationTest[
-    ImageQ[GEEComputePixels[$TestImageAsset, $TestBBox]],
+    ImageQ[GEEComputePixels[$TestBBox, $TestImageAsset]],
     True,
     TestID -> "GEEComputePixels-returns-image"
   ];
 
   VerificationTest[
     ImageDimensions[
-      GEEComputePixels[$TestImageAsset, $TestBBox,
+      GEEComputePixels[$TestBBox, $TestImageAsset,
         "ImageSize" -> {256, 256}]
     ],
     {256, 256},
@@ -156,7 +156,7 @@ If[$Authenticated,
 
   VerificationTest[
     ImageDimensions[
-      GEEComputePixels[$TestImageAsset, $TestBBox]
+      GEEComputePixels[$TestBBox, $TestImageAsset]
     ],
     {512, 512},
     TestID -> "GEEComputePixels-default-512"
@@ -164,9 +164,9 @@ If[$Authenticated,
 ]
 
 VerificationTest[
-  GEEComputePixels[$TestImageAsset, {1, 2, 3}],
+  GEEComputePixels[{1, 2, 3}, $TestImageAsset],
   $Failed,
-  {GEEComputePixels::badbbox},
+  {GEEComputePixels::bboxfail},
   TestID -> "GEEComputePixels-bad-bbox"
 ]
 
@@ -175,6 +175,24 @@ VerificationTest[
   $Failed,
   {GEEComputePixels::fetchfail},
   TestID -> "GEEComputePixels-no-args"
+]
+
+If[$Authenticated,
+  VerificationTest[
+    ImageQ[GEEComputePixels[GeoPosition[{30.27, -97.74}],
+      $TestImageAsset]],
+    True,
+    TestID -> "GEEComputePixels-geoposition-region"
+  ];
+
+  VerificationTest[
+    ImageQ[GEEComputePixels[
+      Polygon[{GeoPosition[{30.2, -97.8}], GeoPosition[{30.3, -97.8}],
+        GeoPosition[{30.3, -97.7}], GeoPosition[{30.2, -97.7}]}],
+      $TestImageAsset]],
+    True,
+    TestID -> "GEEComputePixels-polygon-region"
+  ];
 ]
 
 EndTestSection[]
@@ -561,9 +579,9 @@ VerificationTest[
 ]
 
 VerificationTest[
-  GEEComputePixels["test", "not-a-bbox"],
+  GEEComputePixels["not-a-bbox", "test"],
   $Failed,
-  {GEEComputePixels::badbbox},
+  {GEEComputePixels::bboxfail},
   TestID -> "Error-ComputePixels-bad-bbox"
 ]
 

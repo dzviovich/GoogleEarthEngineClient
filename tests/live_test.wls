@@ -90,8 +90,8 @@ testResult["each result has Position and Values", samples,
 (* ========== 6. GEEComputePixels ========== *)
 Print["--- 6. GEEComputePixels ---"]
 
-pixels = GEEComputePixels["USGS/SRTMGL1_003",
-  {-97.8, 30.2, -97.7, 30.3},
+pixels = GEEComputePixels[{-97.8, 30.2, -97.7, 30.3},
+  "USGS/SRTMGL1_003",
   "ImageSize" -> {256, 256}, "FileFormat" -> "PNG"];
 testResult["returns an Image", pixels, ImageQ]
 

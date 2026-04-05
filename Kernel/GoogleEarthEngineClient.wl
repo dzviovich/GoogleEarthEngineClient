@@ -19,41 +19,51 @@ GEEListAssets::usage = "GEEListAssets[parent] list assets in a Google Earth \
 Engine folder or collection and return a list of Associations.\n\
 GEEListAssets[parent, opts] list with options \"MaxResults\" and \"Filter\"."
 
-GEEComputePixels::usage = "GEEComputePixels[assetId, bbox] compute pixels \
+GEEComputePixels::usage = "GEEComputePixels[bbox, assetId] compute pixels \
 for a GEE image asset over the bounding box {west, south, east, north}. \
 Return an Image.\n\
-GEEComputePixels[assetId, bbox, opts] compute with options \"ImageSize\", \
-\"FileFormat\", \"Bands\", and \"CRS\"."
+GEEComputePixels[region, assetId] compute pixels over the bounding box of \
+region. Supported region types include GeoPosition, Polygon, GeoPolygon, \
+GeoPath, Line, GeoDisk, GeoCircle, Entity, and any object accepted by \
+GeoBoundingBox.\n\
+GEEComputePixels[bbox, assetId, opts] compute with options \"ImageSize\", \
+\"FileFormat\", \"Bands\", and \"CRS\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEImage::usage = "GEEImage[region, assetId] return a geo-tagged Image of \
 region from the Google Earth Engine asset.\n\
 GEEImage[region, assetId, opts] return an image with options \
 RasterSize, GeoRange, GeoCenter, GeoResolution, GeoZoomLevel, \
 GeoProjection, GeoRangePadding, \"FileFormat\", \"Bands\", ImageSize, \
-and ColorSpace."
+and ColorSpace.\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEGetTile::usage = "GEEGetTile[assetId, z, x, y] fetch a map tile at \
 zoom level z, tile coordinates x, y for a GEE asset. Return an Image.\n\
 GEEGetTile[assetId, point, z] fetch the tile containing the GeoPosition \
 point at the given zoom level.\n\
 GEEGetTile[assetId, z, x, y, opts] fetch with options \"Bands\" and \
-\"VisParams\"."
+\"VisParams\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEIdentify::usage = "GEEIdentify[point, assetId] identify pixel values \
 at a GeoPosition from a Google Earth Engine image asset. Return an \
 Association with keys \"Position\", \"Values\", and \"Bands\".\n\
-GEEIdentify[point, assetId, opts] identify with option \"Bands\"."
+GEEIdentify[point, assetId, opts] identify with option \"Bands\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEGetSamples::usage = "GEEGetSamples[points, assetId] extract pixel \
 values at a list of GeoPosition points from a GEE image asset. Return \
 a list of Associations with keys \"Position\" and \"Values\".\n\
-GEEGetSamples[points, assetId, opts] extract with option \"Bands\"."
+GEEGetSamples[points, assetId, opts] extract with option \"Bands\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEComputeFeatures::usage = "GEEComputeFeatures[assetId, filter] query \
 features from a Google Earth Engine table asset matching the filter. \
 Return a list of feature Associations.\n\
 GEEComputeFeatures[assetId, filter, opts] query with options \
-\"Properties\", \"MaxFeatures\", and \"GeoBounds\"."
+\"Properties\", \"MaxFeatures\", and \"GeoBounds\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEECompute::usage = "GEECompute[expression] compute an arbitrary value \
 from a Google Earth Engine expression and return the result.\n\
@@ -65,11 +75,75 @@ Graphics object.\n\
 GEEGeoGraphics[primitives, assetId, opts] render with options \
 GeoProjection, GeoRange, GeoCenter, GeoRangePadding, RasterSize, \
 GeoResolution, GeoZoomLevel, \"FileFormat\", \"Bands\", ImageSize, \
-GeoBackground, ColorSpace, and \"VisParams\"."
+GeoBackground, ColorSpace, and \"VisParams\".\n\
+assetId can be an asset ID string or a pre-built GEE expression Association."
 
 $GEEConnection::usage = "$GEEConnection holds the current authentication \
 state as an Association with keys \"Project\", \"AccessToken\", \"Expiry\", \
 and \"KeyFile\". Set by GEEConnect."
+
+GEECollection::usage = "GEECollection[assetId] create a GEE expression \
+for an ImageCollection asset."
+
+GEELoadImage::usage = "GEELoadImage[assetId] create a GEE expression \
+for a single Image asset."
+
+GEEFilterDate::usage = "GEEFilterDate[collection, start, end] filter a \
+collection expression by date range (ISO 8601 strings).\n\
+GEEFilterDate[start, end] operator form for use with //."
+
+GEEFilterBounds::usage = "GEEFilterBounds[collection, bbox] filter a \
+collection expression by spatial bounds {west, south, east, north}.\n\
+GEEFilterBounds[bbox] operator form for use with //."
+
+GEEFilterProperty::usage = "GEEFilterProperty[collection, property, op, \
+value] filter a collection by a metadata property. op can be \
+\"LessThan\", \"GreaterThan\", \"Equals\", \"LessThanOrEquals\", \
+\"GreaterThanOrEquals\", or \"NotEquals\".\n\
+GEEFilterProperty[property, op, value] operator form for use with //."
+
+GEEMosaic::usage = "GEEMosaic[collection] mosaic a collection expression \
+into a single image expression."
+
+GEEMedian::usage = "GEEMedian[collection] reduce a collection to the \
+per-pixel median, producing a single image expression."
+
+GEEMean::usage = "GEEMean[collection] reduce a collection to the \
+per-pixel mean, producing a single image expression."
+
+GEESelectBands::usage = "GEESelectBands[image, bands] select bands from \
+an image expression.\n\
+GEESelectBands[bands] operator form for use with //."
+
+GEEVisualize::usage = "GEEVisualize[image, visParams] apply server-side \
+visualization to an image expression. visParams is an Association with \
+keys \"min\", \"max\", \"palette\", \"bands\", \"gamma\".\n\
+GEEVisualize[visParams] operator form for use with //."
+
+GEESort::usage = "GEESort[collection, property] sort a collection by \
+property in ascending order.\n\
+GEESort[collection, property, ascending] sort with explicit direction.\n\
+GEESort[property] operator form for use with //."
+
+GEEFirst::usage = "GEEFirst[collection] get the first image from a \
+collection expression."
+
+GEELimit::usage = "GEELimit[collection, n] limit a collection to at \
+most n images.\n\
+GEELimit[n] operator form for use with //."
+
+GEEFeatureCollection::usage = "GEEFeatureCollection[assetId] create a \
+GEE expression for a FeatureCollection (table) asset."
+
+GEEReduceRegion::usage = "GEEReduceRegion[image, geometry, reducer, \
+scale] compute a statistic over a region. reducer can be \"mean\", \
+\"min\", \"max\", \"sum\", \"first\", \"median\".\n\
+GEEReduceRegion[geometry, reducer, scale] operator form for use with //."
+
+GEEGeometry::usage = "GEEGeometry[{lat, lon}] create a GEE point \
+geometry expression.\n\
+GEEGeometry[{west, south, east, north}] create a GEE rectangle geometry \
+expression."
 
 (* --- Error message templates --- *)
 
@@ -88,6 +162,7 @@ GEEComputePixels::fetchfail = "Failed to compute pixels from `1`.";
 GEEComputePixels::apierr = "GEE API error for `1`: `2`";
 GEEComputePixels::notimage = "Server returned `1` instead of an image.";
 GEEComputePixels::badbbox = "Expected bbox as {west, south, east, north}, got `1`.";
+GEEComputePixels::bboxfail = "Could not compute bounding box from region `1`.";
 GEEComputePixels::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEImage::bboxfail = "Could not compute GeoBoundingBox from the provided region.";
@@ -392,7 +467,42 @@ geePOSTRaw[path_String, body_Association, project_ : Automatic] :=
 (* --- GEE expression tree builders --- *)
 
 wrapExpression[expr_Association] :=
-  <|"result" -> "0", "values" -> <|"0" -> expr|>|>
+  Module[{counter, values, flatten},
+    counter = 0;
+    values = <||>;
+
+    flatten[e_Association] := Which[
+      KeyExistsQ[e, "functionInvocationValue"],
+        Module[{fiv = e["functionInvocationValue"], newArgs},
+          newArgs = Association @ KeyValueMap[
+            Function[{k, v}, k -> flatten[v]],
+            fiv["arguments"]
+          ];
+          <|"functionInvocationValue" -> <|
+            "functionName" -> fiv["functionName"],
+            "arguments" -> newArgs
+          |>|>
+        ],
+      KeyExistsQ[e, "functionDefinitionValue"],
+        Module[{fdef = e["functionDefinitionValue"], bodyKey, processedBody},
+          counter++;
+          bodyKey = ToString[counter];
+          processedBody = flatten[fdef["body"]];
+          AssociateTo[values, bodyKey -> processedBody];
+          <|"functionDefinitionValue" -> <|
+            "argumentNames" -> fdef["argumentNames"],
+            "body" -> bodyKey
+          |>|>
+        ],
+      True,
+        e
+    ];
+
+    flatten[other_] := other;
+
+    AssociateTo[values, "0" -> flatten[expr]];
+    <|"result" -> "0", "values" -> values|>
+  ]
 
 buildImageExpression[assetId_String] :=
   <|"functionInvocationValue" -> <|
@@ -617,6 +727,14 @@ buildDateFilter[collectionExpr_Association, startDate_String, endDate_String] :=
 
 (* --- Prepare image expression with optional band selection and visualization --- *)
 
+prepareImageExpression[expr_Association, bands_, visParams_Association,
+    bbox_ : None] :=
+  Module[{result = expr},
+    If[ListQ[bands], result = buildBandSelection[result, bands]];
+    If[Length[visParams] > 0, result = buildVisualization[result, visParams]];
+    result
+  ]
+
 prepareImageExpression[assetId_String, bands_, visParams_Association,
     bbox_ : None] :=
   Module[{expr, info, assetType, collExpr, endDate, startDate},
@@ -688,6 +806,12 @@ stripHTML[html_String] :=
       RegularExpression["<[^>]+>"] -> ""
     }];
     text = StringReplace[text, {
+      "&amp;" -> "&", "&lt;" -> "<", "&gt;" -> ">",
+      "&quot;" -> "\"", "&apos;" -> "'", "&nbsp;" -> " ",
+      RegularExpression["&#(\\d+);"] :> FromCharacterCode[FromDigits["$1"]],
+      RegularExpression["&#x([0-9a-fA-F]+);"] :> FromCharacterCode[FromDigits["$1", 16]]
+    }];
+    text = StringReplace[text, {
       "\n\n\n" .. -> "\n\n",
       RegularExpression["[ \\t]+\n"] -> "\n"
     }];
@@ -753,8 +877,8 @@ parseAssetInfo[json_Association] :=
       Lookup[props, "description", ""]];
     <|"Type" -> assetType,
       "Name" -> Lookup[json, "name", ""],
-      "Title" -> Lookup[props, "title",
-        Lookup[json, "title", Lookup[json, "id", ""]]],
+      "Title" -> stripHTML[Lookup[props, "title",
+        Lookup[json, "title", Lookup[json, "id", ""]]]],
       "Description" -> stripHTML[rawDesc],
       "Provider" -> Lookup[props, "provider", None],
       "ProviderURL" -> Lookup[props, "provider_url", None],
@@ -1121,10 +1245,10 @@ GEEGetAssetInfo[assetId_String, opts : OptionsPattern[]] := Enclose[
         stac = fetchSTACMetadata[assetId];
         If[AssociationQ[stac] && Length[stac] > 0,
           If[info["Title"] === assetId || info["Title"] === Lookup[json, "id", ""],
-            info = Append[info, "Title" -> Lookup[stac, "Title", info["Title"]]]
+            info = Append[info, "Title" -> stripHTML[Lookup[stac, "Title", info["Title"]]]]
           ];
           If[info["Description"] === "" && StringQ[stac["Description"]],
-            info = Append[info, "Description" -> stac["Description"]]
+            info = Append[info, "Description" -> stripHTML[stac["Description"]]]
           ];
           If[info["Provider"] === None,
             info = Append[info, "Provider" -> stac["Provider"]]
@@ -1192,8 +1316,8 @@ GEEListAssets[other___] := (
 
 (* --- GEEComputePixels --- *)
 
-GEEComputePixels[assetId_String,
-    bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ},
+GEEComputePixels[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ},
+    assetId : (_String | _Association),
     opts : OptionsPattern[]] :=
   Enclose[
     Module[{project, imageSize, fileFormat, bands, crs, visParams,
@@ -1209,7 +1333,7 @@ GEEComputePixels[assetId_String,
       crs = OptionValue["CRS"];
       visParams = OptionValue["VisParams"];
 
-      If[!ListQ[bands] && Length[visParams] === 0,
+      If[StringQ[assetId] && !ListQ[bands] && Length[visParams] === 0,
         bands = autoBandsForFormat[assetId, fileFormat]
       ];
 
@@ -1257,14 +1381,14 @@ GEEComputePixels[assetId_String,
           img = Which[
             Length[Dimensions[rawData]] === 2,
               Module[{arr},
-                arr = N@Normal[rawData];
+                arr = Reverse[N@Normal[rawData]];
                 flat = Flatten[arr];
                 {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
                 arr = Clip[arr, {validMin, validMax}];
                 Image[Rescale[arr], "Real32"]
               ],
             ListQ[rawData] && Length[Dimensions[rawData[[1]]]] === 2,
-              stacked = MapThread[List, Normal /@ rawData, 2];
+              stacked = MapThread[List, Reverse /@ (Normal /@ rawData), 2];
               stacked = N@stacked;
               flat = Flatten[stacked];
               {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
@@ -1296,10 +1420,30 @@ GEEComputePixels[assetId_String,
     ]
   ]
 
-GEEComputePixels[_String, bbox_, OptionsPattern[]] := (
-  Message[GEEComputePixels::badbbox, InputForm[bbox]];
-  $Failed
-)
+GEEComputePixels[region_, assetId : (_String | _Association), opts : OptionsPattern[]] :=
+  Module[{result, sw, ne, south, west, north, east},
+    result = Quiet[
+      Check[computeBBox[region, Automatic, Automatic, None], $Failed]
+    ];
+    If[!MatchQ[result, {_GeoPosition, _GeoPosition}],
+      Message[GEEComputePixels::bboxfail, InputForm[region]];
+      Return[$Failed]
+    ];
+    {sw, ne} = result;
+    {south, west} = sw[[1]];
+    {north, east} = ne[[1]];
+    If[south == north || west == east,
+      result = Quiet[GeoBoundingBox[region, Quantity[1, "Kilometers"]]];
+      If[!MatchQ[result, {_GeoPosition, _GeoPosition}],
+        Message[GEEComputePixels::bboxfail, InputForm[region]];
+        Return[$Failed]
+      ];
+      {sw, ne} = result;
+      {south, west} = sw[[1]];
+      {north, east} = ne[[1]]
+    ];
+    GEEComputePixels[{west, south, east, north}, assetId, opts]
+  ]
 
 GEEComputePixels[other___] := (
   Message[GEEComputePixels::fetchfail, InputForm[{other}]];
@@ -1308,7 +1452,7 @@ GEEComputePixels[other___] := (
 
 (* --- GEEImage --- *)
 
-GEEImage[region_, assetId_String, opts : OptionsPattern[]] := Enclose[
+GEEImage[region_, assetId : (_String | _Association), opts : OptionsPattern[]] := Enclose[
   Module[{geoRange, geoCenter, padding, rasterSize, fileFormat,
       geoRes, geoZoom, geoProj, bands, visParams, imgSize, colSpace,
       project, sw, ne, south, west, north, east, midLat, crs,
@@ -1353,7 +1497,7 @@ GEEImage[region_, assetId_String, opts : OptionsPattern[]] := Enclose[
       {west, south, east, north}, midLat];
 
     img = ConfirmBy[
-      GEEComputePixels[assetId, {west, south, east, north},
+      GEEComputePixels[{west, south, east, north}, assetId,
         "ImageSize" -> rasterSize, "FileFormat" -> fileFormat,
         "Bands" -> bands, "CRS" -> crs, "VisParams" -> visParams,
         "Project" -> project],
@@ -1393,7 +1537,7 @@ GEEImage[other___] := (
 
 (* --- GEEGetTile --- *)
 
-GEEGetTile[assetId_String, z_Integer, x_Integer, y_Integer,
+GEEGetTile[assetId : (_String | _Association), z_Integer, x_Integer, y_Integer,
     opts : OptionsPattern[]] :=
   Enclose[
     Module[{project, bands, visParams, bbox, expr, mapBody, mapResponse,
@@ -1444,7 +1588,7 @@ GEEGetTile[assetId_String, z_Integer, x_Integer, y_Integer,
     ]
   ]
 
-GEEGetTile[assetId_String, point_GeoPosition, z_Integer,
+GEEGetTile[assetId : (_String | _Association), point_GeoPosition, z_Integer,
     opts : OptionsPattern[]] :=
   Module[{lat, lon, rowCol},
     {lat, lon} = point[[1]];
@@ -1459,7 +1603,7 @@ GEEGetTile[other___] := (
 
 (* --- GEEIdentify --- *)
 
-GEEIdentify[point_GeoPosition, assetId_String,
+GEEIdentify[point_GeoPosition, assetId : (_String | _Association),
     opts : OptionsPattern[]] :=
   Enclose[
     Module[{project, bands, lat, lon, bbox, imageExpr, geometry,
@@ -1516,7 +1660,7 @@ GEEIdentify[other___] := (
 
 (* --- GEEGetSamples --- *)
 
-GEEGetSamples[points_List, assetId_String, opts : OptionsPattern[]] :=
+GEEGetSamples[points_List, assetId : (_String | _Association), opts : OptionsPattern[]] :=
   Enclose[
     Module[{bands, project, results},
       bands = OptionValue["Bands"];
@@ -1549,7 +1693,7 @@ GEEGetSamples[other___] := (
 
 (* --- GEEComputeFeatures --- *)
 
-GEEComputeFeatures[assetId_String, filter_String,
+GEEComputeFeatures[assetId : (_String | _Association), filter_String,
     opts : OptionsPattern[]] :=
   Enclose[
     Module[{project, properties, maxFeatures, geoBounds,
@@ -1563,7 +1707,10 @@ GEEComputeFeatures[assetId_String, filter_String,
       maxFeatures = OptionValue["MaxFeatures"];
       geoBounds = OptionValue["GeoBounds"];
 
-      collExpr = buildFeatureCollectionExpression[assetId];
+      collExpr = If[StringQ[assetId],
+        buildFeatureCollectionExpression[assetId],
+        assetId
+      ];
 
       If[MatchQ[geoBounds,
           {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}],
@@ -1664,7 +1811,7 @@ GEECompute[other___] := (
 
 (* --- GEEGeoGraphics --- *)
 
-GEEGeoGraphics[primitives_, assetId_String, opts : OptionsPattern[]] :=
+GEEGeoGraphics[primitives_, assetId : (_String | _Association), opts : OptionsPattern[]] :=
   Enclose[
     Module[{proj, geoRange, geoCenter, padding, rasterSize, imgFmt,
         geoRes, geoZoom, bands, visParams, imgSize, geoBg, colSpace,
@@ -1720,7 +1867,7 @@ GEEGeoGraphics[primitives_, assetId_String, opts : OptionsPattern[]] :=
 
       bgImage = If[geoBg =!= None,
         Module[{img},
-          img = GEEComputePixels[assetId, {west, south, east, north},
+          img = GEEComputePixels[{west, south, east, north}, assetId,
             "ImageSize" -> rasterSize, "FileFormat" -> imgFmt,
             "Bands" -> bands, "CRS" -> crs, "VisParams" -> visParams,
             "Project" -> project];
@@ -1763,6 +1910,199 @@ GEEGeoGraphics[other___] := (
   $Failed
 )
 
+(* --- Expression builder helpers --- *)
+
+GEECollection[assetId_String] :=
+  buildCollectionExpression[assetId]
+
+GEELoadImage[assetId_String] :=
+  buildImageExpression[assetId]
+
+GEEFilterDate[collection_Association, start_String, end_String] :=
+  buildDateFilter[collection, start, end]
+
+GEEFilterDate[start_String, end_String] :=
+  Function[collection, buildDateFilter[collection, start, end]]
+
+GEEFilterBounds[collection_Association,
+    bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] :=
+  buildSpatialFilter[collection, bbox]
+
+GEEFilterBounds[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] :=
+  Function[collection, buildSpatialFilter[collection, bbox]]
+
+GEEFilterProperty[collection_Association, property_String,
+    op_String, value_] :=
+  Module[{filterName},
+    filterName = Switch[op,
+      "LessThan", "Filter.lessThan",
+      "GreaterThan", "Filter.greaterThan",
+      "Equals", "Filter.equals",
+      "LessThanOrEquals", "Filter.lessThanOrEquals",
+      "GreaterThanOrEquals", "Filter.greaterThanOrEquals",
+      "NotEquals", "Filter.notEquals",
+      _, "Filter.lessThan"
+    ];
+    <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.filter",
+      "arguments" -> <|
+        "collection" -> collection,
+        "filter" -> <|"functionInvocationValue" -> <|
+          "functionName" -> filterName,
+          "arguments" -> <|
+            "leftField" -> <|"constantValue" -> property|>,
+            "rightValue" -> <|"constantValue" -> value|>
+          |>
+        |>|>
+      |>
+    |>|>
+  ]
+
+GEEFilterProperty[property_String, op_String, value_] :=
+  Function[collection,
+    GEEFilterProperty[collection, property, op, value]]
+
+GEEMosaic[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.mosaic",
+    "arguments" -> <|"collection" -> collection|>
+  |>|>
+
+GEEMedian[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.median",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEEMean[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.mean",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+mapSelectBands[collectionExpr_Association, bands_List] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.map",
+    "arguments" -> <|
+      "collection" -> collectionExpr,
+      "baseAlgorithm" -> <|"functionDefinitionValue" -> <|
+        "argumentNames" -> {"_MAPPING_VAR_0_0"},
+        "body" -> <|"functionInvocationValue" -> <|
+          "functionName" -> "Image.select",
+          "arguments" -> <|
+            "input" -> <|"argumentReference" -> "_MAPPING_VAR_0_0"|>,
+            "bandSelectors" -> <|"constantValue" -> bands|>
+          |>
+        |>|>
+      |>|>
+    |>
+  |>|>
+
+GEESelectBands[expr_Association, bands_List] :=
+  Module[{fn},
+    fn = Lookup[
+      Lookup[expr, "functionInvocationValue", <||>],
+      "functionName", ""];
+    If[StringContainsQ[fn, "Collection"],
+      mapSelectBands[expr, bands],
+      buildBandSelection[expr, bands]
+    ]
+  ]
+
+GEESelectBands[bands_List] :=
+  Function[expr, GEESelectBands[expr, bands]]
+
+GEEVisualize[image_Association, visParams_Association] :=
+  buildVisualization[image, visParams]
+
+GEEVisualize[visParams_Association] :=
+  Function[image, buildVisualization[image, visParams]]
+
+GEESort[collection_Association, property_String, ascending_?BooleanQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.sort",
+    "arguments" -> <|
+      "collection" -> collection,
+      "key" -> <|"constantValue" -> property|>,
+      "ascending" -> <|"constantValue" -> ascending|>
+    |>
+  |>|>
+
+GEESort[collection_Association, property_String] :=
+  GEESort[collection, property, True]
+
+GEESort[property_String] :=
+  Function[collection, GEESort[collection, property, True]]
+
+GEESort[property_String, ascending_?BooleanQ] :=
+  Function[collection, GEESort[collection, property, ascending]]
+
+GEEFirst[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.first",
+    "arguments" -> <|"collection" -> collection|>
+  |>|>
+
+GEELimit[collection_Association, n_Integer?Positive] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Collection.limit",
+    "arguments" -> <|
+      "collection" -> collection,
+      "limit" -> <|"constantValue" -> n|>
+    |>
+  |>|>
+
+GEELimit[n_Integer?Positive] :=
+  Function[collection, GEELimit[collection, n]]
+
+GEEFeatureCollection[assetId_String] :=
+  buildFeatureCollectionExpression[assetId]
+
+GEEReduceRegion[image_Association, geometry_Association,
+    reducer_String, scale_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.reduceRegion",
+    "arguments" -> <|
+      "image" -> image,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> Switch[reducer,
+          "mean", "Reducer.mean",
+          "min", "Reducer.min",
+          "max", "Reducer.max",
+          "sum", "Reducer.sum",
+          "first", "Reducer.first",
+          "median", "Reducer.median",
+          _, "Reducer." <> reducer
+        ],
+        "arguments" -> <||>
+      |>|>,
+      "geometry" -> geometry,
+      "scale" -> <|"constantValue" -> scale|>,
+      "bestEffort" -> <|"constantValue" -> True|>
+    |>
+  |>|>
+
+GEEReduceRegion[geometry_Association, reducer_String, scale_?NumericQ] :=
+  Function[image, GEEReduceRegion[image, geometry, reducer, scale]]
+
+GEEGeometry[{lat_?NumericQ, lon_?NumericQ}] :=
+  buildGeometryPoint[lat, lon]
+
+GEEGeometry[{west_?NumericQ, south_?NumericQ, east_?NumericQ, north_?NumericQ}] :=
+  buildGeometryRectangle[west, south, east, north]
+
 End[]
 
 EndPackage[]
@@ -1781,4 +2121,20 @@ Quiet[
   If[NameQ["Global`GEECompute"], Remove["Global`GEECompute"]];
   If[NameQ["Global`GEEGeoGraphics"], Remove["Global`GEEGeoGraphics"]];
   If[NameQ["Global`$GEEConnection"], Remove["Global`$GEEConnection"]];
+  If[NameQ["Global`GEECollection"], Remove["Global`GEECollection"]];
+  If[NameQ["Global`GEELoadImage"], Remove["Global`GEELoadImage"]];
+  If[NameQ["Global`GEEFilterDate"], Remove["Global`GEEFilterDate"]];
+  If[NameQ["Global`GEEFilterBounds"], Remove["Global`GEEFilterBounds"]];
+  If[NameQ["Global`GEEFilterProperty"], Remove["Global`GEEFilterProperty"]];
+  If[NameQ["Global`GEEMosaic"], Remove["Global`GEEMosaic"]];
+  If[NameQ["Global`GEEMedian"], Remove["Global`GEEMedian"]];
+  If[NameQ["Global`GEEMean"], Remove["Global`GEEMean"]];
+  If[NameQ["Global`GEESelectBands"], Remove["Global`GEESelectBands"]];
+  If[NameQ["Global`GEEVisualize"], Remove["Global`GEEVisualize"]];
+  If[NameQ["Global`GEESort"], Remove["Global`GEESort"]];
+  If[NameQ["Global`GEEFirst"], Remove["Global`GEEFirst"]];
+  If[NameQ["Global`GEELimit"], Remove["Global`GEELimit"]];
+  If[NameQ["Global`GEEFeatureCollection"], Remove["Global`GEEFeatureCollection"]];
+  If[NameQ["Global`GEEReduceRegion"], Remove["Global`GEEReduceRegion"]];
+  If[NameQ["Global`GEEGeometry"], Remove["Global`GEEGeometry"]];
 ]
