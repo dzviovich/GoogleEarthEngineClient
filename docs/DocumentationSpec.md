@@ -97,6 +97,24 @@ the GEE REST API v1.
 | 1-Line | `GEEMultiply`          | per-pixel multiplication                           |
 | 1-Line | `GEEDivide`            | per-pixel division                                 |
 | 1-Line | `GEEExpression`        | evaluate a math expression with band bindings      |
+| 1-Line | `GEEGreaterThan`       | per-pixel greater than comparison (0/1)            |
+| 1-Line | `GEELessThan`          | per-pixel less than comparison (0/1)               |
+| 1-Line | `GEEEquals`            | per-pixel equality comparison (0/1)                |
+| 1-Line | `GEENotEquals`         | per-pixel inequality comparison (0/1)              |
+| 1-Line | `GEEAnd`               | logical AND of two images                          |
+| 1-Line | `GEEOr`                | logical OR of two images                           |
+| 1-Line | `GEENot`               | logical NOT of an image                            |
+| 1-Line | `GEEWhere`             | conditional pixel replacement                      |
+| 1-Line | `GEECollectionMap`     | apply a function to each image in a collection     |
+| 1-Line | `GEEQualityMosaic`     | mosaic using a quality band (best-pixel)           |
+| 1-Line | `GEEMerge`             | merge two collections                              |
+| 1-Line | `GEECollectionMax`     | pixel-wise max composite                           |
+| 1-Line | `GEECollectionMin`     | pixel-wise min composite                           |
+| 1-Line | `GEECollectionSum`     | pixel-wise sum composite                           |
+| 1-Line | `GEEToBands`           | stack collection into multi-band image             |
+| 1-Line | `GEEReduceStdDev`      | per-pixel standard deviation                       |
+| 1-Line | `GEEReduceCount`       | per-pixel count of non-masked values               |
+| 1-Line | `GEEReducePercentile`  | reduce to specified percentiles                    |
 
 ### Related Tech Notes
 

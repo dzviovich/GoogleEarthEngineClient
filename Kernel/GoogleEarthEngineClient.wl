@@ -188,6 +188,69 @@ GEEExpression::usage = "GEEExpression[image, expr, bindings] evaluate a \
 math expression string with band variable bindings.\n\
 GEEExpression[expr, bindings] operator form for use with //."
 
+GEEGreaterThan::usage = "GEEGreaterThan[image, other] per-pixel greater \
+than comparison returning 0/1.\n\
+GEEGreaterThan[other] operator form for use with //."
+
+GEELessThan::usage = "GEELessThan[image, other] per-pixel less than \
+comparison returning 0/1.\n\
+GEELessThan[other] operator form for use with //."
+
+GEEEquals::usage = "GEEEquals[image, other] per-pixel equality comparison \
+returning 0/1.\n\
+GEEEquals[other] operator form for use with //."
+
+GEENotEquals::usage = "GEENotEquals[image, other] per-pixel inequality \
+comparison returning 0/1.\n\
+GEENotEquals[other] operator form for use with //."
+
+GEEAnd::usage = "GEEAnd[image, other] logical AND of two images.\n\
+GEEAnd[other] operator form for use with //."
+
+GEEOr::usage = "GEEOr[image, other] logical OR of two images.\n\
+GEEOr[other] operator form for use with //."
+
+GEENot::usage = "GEENot[image] logical NOT of an image."
+
+GEEWhere::usage = "GEEWhere[image, test, value] replace pixels where test \
+is true with value.\n\
+GEEWhere[test, value] operator form for use with //."
+
+GEECollectionMap::usage = "GEECollectionMap[collection, func] apply a \
+function to each image in a collection. func receives an image expression \
+and must return an image expression.\n\
+GEECollectionMap[func] operator form for use with //."
+
+GEEQualityMosaic::usage = "GEEQualityMosaic[collection, qualityBand] \
+mosaic using a quality band for best-pixel selection.\n\
+GEEQualityMosaic[qualityBand] operator form for use with //."
+
+GEEMerge::usage = "GEEMerge[collection1, collection2] merge two \
+collections.\n\
+GEEMerge[collection2] operator form for use with //."
+
+GEECollectionMax::usage = "GEECollectionMax[collection] pixel-wise max \
+composite of a collection."
+
+GEECollectionMin::usage = "GEECollectionMin[collection] pixel-wise min \
+composite of a collection."
+
+GEECollectionSum::usage = "GEECollectionSum[collection] pixel-wise sum \
+of a collection."
+
+GEEToBands::usage = "GEEToBands[collection] stack all images in a \
+collection into a single multi-band image."
+
+GEEReduceStdDev::usage = "GEEReduceStdDev[collection] reduce a collection \
+to the per-pixel standard deviation."
+
+GEEReduceCount::usage = "GEEReduceCount[collection] reduce a collection \
+to the per-pixel count of non-masked values."
+
+GEEReducePercentile::usage = "GEEReducePercentile[collection, percentiles] \
+reduce a collection to specified percentiles.\n\
+GEEReducePercentile[percentiles] operator form for use with //."
+
 (* --- Error message templates --- *)
 
 GEEConnect::keynotfound = "Key file `1` not found.";
@@ -2305,6 +2368,209 @@ GEEExpression[image_Association, expr_String, bindings_Association] :=
 GEEExpression[expr_String, bindings_Association] :=
   Function[image, GEEExpression[image, expr, bindings]]
 
+(* --- Tier 2 expression builder helpers --- *)
+
+buildComparison[fnName_String][image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> fnName,
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEGreaterThan[image_Association, other_] :=
+  buildComparison["Image.gt"][image, other]
+
+GEEGreaterThan[other_] :=
+  Function[image, GEEGreaterThan[image, other]]
+
+GEELessThan[image_Association, other_] :=
+  buildComparison["Image.lt"][image, other]
+
+GEELessThan[other_] :=
+  Function[image, GEELessThan[image, other]]
+
+GEEEquals[image_Association, other_] :=
+  buildComparison["Image.eq"][image, other]
+
+GEEEquals[other_] :=
+  Function[image, GEEEquals[image, other]]
+
+GEENotEquals[image_Association, other_] :=
+  buildComparison["Image.neq"][image, other]
+
+GEENotEquals[other_] :=
+  Function[image, GEENotEquals[image, other]]
+
+GEEAnd[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.and",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEAnd[other_] :=
+  Function[image, GEEAnd[image, other]]
+
+GEEOr[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.or",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEOr[other_] :=
+  Function[image, GEEOr[image, other]]
+
+GEENot[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.not",
+    "arguments" -> <|"input" -> image|>
+  |>|>
+
+GEEWhere[image_Association, test_Association, value_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.where",
+    "arguments" -> <|
+      "input" -> image,
+      "test" -> test,
+      "value" -> wrapImageArg[value]
+    |>
+  |>|>
+
+GEEWhere[test_Association, value_] :=
+  Function[image, GEEWhere[image, test, value]]
+
+GEECollectionMap[collection_Association, func_] :=
+  Module[{bodyExpr},
+    bodyExpr = func[<|"argumentReference" -> "_MAPPING_VAR_0_0"|>];
+    <|"functionInvocationValue" -> <|
+      "functionName" -> "Collection.map",
+      "arguments" -> <|
+        "collection" -> collection,
+        "baseAlgorithm" -> <|"functionDefinitionValue" -> <|
+          "argumentNames" -> {"_MAPPING_VAR_0_0"},
+          "body" -> bodyExpr
+        |>|>
+      |>
+    |>|>
+  ]
+
+GEECollectionMap[func_] :=
+  Function[collection, GEECollectionMap[collection, func]]
+
+GEEQualityMosaic[collection_Association, qualityBand_String] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.qualityMosaic",
+    "arguments" -> <|
+      "collection" -> collection,
+      "bandName" -> <|"constantValue" -> qualityBand|>
+    |>
+  |>|>
+
+GEEQualityMosaic[qualityBand_String] :=
+  Function[collection, GEEQualityMosaic[collection, qualityBand]]
+
+GEEMerge[collection1_Association, collection2_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.merge",
+    "arguments" -> <|
+      "collection1" -> collection1,
+      "collection2" -> collection2
+    |>
+  |>|>
+
+GEEMerge[collection2_Association] :=
+  Function[collection1, GEEMerge[collection1, collection2]]
+
+GEECollectionMax[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.max",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEECollectionMin[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.min",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEECollectionSum[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.sum",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEEToBands[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.toBands",
+    "arguments" -> <|"collection" -> collection|>
+  |>|>
+
+GEEReduceStdDev[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.stdDev",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEEReduceCount[collection_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.count",
+        "arguments" -> <||>
+      |>|>
+    |>
+  |>|>
+
+GEEReducePercentile[collection_Association, percentiles_List] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "ImageCollection.reduce",
+    "arguments" -> <|
+      "collection" -> collection,
+      "reducer" -> <|"functionInvocationValue" -> <|
+        "functionName" -> "Reducer.percentile",
+        "arguments" -> <|
+          "percentiles" -> <|"constantValue" -> percentiles|>
+        |>
+      |>|>
+    |>
+  |>|>
+
+GEEReducePercentile[percentiles_List] :=
+  Function[collection, GEEReducePercentile[collection, percentiles]]
+
 End[]
 
 EndPackage[]
@@ -2351,4 +2617,22 @@ Quiet[
   If[NameQ["Global`GEEMultiply"], Remove["Global`GEEMultiply"]];
   If[NameQ["Global`GEEDivide"], Remove["Global`GEEDivide"]];
   If[NameQ["Global`GEEExpression"], Remove["Global`GEEExpression"]];
+  If[NameQ["Global`GEEGreaterThan"], Remove["Global`GEEGreaterThan"]];
+  If[NameQ["Global`GEELessThan"], Remove["Global`GEELessThan"]];
+  If[NameQ["Global`GEEEquals"], Remove["Global`GEEEquals"]];
+  If[NameQ["Global`GEENotEquals"], Remove["Global`GEENotEquals"]];
+  If[NameQ["Global`GEEAnd"], Remove["Global`GEEAnd"]];
+  If[NameQ["Global`GEEOr"], Remove["Global`GEEOr"]];
+  If[NameQ["Global`GEENot"], Remove["Global`GEENot"]];
+  If[NameQ["Global`GEEWhere"], Remove["Global`GEEWhere"]];
+  If[NameQ["Global`GEECollectionMap"], Remove["Global`GEECollectionMap"]];
+  If[NameQ["Global`GEEQualityMosaic"], Remove["Global`GEEQualityMosaic"]];
+  If[NameQ["Global`GEEMerge"], Remove["Global`GEEMerge"]];
+  If[NameQ["Global`GEECollectionMax"], Remove["Global`GEECollectionMax"]];
+  If[NameQ["Global`GEECollectionMin"], Remove["Global`GEECollectionMin"]];
+  If[NameQ["Global`GEECollectionSum"], Remove["Global`GEECollectionSum"]];
+  If[NameQ["Global`GEEToBands"], Remove["Global`GEEToBands"]];
+  If[NameQ["Global`GEEReduceStdDev"], Remove["Global`GEEReduceStdDev"]];
+  If[NameQ["Global`GEEReduceCount"], Remove["Global`GEEReduceCount"]];
+  If[NameQ["Global`GEEReducePercentile"], Remove["Global`GEEReducePercentile"]];
 ]

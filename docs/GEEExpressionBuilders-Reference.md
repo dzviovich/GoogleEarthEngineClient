@@ -524,6 +524,259 @@ evi = img // GEEExpression[
   <|"nir" -> "B8", "red" -> "B4", "blue" -> "B2"|>]
 ```
 
+### Comparison Operators
+
+These functions compare two images (or an image and a constant) per-pixel and return a binary 0/1 image. Use them to build masks for conditional processing.
+
+#### GEEGreaterThan
+
+```wolfram
+GEEGreaterThan[image, other]
+GEEGreaterThan[other]                      (* operator form *)
+```
+
+Per-pixel greater than comparison. Returns 1 where `image > other`, 0 otherwise. `other` can be an image or a number.
+
+```wolfram
+(* Pixels where NDVI > 0.3 *)
+vegMask = ndvi // GEEGreaterThan[0.3]
+```
+
+#### GEELessThan
+
+```wolfram
+GEELessThan[image, other]
+GEELessThan[other]                         (* operator form *)
+```
+
+Per-pixel less than comparison.
+
+```wolfram
+(* Pixels where elevation < 500 meters *)
+lowland = dem // GEELessThan[500]
+```
+
+#### GEEEquals
+
+```wolfram
+GEEEquals[image, other]
+GEEEquals[other]                           (* operator form *)
+```
+
+Per-pixel equality comparison.
+
+```wolfram
+(* Pixels classified as water (class 6) in ESA WorldCover *)
+waterMask = landCover // GEEEquals[80]
+```
+
+#### GEENotEquals
+
+```wolfram
+GEENotEquals[image, other]
+GEENotEquals[other]                        (* operator form *)
+```
+
+Per-pixel inequality comparison.
+
+```wolfram
+(* Pixels that are NOT cloud shadow (SCL class 3) *)
+notShadow = scl // GEENotEquals[3]
+```
+
+### Logical Operators
+
+#### GEEAnd
+
+```wolfram
+GEEAnd[image, other]
+GEEAnd[other]                              (* operator form *)
+```
+
+Logical AND of two images. Returns 1 where both inputs are non-zero.
+
+```wolfram
+(* Combine two masks: not cloud AND not shadow *)
+clearMask = notCloud // GEEAnd[notShadow]
+```
+
+#### GEEOr
+
+```wolfram
+GEEOr[image, other]
+GEEOr[other]                               (* operator form *)
+```
+
+Logical OR of two images. Returns 1 where either input is non-zero.
+
+```wolfram
+(* Either water OR wetland *)
+wetMask = waterMask // GEEOr[wetlandMask]
+```
+
+#### GEENot
+
+```wolfram
+GEENot[image]
+```
+
+Logical NOT. Returns 1 where input is 0, and 0 where input is non-zero.
+
+```wolfram
+(* Invert a mask *)
+notWater = waterMask // GEENot
+```
+
+### Conditional
+
+#### GEEWhere
+
+```wolfram
+GEEWhere[image, test, value]
+GEEWhere[test, value]                      (* operator form *)
+```
+
+Replace pixels in `image` where `test` is non-zero with `value`. `value` can be a number or an image expression. Pixels where `test` is zero keep their original value.
+
+```wolfram
+(* Replace cloudy pixels with 0 *)
+cleaned = img // GEEWhere[cloudMask, 0]
+```
+
+### Collection Transforms
+
+#### GEECollectionMap
+
+```wolfram
+GEECollectionMap[collection, func]
+GEECollectionMap[func]                     (* operator form *)
+```
+
+Apply a function to each image in a collection. `func` receives an image expression (Association) and must return an image expression. This is the general-purpose per-image transform — use it when no specialized helper exists.
+
+```wolfram
+(* Compute NDVI for every image in a collection *)
+ndviCollection = coll // GEECollectionMap[
+  Function[img, GEENormalizedDifference[img, {"B8", "B4"}]]]
+```
+
+#### GEEQualityMosaic
+
+```wolfram
+GEEQualityMosaic[collection, qualityBand]
+GEEQualityMosaic[qualityBand]              (* operator form *)
+```
+
+Mosaic a collection using a quality band. For each pixel, selects the value from the image with the highest quality band value. Use this for best-pixel compositing.
+
+```wolfram
+(* Best-pixel composite using NDVI as quality *)
+best = collectionWithNDVI // GEEQualityMosaic["NDVI"]
+```
+
+#### GEEMerge
+
+```wolfram
+GEEMerge[collection1, collection2]
+GEEMerge[collection2]                      (* operator form *)
+```
+
+Merge two collections into one. The result contains all images from both collections.
+
+```wolfram
+(* Combine Sentinel-2A and Sentinel-2B collections *)
+merged = collA // GEEMerge[collB]
+```
+
+### Collection Reducers
+
+#### GEECollectionMax
+
+```wolfram
+GEECollectionMax[collection]
+```
+
+Pixel-wise maximum across all images in the collection. Band names receive a `_max` suffix.
+
+```wolfram
+maxTemp = tempCollection // GEECollectionMax
+```
+
+#### GEECollectionMin
+
+```wolfram
+GEECollectionMin[collection]
+```
+
+Pixel-wise minimum across all images. Band names receive a `_min` suffix.
+
+```wolfram
+minTemp = tempCollection // GEECollectionMin
+```
+
+#### GEECollectionSum
+
+```wolfram
+GEECollectionSum[collection]
+```
+
+Pixel-wise sum across all images. Band names receive a `_sum` suffix.
+
+```wolfram
+totalPrecip = precipCollection // GEECollectionSum
+```
+
+#### GEEToBands
+
+```wolfram
+GEEToBands[collection]
+```
+
+Stack all images in a collection into a single multi-band image. Each image contributes its bands, prefixed with a sequence number.
+
+```wolfram
+(* Stack monthly composites into one image for time series analysis *)
+stacked = monthlyCollection // GEEToBands
+```
+
+#### GEEReduceStdDev
+
+```wolfram
+GEEReduceStdDev[collection]
+```
+
+Per-pixel standard deviation across all images. Band names receive a `_stdDev` suffix.
+
+```wolfram
+variability = tempCollection // GEEReduceStdDev
+```
+
+#### GEEReduceCount
+
+```wolfram
+GEEReduceCount[collection]
+```
+
+Per-pixel count of non-masked values across all images. Band names receive a `_count` suffix. Useful for assessing data coverage.
+
+```wolfram
+coverage = coll // GEEReduceCount
+```
+
+#### GEEReducePercentile
+
+```wolfram
+GEEReducePercentile[collection, percentiles]
+GEEReducePercentile[percentiles]           (* operator form *)
+```
+
+Reduce a collection to specified percentiles. `percentiles` is a list of numbers (0--100). Creates one band per input band per percentile.
+
+```wolfram
+(* Get 10th and 90th percentile of NDVI *)
+pctls = ndviCollection // GEEReducePercentile[{10, 90}]
+```
+
 ## Complete Examples
 
 ### Sentinel-2 True Color RGB (Cloud-Filtered Median)
@@ -898,6 +1151,148 @@ GEEComputePixels[bbox, change,
   "ImageSize" -> {1024, 1024}]
 ```
 
+### SCL Cloud Masking with Comparison Operators
+
+Build a cloud mask from the Sentinel-2 Scene Classification Layer using comparison and logical operators, then apply with `GEEUpdateMask`:
+
+```wolfram
+bbox = {12.4, 41.8, 12.6, 42.0};  (* Rome *)
+pipeline = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-04-01", "2023-10-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 30] //
+  GEESelectBands[{"B4", "B3", "B2", "SCL"}] //
+  GEEMedian;
+(* SCL values: 3=cloud shadow, 8=cloud medium prob, 9=cloud high prob *)
+scl = pipeline // GEESelectBands[{"SCL_median"}];
+mask = scl // GEENotEquals[3] //
+  GEEAnd[scl // GEENotEquals[8]] //
+  GEEAnd[scl // GEENotEquals[9]];
+cleanRGB = pipeline //
+  GEESelectBands[{"B4_median", "B3_median", "B2_median"}] //
+  GEEUpdateMask[mask];
+GEEComputePixels[bbox, cleanRGB,
+  "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
+```
+
+### Urban Heat Island with GEEWhere
+
+Classify land surface temperature into hot and cool zones using `GEEWhere` and `GEEGreaterThan`:
+
+```wolfram
+bbox = {-74.1, 40.6, -73.8, 40.85};  (* New York City *)
+lst = GEECollection["MODIS/061/MOD11A2"] //
+  GEEFilterDate["2023-07-01", "2023-08-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"LST_Day_1km"}] //
+  GEEMedian //
+  GEEMultiply[0.02];
+(* Highlight hot zones: replace pixels above 310 K with red (high value),
+   keep others unchanged *)
+hotMask = lst // GEEGreaterThan[310];
+(* Visualize: hot spots stand out *)
+GEEComputePixels[bbox, lst,
+  "VisParams" -> <|"min" -> 295, "max" -> 320,
+    "palette" -> {"blue", "cyan", "yellow", "red"}|>]
+```
+
+### NDVI Variability with GEEReduceStdDev
+
+Map the standard deviation of NDVI across a growing season to identify areas with unstable vegetation (drought stress, harvest cycles):
+
+```wolfram
+bbox = {-100.0, 40.0, -99.0, 41.0};  (* Nebraska farmland *)
+ndviColl = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-04-01", "2023-10-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEECollectionMap[
+    Function[img, GEENormalizedDifference[img, {"B8", "B4"}]]];
+stddev = ndviColl // GEEReduceStdDev;
+GEEComputePixels[bbox, stddev,
+  "VisParams" -> <|"min" -> 0, "max" -> 0.2,
+    "palette" -> {"green", "yellow", "red"}|>,
+  "ImageSize" -> {1024, 1024}]
+(* Green = stable vegetation, Red = high variability (e.g., crop harvest) *)
+```
+
+### Data Coverage Assessment with GEEReduceCount
+
+Count how many cloud-free Sentinel-2 observations exist per pixel over a region to assess data availability:
+
+```wolfram
+bbox = {-5.0, 35.5, -3.5, 37.0};  (* Southern Spain *)
+coverage = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-01-01", "2024-01-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 20] //
+  GEESelectBands[{"B4"}] //
+  GEEReduceCount;
+GEEComputePixels[bbox, coverage,
+  "VisParams" -> <|"min" -> 0, "max" -> 60,
+    "palette" -> {"red", "yellow", "green"}|>]
+(* Red = few observations, Green = many — helps plan analysis windows *)
+```
+
+### Percentile Compositing for Robust Baselines
+
+Use the 10th and 90th percentiles to create robust min/max baselines that are less sensitive to outliers than CollectionMin/CollectionMax:
+
+```wolfram
+bbox = {-122.5, 37.7, -122.3, 37.85};  (* San Francisco *)
+coll = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-01-01", "2024-01-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEECollectionMap[
+    Function[img, GEENormalizedDifference[img, {"B8", "B4"}]]];
+pctls = coll // GEEReducePercentile[{10, 90}];
+(* Returns bands like nd_p10, nd_p90 — the range shows seasonal dynamics *)
+GEEComputePixels[bbox, pctls // GEESelectBands[{"nd_p90"}],
+  "VisParams" -> <|"min" -> 0, "max" -> 0.8,
+    "palette" -> {"brown", "yellow", "green", "darkgreen"}|>]
+```
+
+### Merging Two Satellite Collections
+
+Merge Sentinel-2A and 2B orbit collections filtered to different months for a wider temporal baseline:
+
+```wolfram
+bbox = {-9.5, 38.6, -9.0, 38.85};  (* Lisbon *)
+spring = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-03-01", "2023-05-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B4", "B3", "B2"}];
+autumn = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-09-01", "2023-11-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B4", "B3", "B2"}];
+merged = spring // GEEMerge[autumn] // GEEMedian;
+GEEComputePixels[bbox, merged,
+  "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
+```
+
+### Max Temperature Composite
+
+Compute the maximum land surface temperature over a summer to identify heat hotspots:
+
+```wolfram
+bbox = {2.0, 48.7, 2.6, 49.0};  (* Paris *)
+maxLST = GEECollection["MODIS/061/MOD11A2"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"LST_Day_1km"}] //
+  GEECollectionMax //
+  GEEMultiply[0.02];
+GEEComputePixels[bbox, maxLST,
+  "VisParams" -> <|"min" -> 290, "max" -> 325,
+    "palette" -> {"blue", "white", "red"}|>]
+```
+
 ## String vs. Expression: When to Use Each
 
 | Approach | Syntax | Best For |
@@ -920,7 +1315,12 @@ GEEComputePixels[bbox, change,
 - **GEEExpression binding names**: Variable names in the expression string must exactly match the keys in the bindings Association. Each binding maps to a single band selected from the input image. Multi-band expressions require one binding per band.
 - **GEEClip geometry**: The geometry argument must be a GEE geometry expression (from `GEEGeometry` or a geometry builder), not a raw list of coordinates. Use `GEEGeometry[{west, south, east, north}]` to create a rectangle.
 - **GEEUnmask default**: `GEEUnmask[image]` with no value argument defaults to replacing masked pixels with 0. Use `GEEUnmask[image, value]` for a custom fill value.
+- **Reducer band name suffixes**: `GEECollectionMax`, `GEECollectionMin`, `GEECollectionSum`, `GEEReduceStdDev`, and `GEEReduceCount` use `ImageCollection.reduce` internally and append suffixes (`_max`, `_min`, `_sum`, `_stdDev`, `_count`) to band names. Use the suffixed names when referencing bands downstream.
+- **GEEReducePercentile band names**: Percentile reduction creates bands named `{bandName}_p{percentile}` (e.g., `"B4_p10"`, `"B4_p90"`). The exact suffix depends on the percentile values passed.
+- **GEECollectionMap function argument**: The function passed to `GEECollectionMap` receives an expression tree node (Association), not raw pixel data. It must return an expression tree. Use existing helpers (e.g., `GEENormalizedDifference`, `GEESelectBands`) inside the function body.
+- **GEEWhere replaces only where test is true**: `GEEWhere[image, test, value]` keeps original pixel values where `test` is 0 and replaces with `value` where `test` is non-zero. This is different from `GEEUpdateMask`, which masks (removes) pixels rather than replacing them.
+- **GEEMerge band structure**: Both collections passed to `GEEMerge` should have the same band structure. Merging collections with different bands may cause errors during aggregation.
 
 ## See Also
 
-`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`, `GEENormalizedDifference`, `GEEClip`, `GEEUpdateMask`, `GEEUnmask`, `GEESelfMask`, `GEEAddBands`, `GEERename`, `GEEAdd`, `GEESubtract`, `GEEMultiply`, `GEEDivide`, `GEEExpression`
+`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`, `GEENormalizedDifference`, `GEEClip`, `GEEUpdateMask`, `GEEUnmask`, `GEESelfMask`, `GEEAddBands`, `GEERename`, `GEEAdd`, `GEESubtract`, `GEEMultiply`, `GEEDivide`, `GEEExpression`, `GEEGreaterThan`, `GEELessThan`, `GEEEquals`, `GEENotEquals`, `GEEAnd`, `GEEOr`, `GEENot`, `GEEWhere`, `GEECollectionMap`, `GEEQualityMosaic`, `GEEMerge`, `GEECollectionMax`, `GEECollectionMin`, `GEECollectionSum`, `GEEToBands`, `GEEReduceStdDev`, `GEEReduceCount`, `GEEReducePercentile`
