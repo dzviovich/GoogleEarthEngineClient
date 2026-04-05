@@ -320,6 +320,210 @@ GEECompute[
 ]
 ```
 
+### Image Math
+
+#### GEEAdd
+
+```wolfram
+GEEAdd[image, other]
+GEEAdd[other]                              (* operator form *)
+```
+
+Per-pixel addition. `other` can be another image expression or a number.
+
+```wolfram
+(* Add a constant offset to shift reflectance values *)
+shifted = img // GEEAdd[1000]
+
+(* Add two images together *)
+combined = GEEAdd[image1, image2]
+```
+
+#### GEESubtract
+
+```wolfram
+GEESubtract[image, other]
+GEESubtract[other]                         (* operator form *)
+```
+
+Per-pixel subtraction.
+
+```wolfram
+(* Compute difference between two time periods *)
+change = GEESubtract[afterImage, beforeImage]
+```
+
+#### GEEMultiply
+
+```wolfram
+GEEMultiply[image, other]
+GEEMultiply[other]                         (* operator form *)
+```
+
+Per-pixel multiplication.
+
+```wolfram
+(* Apply a scale factor to convert raw DN to reflectance *)
+reflectance = img // GEEMultiply[0.0001]
+```
+
+#### GEEDivide
+
+```wolfram
+GEEDivide[image, other]
+GEEDivide[other]                           (* operator form *)
+```
+
+Per-pixel division.
+
+```wolfram
+(* Compute a band ratio *)
+ratio = GEEDivide[nirBand, redBand]
+```
+
+### Spectral Indices
+
+#### GEENormalizedDifference
+
+```wolfram
+GEENormalizedDifference[image, {band1, band2}]
+GEENormalizedDifference[{band1, band2}]    (* operator form *)
+```
+
+Compute `(band1 - band2) / (band1 + band2)` server-side. The result is a single-band image with values in the range `[-1, 1]`. This is the standard formula for vegetation indices (NDVI), water indices (NDWI), and built-up indices (NDBI).
+
+Common band combinations:
+
+| Index | Band 1 (Sentinel-2) | Band 2 (Sentinel-2) | Highlights |
+|-------|----------------------|----------------------|------------|
+| NDVI  | B8 (NIR)            | B4 (Red)             | Vegetation health |
+| NDWI  | B3 (Green)           | B8 (NIR)             | Water bodies |
+| NDBI  | B11 (SWIR)           | B8 (NIR)             | Built-up areas |
+
+```wolfram
+(* NDVI from a Sentinel-2 median composite *)
+ndvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[{-3.8, 40.3, -3.6, 40.5}] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B8_median", "B4_median"}]
+```
+
+### Masking
+
+#### GEEUpdateMask
+
+```wolfram
+GEEUpdateMask[image, mask]
+GEEUpdateMask[mask]                        (* operator form *)
+```
+
+Update the pixel mask of an image. Pixels where `mask` is zero or masked become masked in the output. Use this for cloud masking, water masking, or any conditional pixel removal.
+
+```wolfram
+(* Mask out cloudy pixels using a cloud probability band *)
+cloudFree = img // GEEUpdateMask[cloudMask]
+```
+
+#### GEEUnmask
+
+```wolfram
+GEEUnmask[image, value]
+GEEUnmask[value]                           (* operator form *)
+GEEUnmask[image]                           (* replace masked pixels with 0 *)
+```
+
+Replace masked (nodata) pixels with a fill value. The one-argument form defaults to 0.
+
+```wolfram
+(* Fill nodata gaps with zero *)
+filled = img // GEEUnmask[0]
+
+(* Fill with a sentinel value *)
+filled = img // GEEUnmask[-9999]
+```
+
+#### GEESelfMask
+
+```wolfram
+GEESelfMask[image]
+```
+
+Mask pixels where the value is 0 or already masked. Useful after a comparison operation to remove false pixels from a binary mask.
+
+```wolfram
+(* Keep only pixels where NDVI > 0.3 *)
+vegetated = ndviThreshold // GEESelfMask
+```
+
+### Spatial Clipping
+
+#### GEEClip
+
+```wolfram
+GEEClip[image, geometry]
+GEEClip[geometry]                          (* operator form *)
+```
+
+Clip an image to a geometry. Pixels outside the geometry become masked. The geometry can be any GEE geometry expression (point, rectangle, polygon).
+
+```wolfram
+(* Clip to a bounding box *)
+clipped = img // GEEClip[GEEGeometry[{-105.3, 39.6, -105.1, 39.8}]]
+```
+
+### Band Manipulation
+
+#### GEEAddBands
+
+```wolfram
+GEEAddBands[image, other]
+GEEAddBands[other]                         (* operator form *)
+```
+
+Add all bands from `other` to `image`. The result has all bands from both images. Use this to composite derived bands (like NDVI) back onto the original image.
+
+```wolfram
+(* Add an NDVI band to the original image *)
+withNDVI = originalImage // GEEAddBands[ndviBand]
+```
+
+#### GEERename
+
+```wolfram
+GEERename[image, names]
+GEERename[names]                           (* operator form *)
+```
+
+Rename the bands of an image. `names` is a list of strings matching the number of bands. The names are assigned in order.
+
+```wolfram
+(* Rename Sentinel-2 bands for clarity *)
+renamed = img // GEERename[{"Red", "Green", "Blue"}]
+```
+
+### Math Expressions
+
+#### GEEExpression
+
+```wolfram
+GEEExpression[image, expr, bindings]
+GEEExpression[expr, bindings]              (* operator form *)
+```
+
+Evaluate a text math expression with band variable bindings. `expr` is a string using standard math operators (`+`, `-`, `*`, `/`, `**`, `%`) and comparison operators (`>`, `<`, `>=`, `<=`, `==`, `!=`). Ternary conditionals (`condition ? trueVal : falseVal`) are also supported.
+
+`bindings` is an Association mapping variable names in the expression to band names in the image.
+
+```wolfram
+(* Enhanced Vegetation Index (EVI) *)
+evi = img // GEEExpression[
+  "2.5 * ((nir - red) / (nir + 6 * red - 7.5 * blue + 1))",
+  <|"nir" -> "B8", "red" -> "B4", "blue" -> "B2"|>]
+```
+
 ## Complete Examples
 
 ### Sentinel-2 True Color RGB (Cloud-Filtered Median)
@@ -516,6 +720,184 @@ GEEComputePixels[{-3.8, 40.3, -3.6, 40.5},
   "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
 ```
 
+### Server-Side NDVI Visualization
+
+Compute NDVI entirely on the server and visualize with a vegetation color palette. No client-side math needed:
+
+```wolfram
+bbox = {11.8, 43.2, 12.4, 43.6};  (* Tuscany, Italy *)
+ndvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+  GEESelectBands[{"B8", "B4"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B8_median", "B4_median"}];
+GEEComputePixels[bbox, ndvi,
+  "VisParams" -> <|"min" -> -0.1, "max" -> 0.9,
+    "palette" -> {"brown", "yellow", "green", "darkgreen"}|>,
+  "ImageSize" -> {1024, 1024}]
+```
+
+### Cloud Masking with UpdateMask
+
+Use the Sentinel-2 Scene Classification Layer (SCL) to mask clouds, then render a clean RGB image:
+
+```wolfram
+bbox = {23.6, 37.9, 23.8, 38.1};  (* Athens, Greece *)
+pipeline = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-04-01", "2023-10-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 30] //
+  GEESelectBands[{"B4", "B3", "B2", "SCL"}] //
+  GEEMedian;
+(* Extract the SCL band and create a cloud-free mask:
+   SCL values 3=cloud shadow, 8=cloud medium, 9=cloud high *)
+scl = pipeline // GEESelectBands[{"SCL_median"}];
+(* Apply mask: keep only clear pixels *)
+cleanRGB = pipeline //
+  GEESelectBands[{"B4_median", "B3_median", "B2_median"}] //
+  GEEUpdateMask[scl];
+GEEComputePixels[bbox, cleanRGB,
+  "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
+```
+
+### Scale Factor Conversion with Multiply
+
+MODIS Land Surface Temperature stores values as raw integers that need a scale factor (0.02) and offset (subtract 273.15 for Celsius). Use `GEEMultiply` and `GEEAdd` to convert server-side:
+
+```wolfram
+bbox = {-5.0, 35.5, -3.5, 37.0};  (* Southern Spain *)
+lstKelvin = GEECollection["MODIS/061/MOD11A2"] //
+  GEEFilterDate["2023-07-01", "2023-08-01"] //
+  GEEFilterBounds[bbox] //
+  GEESelectBands[{"LST_Day_1km"}] //
+  GEEMedian //
+  GEEMultiply[0.02];
+(* Visualize in Kelvin — typical summer range 290-320 K *)
+GEEComputePixels[bbox, lstKelvin,
+  "VisParams" -> <|"min" -> 290, "max" -> 320,
+    "palette" -> {"blue", "yellow", "red"}|>]
+```
+
+### EVI with GEEExpression
+
+The Enhanced Vegetation Index (EVI) requires a multi-band math expression. `GEEExpression` evaluates it server-side in a single call:
+
+```wolfram
+bbox = {-48.6, -1.5, -48.2, -1.1};  (* Belém, Brazil — Amazon edge *)
+img = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-07-01", "2023-10-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 20] //
+  GEESelectBands[{"B8", "B4", "B2"}] //
+  GEEMedian;
+evi = img // GEEExpression[
+  "2.5 * ((nir - red) / (nir + 6 * red - 7.5 * blue + 1))",
+  <|"nir" -> "B8_median", "red" -> "B4_median",
+    "blue" -> "B2_median"|>];
+GEEComputePixels[bbox, evi,
+  "VisParams" -> <|"min" -> 0, "max" -> 0.6,
+    "palette" -> {"white", "green", "darkgreen"}|>]
+```
+
+### Compositing Derived Bands with AddBands
+
+Add an NDVI band to a Sentinel-2 RGB image so that both layers are available in a single expression tree:
+
+```wolfram
+bbox = {-121.8, 38.3, -121.4, 38.7};  (* Sacramento Valley *)
+base = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B8", "B4", "B3", "B2"}] //
+  GEEMedian;
+ndvi = base //
+  GEENormalizedDifference[{"B8_median", "B4_median"}] //
+  GEERename[{"NDVI"}];
+composite = base // GEEAddBands[ndvi];
+(* Now query any point and get both reflectance + NDVI *)
+GEEIdentify[GeoPosition[{38.55, -121.6}], composite]
+```
+
+### Clipping to a Region of Interest
+
+Clip a global DEM to a specific bounding box so that pixels outside the area of interest are masked:
+
+```wolfram
+roi = GEEGeometry[{6.5, 45.8, 8.5, 47.0}];  (* Swiss Alps *)
+dem = GEELoadImage["USGS/SRTMGL1_003"] // GEEClip[roi];
+GEEComputePixels[{6.5, 45.8, 8.5, 47.0}, dem,
+  "VisParams" -> <|"min" -> 200, "max" -> 4500,
+    "palette" -> {"green", "yellow", "brown", "white"}|>,
+  "ImageSize" -> {1024, 1024}]
+```
+
+### Water Body Detection with SelfMask
+
+Use NDWI (Normalized Difference Water Index) to detect water bodies. `GEESelfMask` removes zero-value pixels (non-water) so only water pixels remain:
+
+```wolfram
+bbox = {31.0, 29.9, 31.4, 30.2};  (* Cairo / Nile Delta *)
+ndwi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-01-01", "2023-12-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B3", "B8"}] //
+  GEEMedian //
+  GEENormalizedDifference[{"B3_median", "B8_median"}];
+(* Threshold: NDWI > 0 indicates water. Multiply by boolean to zero out
+   non-water, then selfMask to remove those zeros *)
+waterMask = ndwi // GEEMultiply[ndwi] // GEESelfMask;
+GEEComputePixels[bbox, waterMask,
+  "VisParams" -> <|"min" -> 0, "max" -> 0.5,
+    "palette" -> {"lightblue", "blue", "darkblue"}|>]
+```
+
+### Filling Nodata Gaps with Unmask
+
+Replace masked (nodata) pixels in a Sentinel-2 composite with zero to ensure a complete image for export:
+
+```wolfram
+bbox = {13.2, 52.4, 13.6, 52.6};  (* Berlin *)
+img = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+  GEEFilterDate["2023-06-01", "2023-09-01"] //
+  GEEFilterBounds[bbox] //
+  GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
+  GEESelectBands[{"B4", "B3", "B2"}] //
+  GEEMedian //
+  GEEUnmask[0];
+GEEComputePixels[bbox, img,
+  "VisParams" -> <|"min" -> 0, "max" -> 3000|>,
+  "FileFormat" -> "GEO_TIFF",
+  "ImageSize" -> {1024, 1024}]
+```
+
+### Change Detection: Before vs. After Subtraction
+
+Compute the difference in NDVI between two seasons to detect vegetation loss or gain:
+
+```wolfram
+bbox = {-120.5, 37.5, -119.5, 38.0};  (* Sierra Nevada foothills *)
+buildNDVI[start_, end_] :=
+  GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
+    GEEFilterDate[start, end] //
+    GEEFilterBounds[bbox] //
+    GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 15] //
+    GEESelectBands[{"B8", "B4"}] //
+    GEEMedian //
+    GEENormalizedDifference[{"B8_median", "B4_median"}];
+spring = buildNDVI["2023-04-01", "2023-06-01"];
+fall = buildNDVI["2023-09-01", "2023-11-01"];
+change = GEESubtract[fall, spring];
+(* Negative = vegetation loss (brown), Positive = growth (green) *)
+GEEComputePixels[bbox, change,
+  "VisParams" -> <|"min" -> -0.3, "max" -> 0.3,
+    "palette" -> {"red", "white", "green"}|>,
+  "ImageSize" -> {1024, 1024}]
+```
+
 ## String vs. Expression: When to Use Each
 
 | Approach | Syntax | Best For |
@@ -533,7 +915,12 @@ GEEComputePixels[{-3.8, 40.3, -3.6, 40.5},
 - **GEESelectBands on collections**: `GEESelectBands` automatically detects whether the input is a collection or a single image and uses the appropriate API call (`Collection.map` with `Image.select` for collections, or `Image.select` directly for images).
 - **GEEFilterBounds bbox must match**: When using `GEEFilterBounds` with `GEEComputePixels`, the filter bounding box should cover at least the same area as the `GEEComputePixels` bounding box, otherwise the result may contain gaps.
 - **Common metadata properties**: Use `GEEGetAssetInfo` to discover available metadata properties for any asset. Properties vary by dataset -- `"CLOUDY_PIXEL_PERCENTAGE"` is Sentinel-2 specific while `"CLOUD_COVER"` is used by Landsat.
+- **Band name suffixes with NormalizedDifference**: After `GEEMedian` or `GEEMean`, band names are suffixed (e.g., `"B8"` becomes `"B8_median"`). When chaining `GEENormalizedDifference` after an aggregation, use the suffixed band names: `GEENormalizedDifference[{"B8_median", "B4_median"}]`.
+- **GEEAdd/Subtract/Multiply/Divide with numbers**: When passing a numeric constant as the second argument, it is automatically wrapped as a `constantValue`. When passing an image expression, it is used directly. Both forms work with the `//` operator.
+- **GEEExpression binding names**: Variable names in the expression string must exactly match the keys in the bindings Association. Each binding maps to a single band selected from the input image. Multi-band expressions require one binding per band.
+- **GEEClip geometry**: The geometry argument must be a GEE geometry expression (from `GEEGeometry` or a geometry builder), not a raw list of coordinates. Use `GEEGeometry[{west, south, east, north}]` to create a rectangle.
+- **GEEUnmask default**: `GEEUnmask[image]` with no value argument defaults to replacing masked pixels with 0. Use `GEEUnmask[image, value]` for a custom fill value.
 
 ## See Also
 
-`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`
+`GEEComputePixels`, `GEEImage`, `GEECompute`, `GEEGetAssetInfo`, `GEEIdentify`, `GEENormalizedDifference`, `GEEClip`, `GEEUpdateMask`, `GEEUnmask`, `GEESelfMask`, `GEEAddBands`, `GEERename`, `GEEAdd`, `GEESubtract`, `GEEMultiply`, `GEEDivide`, `GEEExpression`

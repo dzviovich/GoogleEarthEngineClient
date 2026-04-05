@@ -145,6 +145,49 @@ geometry expression.\n\
 GEEGeometry[{west, south, east, north}] create a GEE rectangle geometry \
 expression."
 
+GEENormalizedDifference::usage = "GEENormalizedDifference[image, {band1, \
+band2}] compute (band1 - band2) / (band1 + band2) server-side.\n\
+GEENormalizedDifference[{band1, band2}] operator form for use with //."
+
+GEEClip::usage = "GEEClip[image, geometry] clip an image to a geometry.\n\
+GEEClip[geometry] operator form for use with //."
+
+GEEUpdateMask::usage = "GEEUpdateMask[image, mask] update the mask of an \
+image using another image.\n\
+GEEUpdateMask[mask] operator form for use with //."
+
+GEEUnmask::usage = "GEEUnmask[image, value] replace masked pixels with \
+value.\n\
+GEEUnmask[value] operator form for use with //.\n\
+GEEUnmask[image] replace masked pixels with 0."
+
+GEESelfMask::usage = "GEESelfMask[image] mask pixels where the value is 0 \
+or already masked."
+
+GEEAddBands::usage = "GEEAddBands[image, other] add bands from other image \
+to image.\n\
+GEEAddBands[other] operator form for use with //."
+
+GEERename::usage = "GEERename[image, names] rename bands of an image.\n\
+GEERename[names] operator form for use with //."
+
+GEEAdd::usage = "GEEAdd[image, other] per-pixel addition. other can be an \
+image or a number.\n\
+GEEAdd[other] operator form for use with //."
+
+GEESubtract::usage = "GEESubtract[image, other] per-pixel subtraction.\n\
+GEESubtract[other] operator form for use with //."
+
+GEEMultiply::usage = "GEEMultiply[image, other] per-pixel multiplication.\n\
+GEEMultiply[other] operator form for use with //."
+
+GEEDivide::usage = "GEEDivide[image, other] per-pixel division.\n\
+GEEDivide[other] operator form for use with //."
+
+GEEExpression::usage = "GEEExpression[image, expr, bindings] evaluate a \
+math expression string with band variable bindings.\n\
+GEEExpression[expr, bindings] operator form for use with //."
+
 (* --- Error message templates --- *)
 
 GEEConnect::keynotfound = "Key file `1` not found.";
@@ -413,20 +456,21 @@ geeGET[path_String, project_ : Automatic] :=
   ]
 
 geePOST[path_String, body_Association, project_ : Automatic] :=
-  Module[{url, token, bodyJSON},
+  Module[{url, token, bodyJSON, resp, bodyBytes},
     url = buildURL[path, project];
     token = $GEEConnection["AccessToken"];
     bodyJSON = ExportString[body, "JSON", "Compact" -> True];
-    Import[
+    resp = URLRead[
       HTTPRequest[url,
         <|Method -> "POST",
           "Headers" -> {
             "Authorization" -> "Bearer " <> token,
             "Content-Type" -> "application/json"
           },
-          "Body" -> bodyJSON|>],
-      "RawJSON"
-    ]
+          "Body" -> bodyJSON|>]
+    ];
+    bodyBytes = resp["BodyByteArray"];
+    ImportByteArray[bodyBytes, "RawJSON"]
   ]
 
 geePOSTRaw[path_String, body_Association, project_ : Automatic] :=
@@ -2032,9 +2076,10 @@ GEEVisualize[visParams_Association] :=
 
 GEESort[collection_Association, property_String, ascending_?BooleanQ] :=
   <|"functionInvocationValue" -> <|
-    "functionName" -> "Collection.sort",
+    "functionName" -> "Collection.limit",
     "arguments" -> <|
       "collection" -> collection,
+      "limit" -> <|"constantValue" -> 10000|>,
       "key" -> <|"constantValue" -> property|>,
       "ascending" -> <|"constantValue" -> ascending|>
     |>
@@ -2103,6 +2148,163 @@ GEEGeometry[{lat_?NumericQ, lon_?NumericQ}] :=
 GEEGeometry[{west_?NumericQ, south_?NumericQ, east_?NumericQ, north_?NumericQ}] :=
   buildGeometryRectangle[west, south, east, north]
 
+(* --- Tier 1 expression builder helpers --- *)
+
+wrapImageArg[x_Association] := x
+wrapImageArg[x_?NumericQ] := <|"constantValue" -> x|>
+
+GEENormalizedDifference[image_Association, bands : {_String, _String}] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.normalizedDifference",
+    "arguments" -> <|
+      "input" -> image,
+      "bandNames" -> <|"constantValue" -> bands|>
+    |>
+  |>|>
+
+GEENormalizedDifference[bands : {_String, _String}] :=
+  Function[image, GEENormalizedDifference[image, bands]]
+
+GEEClip[image_Association, geometry_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.clip",
+    "arguments" -> <|
+      "input" -> image,
+      "geometry" -> geometry
+    |>
+  |>|>
+
+GEEClip[geometry_Association] :=
+  Function[image, GEEClip[image, geometry]]
+
+GEEUpdateMask[image_Association, mask_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.updateMask",
+    "arguments" -> <|
+      "image" -> image,
+      "mask" -> mask
+    |>
+  |>|>
+
+GEEUpdateMask[mask_Association] :=
+  Function[image, GEEUpdateMask[image, mask]]
+
+GEEUnmask[image_Association, value_?NumericQ] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.unmask",
+    "arguments" -> <|
+      "input" -> image,
+      "value" -> <|"constantValue" -> value|>
+    |>
+  |>|>
+
+GEEUnmask[value_?NumericQ] :=
+  Function[image, GEEUnmask[image, value]]
+
+GEEUnmask[image_Association] :=
+  GEEUnmask[image, 0]
+
+GEESelfMask[image_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.selfMask",
+    "arguments" -> <|"input" -> image|>
+  |>|>
+
+GEEAddBands[image_Association, other_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.addBands",
+    "arguments" -> <|
+      "dstImg" -> image,
+      "srcImg" -> other
+    |>
+  |>|>
+
+GEEAddBands[other_Association] :=
+  Function[image, GEEAddBands[image, other]]
+
+GEERename[image_Association, names_List] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.rename",
+    "arguments" -> <|
+      "input" -> image,
+      "names" -> <|"constantValue" -> names|>
+    |>
+  |>|>
+
+GEERename[names_List] :=
+  Function[image, GEERename[image, names]]
+
+GEEAdd[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.add",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEAdd[other_] :=
+  Function[image, GEEAdd[image, other]]
+
+GEESubtract[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.subtract",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEESubtract[other_] :=
+  Function[image, GEESubtract[image, other]]
+
+GEEMultiply[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.multiply",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEMultiply[other_] :=
+  Function[image, GEEMultiply[image, other]]
+
+GEEDivide[image_Association, other_] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.divide",
+    "arguments" -> <|
+      "image1" -> image,
+      "image2" -> wrapImageArg[other]
+    |>
+  |>|>
+
+GEEDivide[other_] :=
+  Function[image, GEEDivide[image, other]]
+
+GEEExpression[image_Association, expr_String, bindings_Association] :=
+  <|"functionInvocationValue" -> <|
+    "functionName" -> "Image.expression",
+    "arguments" -> <|
+      "expression" -> <|"constantValue" -> expr|>,
+      "map" -> Association[
+        KeyValueMap[
+          #1 -> <|"functionInvocationValue" -> <|
+            "functionName" -> "Image.select",
+            "arguments" -> <|
+              "input" -> image,
+              "bandSelectors" -> <|"constantValue" -> {#2}|>
+            |>
+          |>|> &,
+          bindings
+        ]
+      ]
+    |>
+  |>|>
+
+GEEExpression[expr_String, bindings_Association] :=
+  Function[image, GEEExpression[image, expr, bindings]]
+
 End[]
 
 EndPackage[]
@@ -2137,4 +2339,16 @@ Quiet[
   If[NameQ["Global`GEEFeatureCollection"], Remove["Global`GEEFeatureCollection"]];
   If[NameQ["Global`GEEReduceRegion"], Remove["Global`GEEReduceRegion"]];
   If[NameQ["Global`GEEGeometry"], Remove["Global`GEEGeometry"]];
+  If[NameQ["Global`GEENormalizedDifference"], Remove["Global`GEENormalizedDifference"]];
+  If[NameQ["Global`GEEClip"], Remove["Global`GEEClip"]];
+  If[NameQ["Global`GEEUpdateMask"], Remove["Global`GEEUpdateMask"]];
+  If[NameQ["Global`GEEUnmask"], Remove["Global`GEEUnmask"]];
+  If[NameQ["Global`GEESelfMask"], Remove["Global`GEESelfMask"]];
+  If[NameQ["Global`GEEAddBands"], Remove["Global`GEEAddBands"]];
+  If[NameQ["Global`GEERename"], Remove["Global`GEERename"]];
+  If[NameQ["Global`GEEAdd"], Remove["Global`GEEAdd"]];
+  If[NameQ["Global`GEESubtract"], Remove["Global`GEESubtract"]];
+  If[NameQ["Global`GEEMultiply"], Remove["Global`GEEMultiply"]];
+  If[NameQ["Global`GEEDivide"], Remove["Global`GEEDivide"]];
+  If[NameQ["Global`GEEExpression"], Remove["Global`GEEExpression"]];
 ]

@@ -85,6 +85,18 @@ the GEE REST API v1.
 | 1-Line | `GEEVisualize`         | apply server-side visualization to an image        |
 | 1-Line | `GEEGeometry`          | create a GEE point or rectangle geometry           |
 | 1-Line | `GEEReduceRegion`      | compute a statistic over a region                  |
+| 1-Line | `GEENormalizedDifference` | compute (b1-b2)/(b1+b2) server-side              |
+| 1-Line | `GEEClip`              | clip an image to a geometry                        |
+| 1-Line | `GEEUpdateMask`        | update the pixel mask of an image                  |
+| 1-Line | `GEEUnmask`            | replace masked pixels with a fill value            |
+| 1-Line | `GEESelfMask`          | mask pixels where value is 0 or masked             |
+| 1-Line | `GEEAddBands`          | add bands from another image                       |
+| 1-Line | `GEERename`            | rename bands of an image                           |
+| 1-Line | `GEEAdd`               | per-pixel addition (image or constant)             |
+| 1-Line | `GEESubtract`          | per-pixel subtraction                              |
+| 1-Line | `GEEMultiply`          | per-pixel multiplication                           |
+| 1-Line | `GEEDivide`            | per-pixel division                                 |
+| 1-Line | `GEEExpression`        | evaluate a math expression with band bindings      |
 
 ### Related Tech Notes
 
