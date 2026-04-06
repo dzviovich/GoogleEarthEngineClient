@@ -6,6 +6,8 @@ machine learning capabilities of the Wolfram Language. Each section builds on
 the fundamentals covered in earlier chapters to show what becomes possible when
 these two platforms work together.
 
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
+
 ---
 
 ## 8.1 Machine Learning with GEE Data
@@ -30,9 +32,6 @@ practice you would derive these from field surveys, existing land cover maps,
 or careful visual interpretation.
 
 ```wolfram
-Needs["GoogleEarthEngineClient`"]
-GEEConnect["/path/to/service-account-key.json"]
-
 (* Training points: {GeoPosition, class label} *)
 trainingPoints = {
   (* Water *)
@@ -58,9 +57,11 @@ trainingPoints = {
 };
 ```
 
+> **Note:** This minimal training set (3 points per class, 15 total) is for illustration only. Production classifications require 50+ samples per class with stratified sampling.
+
 **Step 2: Build a cloud-free Sentinel-2 composite and extract spectral values.**
 
-We select bands B2 through B12 (visible, red edge, NIR, SWIR) because these
+The pipeline selects bands B2 through B12 (visible, red edge, NIR, SWIR) because these
 carry the spectral information that distinguishes land cover types.
 
 ```wolfram
@@ -103,6 +104,8 @@ classifier = Classify[trainingData, Method -> "RandomForest"]
 many other diagnostics.
 
 ```wolfram
+(* Note: Evaluating on the training set overstates accuracy. For rigorous
+   evaluation, split data into training and test sets or use cross-validation. *)
 cm = ClassifierMeasurements[classifier, trainingData];
 
 (* Overall accuracy *)
@@ -163,16 +166,32 @@ Reducing to 2 or 3 dimensions helps you see whether the clusters are well
 separated, which indicates distinct surface types.
 
 ```wolfram
-reduced = DimensionReduction[spectralVectors, 2,
+reduced = DimensionReduce[spectralVectors, 2,
   Method -> "PrincipalComponentAnalysis"];
 
+(* Assign cluster labels to each point *)
+clusterLabels = FindClusters[
+  spectralVectors -> Range[Length[spectralVectors]], 5
+];
+(* clusterLabels is a list of groups of indices -- flatten to per-point labels *)
+pointLabels = ConstantArray[0, Length[spectralVectors]];
+Do[
+  (pointLabels[[#]] = k) & /@ clusterLabels[[k]],
+  {k, Length[clusterLabels]}
+];
+
+(* Note: This is a conceptual sketch. FindClusters returns groups of indices,
+   not per-point labels. The loop above converts groups to per-point labels
+   for plotting. *)
+
 ListPlot[
-  MapThread[
-    Tooltip[#1, #2] &,
-    {reduced, FindClusters[spectralVectors -> Range[Length[spectralVectors]], 5]}
+  Table[
+    Pick[reduced, pointLabels, k],
+    {k, Length[clusterLabels]}
   ],
   PlotLabel -> "Spectral Space (PCA)",
-  FrameLabel -> {"PC1", "PC2"}
+  FrameLabel -> {"PC1", "PC2"},
+  PlotLegends -> Range[Length[clusterLabels]]
 ]
 ```
 
@@ -209,7 +228,7 @@ eviImage =
   sentinel2 //
     GEEExpression[
       "2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))",
-      <|"NIR" -> "B8", "RED" -> "B4", "BLUE" -> "B2"|>
+      <|"NIR" -> "B8_median", "RED" -> "B4_median", "BLUE" -> "B2_median"|>
     ] //
     GEERename[{"EVI"}];
 
@@ -233,9 +252,9 @@ predictedBiomass = biomassPredictor /@ (fieldSamples[[All, "Values"]])
 
 ## 8.2 Time Series Analysis
 
-Earth observation time series reveal trends, seasonal patterns, and anomalies
-in environmental processes. The Wolfram Language provides a rich set of tools
-for temporal analysis that complement GEE's server-side compositing.
+You have seen the monthly-loop pattern in earlier chapters. This section focuses
+on what to do after you have the time series -- trend detection, anomaly flagging,
+and forecasting.
 
 ### Building Multi-Year Time Series
 
@@ -418,7 +437,7 @@ DateListPlot[{ndviTS, forecast},
 
 ## 8.3 Image Processing Pipeline
 
-GEE delivers raster data as `Image` objects. Once client-side, the full power
+The paclet delivers GEE raster data as Wolfram `Image` objects. Once client-side, the full power
 of the Wolfram Language image processing stack is available for enhancement,
 segmentation, edge detection, and change analysis.
 
@@ -627,8 +646,10 @@ to extract per-region statistics.
 states = EntityList[EntityClass["AdministrativeDivision", "USStatesKind"]];
 
 stateNDVI = Table[
-  Module[{bbox, pipeline, result},
-    bbox = EntityValue[state, "BoundingBox"];
+  Module[{gb, bbox, pipeline, result},
+    gb = GeoBoundingBox[state];
+    (* Extract {west, south, east, north} from the bounding box *)
+    bbox = {gb[[1, 2]], gb[[1, 1]], gb[[2, 2]], gb[[2, 1]]};
     pipeline =
       GEECollection["MODIS/061/MOD13A2"] //
         GEEFilterDate["2024-06-01", "2024-08-31"] //
@@ -1209,8 +1230,12 @@ meanNDVI = GEECompute[
   ndviComposite // GEEReduceRegion[studyRegion, "mean", targetScale]
 ];
 
+(* Per-pixel temporal standard deviation across the collection *)
 stdNDVI = GEECompute[
-  ndviComposite //
+  s2Collection //
+    GEECollectionMap[Function[img,
+      img // GEENormalizedDifference[{"B8", "B4"}]
+    ]] //
     GEEReduceStdDev //
     GEEReduceRegion[studyRegion, "mean", targetScale]
 ];
@@ -1242,8 +1267,9 @@ sampleResults = GEECompute[sampledData];
 (* Statistical percentiles *)
 percentileResult = GEECompute[
   s2Collection //
-    GEEMedian //
-    GEENormalizedDifference[{"B8", "B4"}] //
+    GEECollectionMap[Function[img,
+      img // GEENormalizedDifference[{"B8", "B4"}]
+    ]] //
     GEEReducePercentile[{10, 25, 50, 75, 90}] //
     GEEReduceRegion[studyRegion, "mean", targetScale]
 ];
@@ -1262,11 +1288,12 @@ smoothedNDVI =
     GEEFocalMean[90] //      (* 90-meter radius smoothing *)
     GEEVisualize[<|"min" -> 0, "max" -> 0.8|>];
 
-(* Texture analysis via entropy *)
+(* Texture analysis via entropy -- requires integer input *)
 textureImage =
   s2Collection //
     GEEMedian //
     GEESelectBands[{"B8"}] //
+    GEEToInt //
     GEEEntropy[30];
 
 (* Gradient for edge detection *)
@@ -1328,8 +1355,15 @@ localRange =
 localMedian = ndviComposite // GEEFocalMedian[150];
 
 (* Kernel convolution for edge detection *)
-edgeKernel = <|"type" -> "Kernel", "width" -> 3, "height" -> 3,
-  "values" -> {-1, -1, -1, -1, 8, -1, -1, -1, -1}|>;
+edgeKernel = <|"functionInvocationValue" -> <|
+  "functionName" -> "Kernel.fixed",
+  "arguments" -> <|
+    "width" -> <|"constantValue" -> 3|>,
+    "height" -> <|"constantValue" -> 3|>,
+    "weights" -> <|"constantValue" -> {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}}|>,
+    "normalize" -> <|"constantValue" -> False|>
+  |>
+|>|>;
 edgeDetected = s2Collection // GEEMedian // GEESelectBands[{"B8"}] // GEEConvolve[edgeKernel];
 
 (* Math operations: power, modulo, exponential, log10 *)
@@ -1412,8 +1446,14 @@ landsat = GEECollection["LANDSAT/LC09/C02/T1_L2"] //
 sentinel = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
   GEEFilterDate["2024-06-01", "2024-08-31"] // GEEFilterBounds[studyBBox];
 
-cond = <|"type" -> "maxDifference", "difference" -> 86400000,
-  "leftField" -> "system:time_start", "rightField" -> "system:time_start"|>;
+cond = <|"functionInvocationValue" -> <|
+  "functionName" -> "Filter.maxDifference",
+  "arguments" -> <|
+    "difference" -> <|"constantValue" -> 86400000|>,
+    "leftField" -> <|"constantValue" -> "system:time_start"|>,
+    "rightField" -> <|"constantValue" -> "system:time_start"|>
+  |>
+|>|>;
 
 joined = GEEJoinSimple[landsat, sentinel, cond];
 innerJoined = GEEJoinInner[landsat, sentinel, cond];
@@ -1562,3 +1602,7 @@ analytical capabilities combine to support end-to-end scientific workflows:
 Every public function in the GoogleEarthEngineClient API appears in at least
 one example above, from data loading and filtering through band math, masking,
 spatial processing, collection operations, joins, and output retrieval.
+
+---
+
+*Next: [Chapter 9: Appendices](chapter-09-appendices.md)*

@@ -10,17 +10,14 @@ products, CHIRPS rainfall, and the JRC Global Surface Water dataset -- that make
 this monitoring possible.
 
 This chapter walks through the full spectrum of hydrological analysis: detecting
-water bodies with spectral indices, tracking reservoir storage over time, mapping
-floods with radar, monitoring snow and ice, analyzing precipitation patterns, and
-estimating water quality from optical imagery. Every example uses the
+water bodies with spectral indices, tracking reservoir storage over time, and
+mapping floods with radar. It also covers snow and ice monitoring, precipitation
+analysis, and water quality estimation from optical imagery. Every example uses the
 `GoogleEarthEngineClient` paclet to build server-side processing pipelines and
 then brings the results into Wolfram Language for analysis, visualization, and
 modeling.
 
-```wolfram
-Needs["GoogleEarthEngineClient`"]
-GEEConnect["/path/to/service-account-key.json"]
-```
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -38,7 +35,7 @@ water-detection index used in remote sensing.
 The NDWI exploits the contrast between green reflectance (Sentinel-2 Band 3) and
 NIR absorption (Band 8). Water pixels yield positive NDWI values; vegetation and
 soil yield negative values. Note that the same index applied to vegetation canopy
-water content is covered in Section 5.1.3; here we focus on surface water
+water content is covered in Section 5.1.3; here the focus is on surface water
 detection.
 
 ```wolfram
@@ -82,6 +79,9 @@ positives with standard NDWI because they also reflect in the NIR. The Modified
 NDWI substitutes SWIR (Band 11) for NIR, which better separates water from
 built-up surfaces because SWIR reflectance is higher for dry built-up materials
 and lower for water.
+
+Bangkok's dense mix of canals and buildings provides an ideal test case for
+MNDWI's ability to separate water from built-up surfaces.
 
 ```wolfram
 (* Region: Bangkok, Thailand -- urban waterways mixed with buildings *)
@@ -172,7 +172,7 @@ the occurrence value directly.
 (* Query Lake Chad center *)
 GEEIdentify[GeoPosition[{13.2, 14.1}], occurrence]
 
-(* Returns: <|"Position" -> ..., "Values" -> <|"occurrence" -> 42|>, ..."|> *)
+(* Returns: <|"Position" -> ..., "Values" -> {42}, "Bands" -> {"occurrence"}, ...|> *)
 (* 42% occurrence indicates seasonal/declining water *)
 ```
 
@@ -183,7 +183,7 @@ GEEIdentify[GeoPosition[{13.2, 14.1}], occurrence]
 ### Tracking Reservoir Surface Area Over Time
 
 Reservoir surface area is a practical proxy for storage volume. By computing
-monthly NDWI composites and counting water pixels, we can build a time series
+monthly NDWI composites and counting water pixels, you can build a time series
 of reservoir extent.
 
 ```wolfram
@@ -219,7 +219,9 @@ reservoirAreaForMonth[year_Integer, month_Integer] := Module[
     areaImage // GEEReduceRegion[meadGeom, "sum", 30]
   ];
 
-  (* Return date and area in km^2 *)
+  (* Return date and area in km^2.
+     The band is named "nd" because GEENormalizedDifference outputs
+     a single band with that name by default. *)
   {DateObject[{year, month, 1}],
    Lookup[stats, "nd", 0] / 1.0*^6}
 ]
@@ -253,7 +255,7 @@ DateListPlot[areaSeries,
 ### Before/After Drought Comparison
 
 A direct visual comparison between wet and dry periods can be more compelling
-than a time series chart. Here we compare Lake Mead in a wet year versus a
+than a time series chart. This example compares Lake Mead in a wet year versus a
 drought year.
 
 ```wolfram
@@ -528,7 +530,7 @@ DateListPlot[snowSeries,
 ### Glacier Extent Mapping with Sentinel-2
 
 The Normalized Difference Snow Index (NDSI) can also delineate glacier
-boundaries. For glaciers, we use Sentinel-2 at 10/20-meter resolution for
+boundaries. For glaciers, Sentinel-2 at 10/20-meter resolution provides
 sharper boundaries than MODIS. The NDSI formula uses Green (B3) and SWIR (B11),
 the same band combination as MNDWI but interpreted differently in the context of
 cryospheric mapping.
@@ -666,8 +668,8 @@ meanRainfall = GEECompute[
 annualMeanMm = Lookup[meanRainfall, "precipitation", Missing[]];
 
 (* Convert to total volume over watershed *)
-(* First compute watershed area *)
-watershedAreaM2 = GEECompute[GEEArea[tanaPolygon]];
+(* First compute watershed area -- GEECompute returns an Association *)
+watershedAreaM2 = First[Values[GEECompute[GEEArea[tanaPolygon]]]];
 
 (* Rainfall depth (mm) -> volume (m^3) *)
 totalVolumeM3 = Quantity[annualMeanMm, "Millimeters"] *
@@ -799,11 +801,15 @@ turbidityImage = GEEComputePixels[bayBox, turbidity,
     "palette" -> {"#0000FF", "#00FF00", "#FFFF00", "#FF0000"}|>]
 ```
 
+> **Note:** Red-band reflectance is a qualitative turbidity proxy. Quantitative turbidity estimation requires site-specific calibration with in-situ NTU measurements.
+
 ### Chlorophyll-a and Algal Bloom Detection
 
 Chlorophyll-a concentration correlates with the ratio of green to blue
 reflectance. Elevated green-to-blue ratios indicate higher phytoplankton
 density, which can signal harmful algal blooms in lakes and reservoirs.
+
+> **Note:** The green/blue ratio is a first-order approximation. Operational chlorophyll-a algorithms (e.g., OC3 for open ocean, CI for cyanobacteria-dominated systems) are more appropriate for quantitative work.
 
 ```wolfram
 (* Target: Lake Erie -- prone to harmful algal blooms *)
@@ -975,8 +981,10 @@ The ESA WorldCover product provides a global land cover map at 10-meter
 resolution. Class 90 corresponds to herbaceous wetlands.
 
 ```wolfram
-(* ESA WorldCover 2021 *)
-worldCover = GEELoadImage["ESA/WorldCover/v200/2021"];
+(* ESA WorldCover v200 is an IMAGE_COLLECTION *)
+worldCover = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic;
 
 (* Extract wetland class (value = 90) *)
 wetlands = worldCover //
@@ -1008,7 +1016,7 @@ A watershed water budget balances inputs (precipitation) against outputs
 
     Net Water = Precipitation - Evapotranspiration
 
-We can compute both terms from satellite data: CHIRPS for precipitation and
+Both terms come from satellite data: CHIRPS for precipitation and
 MODIS MOD16A2 for evapotranspiration (ET).
 
 ```wolfram
@@ -1228,7 +1236,9 @@ precipMean = GEECompute[
 ### Step 3: Land Cover Composition
 
 ```wolfram
-mekongLC = GEELoadImage["ESA/WorldCover/v200/2021"] //
+mekongLC = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic //
   GEESelectBands[{"Map"}] //
   GEEClip[mekongPoly];
 
@@ -1313,7 +1323,7 @@ GraphicsGrid[{
 |---|---|
 | `GEENormalizedDifference` | Compute NDWI, MNDWI, NDVI, NDSI from band pairs |
 | `GEECollection` | Load Sentinel-2, Sentinel-1, MODIS, CHIRPS collections |
-| `GEELoadImage` | Load single-image assets (JRC, ESA WorldCover) |
+| `GEELoadImage` | Load single-image assets (JRC Global Surface Water) |
 | `GEEFilterDate` | Restrict collections to specific time windows |
 | `GEEFilterBounds` | Spatial filtering to region of interest |
 | `GEEFilterProperty` | Cloud filtering, instrument mode selection |
@@ -1356,3 +1366,7 @@ GraphicsGrid[{
 - Funk, C. et al. (2015). "The climate hazards infrared precipitation with
   stations -- a new environmental record for monitoring extremes." *Scientific
   Data*, 2, 150066.
+
+---
+
+*Next: [Chapter 7: Urban and Population Analysis](chapter-07-urban-population.md)*

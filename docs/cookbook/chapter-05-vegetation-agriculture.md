@@ -1,4 +1,4 @@
-# Chapter 5: Vegetation, Agriculture & Precision Farming
+# Chapter 5: Vegetation and Agricultural Monitoring
 
 Vegetation monitoring from space is one of the most mature applications of remote
 sensing. Satellites measure how plants interact with sunlight -- absorbing red
@@ -7,6 +7,8 @@ spectral signature lets us quantify crop health, detect water stress, estimate
 yields, and guide precision agriculture decisions. This chapter brings together
 Google Earth Engine imagery, Wolfram Language analysis, and ground-sensor
 integration into end-to-end workflows for agricultural scientists and engineers.
+
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -87,7 +89,8 @@ monthlyNDVI = Table[
       ndvi // GEEReduceRegion[field, "mean", 30]
     ];
 
-    {DateObject[{2024, m, 15}], stats["NDVI"]}
+    (* GEENormalizedDifference outputs a single band named "nd" by default *)
+    {DateObject[{2024, m, 15}], stats["nd"]}
   ],
   {m, 1, 12}
 ];
@@ -118,7 +121,7 @@ landsatNDVI =
 
 ### 5.1.2 EVI -- Enhanced Vegetation Index
 
-NDVI saturates in dense canopies where LAI exceeds roughly 3. EVI was designed
+NDVI saturates in dense canopies where Leaf Area Index (LAI) exceeds roughly 3. EVI was designed
 for the MODIS sensor to remain sensitive in high-biomass regions by incorporating
 a blue band to correct for atmospheric aerosol scattering and a soil adjustment
 factor:
@@ -138,11 +141,12 @@ sentinel2Composite =
     GEEMedian //
     GEESelectBands[{"B8", "B4", "B2"}];
 
+(* After GEEMedian, band names gain a _median suffix *)
 eviImage =
   sentinel2Composite //
     GEEExpression[
       "2.5 * ((nir - red) / (nir + 6 * red - 7.5 * blue + 1))",
-      <|"nir" -> "B8", "red" -> "B4", "blue" -> "B2"|>
+      <|"nir" -> "B8_median", "red" -> "B4_median", "blue" -> "B2_median"|>
     ];
 ```
 
@@ -165,22 +169,24 @@ GraphicsRow[{
 In densely vegetated fields (rice paddies, orchards), EVI retains more
 contrast than NDVI, which compresses toward 0.8-0.9.
 
-### 5.1.3 NDWI -- Normalized Difference Water Index
+### 5.1.3 NDWI -- Normalized Difference Water Index (Vegetation Moisture)
 
-NDWI uses the green and NIR bands to detect water content in vegetation. It is
-particularly useful for identifying crop water stress before it becomes visible
-in NDVI. For NDWI applied to open water body detection rather than vegetation
-water content, see Section 6.1.
+The Gao NDWI for vegetation water content uses NIR and SWIR bands:
+`(NIR - SWIR) / (NIR + SWIR)`. This differs from the McFeeters NDWI
+(`(Green - NIR) / (Green + NIR)`) used for surface water detection in
+Section 6.1. The Gao variant is sensitive to leaf and canopy water content,
+making it useful for identifying crop water stress before it becomes visible
+in NDVI.
 
 ```wolfram
-(* Sentinel-2: B3 = Green, B8 = NIR *)
+(* Sentinel-2: B8 = NIR, B11 = SWIR -- Gao NDWI for vegetation moisture *)
 ndwiImage =
   GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
     GEEFilterDate["2024-08-01", "2024-09-01"] //
     GEEFilterBounds[centralValley] //
     GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 10] //
     GEEMedian //
-    GEENormalizedDifference[{"B3", "B8"}];
+    GEENormalizedDifference[{"B8", "B11"}];
 
 (* Positive NDWI indicates high water content; negative indicates stress *)
 GEEComputePixels[centralValley,
@@ -198,7 +204,10 @@ senescence (both declining).
 ### 5.1.4 LAI -- Leaf Area Index from MODIS
 
 LAI quantifies the total one-sided area of leaf tissue per unit ground area
-(m^2/m^2). MODIS provides a global 500 m LAI product every 8 days.
+(m^2/m^2). MODIS provides a global 500 m LAI product every 8 days. This
+example uses `MOD15A2H` (Terra-only, 8-day composite); the combined
+Terra+Aqua product `MCD15A3H` (4-day composite) is also available and
+offers higher temporal frequency.
 
 ```wolfram
 forestRegion = {-122.5, 37.5, -121.5, 38.5};
@@ -259,7 +268,7 @@ phenologyData = Table[
         GEENormalizedDifference[{"B8", "B4"}];
 
     stats = GEECompute[ndvi // GEEReduceRegion[fieldGeom, "mean", 10]];
-    stats["NDVI"]
+    stats["nd"]
   ],
   {m, 3, 11}
 ];
@@ -283,6 +292,11 @@ ListLinePlot[spectrum[[2 ;; 8]],
 
 A dominant peak at frequency component 2 corresponds to a single growing season
 (one cycle per year). Two peaks would indicate a double-crop system.
+
+---
+
+With the spectral structure identified, we can now extract specific
+phenological dates from the NDVI curve.
 
 **Detecting green-up, peak, and senescence dates.**
 
@@ -311,6 +325,8 @@ senescenceMonth = First @ Select[
 {greenUpMonth + 2, peakMonth + 2, senescenceMonth + 2}
 ```
 
+---
+
 **Compare NDVI profiles for different crop types.**
 
 ```wolfram
@@ -333,7 +349,7 @@ extractProfile[geom_, bbox_] := Table[
         GEEMedian //
         GEENormalizedDifference[{"B8", "B4"}];
     stats = GEECompute[ndvi // GEEReduceRegion[geom, "mean", 10]];
-    stats["NDVI"]
+    stats["nd"]
   ],
   {m, 3, 11}
 ];
@@ -394,7 +410,7 @@ modisNDVI = Table[
 ```wolfram
 rawValues = modisNDVI[[All, 2]];
 smoothedValues = MovingAverage[rawValues, 3];
-smoothedDates = modisNDVI[[3 ;; -3, 1]];
+smoothedDates = modisNDVI[[2 ;; -2, 1]];
 
 ListLinePlot[{
     Transpose[{modisNDVI[[All, 1]], rawValues}],
@@ -443,7 +459,7 @@ GEEComputePixels[iowaRegion,
 **Compute area by crop type.**
 
 CDL class values include 1 = Corn, 5 = Soybeans, 24 = Winter Wheat, among
-others. We can compute the area of each crop type using pixel-level masking
+others. You can compute the area of each crop type using pixel-level masking
 and area reduction.
 
 ```wolfram
@@ -518,7 +534,7 @@ wheatSamples = GEEGetSamples[wheatPoints, julyComposite];
 ```wolfram
 (* Format training data: {feature vector -> label} *)
 formatSamples[samples_, label_] :=
-  (Values[#["Values"]] -> label) & /@ samples;
+  (#["Values"] -> label) & /@ samples;
 
 trainingData = Join[
   formatSamples[cornSamples, "Corn"],
@@ -559,7 +575,7 @@ gridPoints = Flatten[
   1];
 
 allSamples = GEEGetSamples[gridPoints, julyComposite];
-spectralVectors = Values[#["Values"]] & /@ allSamples;
+spectralVectors = #["Values"] & /@ allSamples;
 
 (* Cluster into 5 groups *)
 clusters = FindClusters[spectralVectors -> Range[Length[spectralVectors]],
@@ -669,7 +685,7 @@ extractNDVIProfile[geom_, bbox_] := Table[
         GEEMedian //
         GEENormalizedDifference[{"B8", "B4"}];
     stats = GEECompute[ndvi // GEEReduceRegion[geom, "mean", 10]];
-    stats["NDVI"]
+    stats["nd"]
   ],
   {m, 5, 10}
 ];
@@ -703,7 +719,9 @@ is a strong indicator of irrigation.
 
 Peak-season NDVI is a well-established proxy for crop yield. The relationship
 is approximately linear for grain crops within a single growing region, though
-it saturates at very high biomass levels.
+it saturates at very high biomass levels. Note that NDVI-yield linearity
+degrades above ~0.8 NDVI due to saturation; EVI may be more appropriate for
+high-biomass scenarios.
 
 **Step 1: Extract NDVI at yield sampling points.**
 
@@ -729,7 +747,7 @@ peakComposite =
     GEENormalizedDifference[{"B8", "B4"}];
 
 ndviSamples = GEEGetSamples[sampleLocations, peakComposite];
-ndviValues = #["Values"]["NDVI"] & /@ ndviSamples;
+ndviValues = First[#["Values"]] & /@ ndviSamples;
 ```
 
 **Step 2: Build a regression model.**
@@ -772,7 +790,7 @@ newLocations = {
 };
 
 newNDVI = GEEGetSamples[newLocations, peakComposite];
-newNDVIValues = #["Values"]["NDVI"] & /@ newNDVI;
+newNDVIValues = First[#["Values"]] & /@ newNDVI;
 
 predictedYields = yieldPredictor /@ newNDVIValues
 ```
@@ -794,7 +812,7 @@ fieldPoints = Flatten[
   1];
 
 fieldNDVI = GEEGetSamples[fieldPoints, peakComposite];
-ndviGrid = #["Values"]["NDVI"] & /@ fieldNDVI;
+ndviGrid = First[#["Values"]] & /@ fieldNDVI;
 ```
 
 **Step 2: Cluster into management zones.**
@@ -916,7 +934,7 @@ sarValues = Table[
         GEESelectBands[{"VV"}] //
         GEEMedian;
     result = GEEIdentify[sensorLocation, sar];
-    result["Values"]["VV"]
+    First[result["Values"]]
   ],
   {date, sarDates}
 ];
@@ -960,7 +978,7 @@ era5Temps = Table[
         GEEFirst //
         GEESelectBands[{"temperature_2m"}]
     ];
-    result["Values"]["temperature_2m"] - 273.15  (* Kelvin to Celsius *)
+    First[result["Values"]] - 273.15  (* Kelvin to Celsius *)
   ],
   {date, DateRange[DateObject[{2024, 6, 1}], DateObject[{2024, 8, 31}],
     Quantity[1, "Day"]]}
@@ -1070,7 +1088,7 @@ satelliteNDVIMeans = Table[
         GEEMedian //
         GEENormalizedDifference[{"B8", "B4"}];
     stats = GEECompute[ndvi // GEEReduceRegion[geom, "mean", 10]];
-    stats["NDVI"]
+    stats["nd"]
   ],
   {d, satelliteDates}
 ];
@@ -1123,7 +1141,7 @@ spectralData = GEEGetSamples[samplePositions, multiBandComposite];
 
 (* Combine with yield data for regression modeling *)
 yieldValues = Normal[gpsData[All, "Yield_bu_acre"]];
-featureVectors = Values[#["Values"]] & /@ spectralData;
+featureVectors = #["Values"] & /@ spectralData;
 
 multiVariateModel = LinearModelFit[
   Join[featureVectors, List /@ yieldValues, 2],
@@ -1363,8 +1381,8 @@ sampleGrid = Flatten[
 
 ndviLSTSamples = GEEGetSamples[sampleGrid, ndviLST];
 
-ndviVals = #["Values"]["NDVI"] & /@ ndviLSTSamples;
-lstVals = #["Values"]["LST"] & /@ ndviLSTSamples;
+ndviVals = #["Values"][[1]] & /@ ndviLSTSamples;
+lstVals = #["Values"][[2]] & /@ ndviLSTSamples;
 
 (* NDVI-LST scatter plot: the "triangle" method *)
 ListPlot[Transpose[{ndviVals, lstVals}],
@@ -1462,3 +1480,7 @@ scales from single-field precision agriculture to regional crop monitoring.
 **Visualization:** `GEEVisualize`, `GEEComputePixels`, `GEEImage`
 
 **Point extraction:** `GEEIdentify`, `GEEGetSamples`
+
+---
+
+*Next: [Chapter 6: Water Resources and Hydrology](chapter-06-water-hydrology.md)*

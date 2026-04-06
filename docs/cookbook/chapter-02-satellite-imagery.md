@@ -6,12 +6,7 @@ load and filter them using GoogleEarthEngineClient expression builders, and how
 to transform raw sensor data into scientifically meaningful images using both
 server-side GEE operations and client-side Wolfram Language processing.
 
-Every example in this chapter assumes you have already authenticated:
-
-```wolfram
-Needs["GoogleEarthEngineClient`"]
-GEEConnect["/path/to/service-account-key.json"]
-```
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -80,7 +75,7 @@ most common ones you will encounter in this chapter:
 | Landsat 8/9  | SR_B2  | SR_B3  | SR_B4  | SR_B5  | SR_B6  | SR_B7  | ST_B10  |
 | Sentinel-2   | B2     | B3     | B4     | B8     | B11    | B12    | --      |
 | MODIS (MOD09)| sur_refl_b03 | sur_refl_b04 | sur_refl_b01 | sur_refl_b02 | sur_refl_b06 | sur_refl_b07 | -- |
-| NAIP         | R      | G      | B      | N      | --     | --     | --      |
+| NAIP         | B      | G      | R      | N      | --     | --     | --      |
 
 Knowing these mappings is essential for constructing correct band composites.
 A "true-color" composite always maps Red, Green, Blue sensor bands to the
@@ -92,9 +87,9 @@ display's R, G, B channels -- but the band *names* differ across sensors.
 
 The Landsat program, jointly managed by NASA and the USGS, provides the longest
 continuous record of satellite Earth observation, stretching back to 1972.
-Landsat 8 (launched 2013) and Landsat 9 (launched 2021) carry the OLI-2 and
-TIRS-2 sensors, delivering 30-meter multispectral imagery with a 16-day revisit
-cycle. Together they provide 8-day effective coverage.
+Landsat 8 (launched 2013) carries the OLI and TIRS sensors; Landsat 9
+(launched 2021) carries OLI-2 and TIRS-2. Both deliver 30-meter multispectral
+imagery with a 16-day revisit cycle. Together they provide 8-day effective coverage.
 
 ### Collection 2 Level-2 Surface Reflectance
 
@@ -147,7 +142,7 @@ img = GEEComputePixels[sfBbox, sfTrueColor,
 ```
 
 The `"min"` and `"max"` values in `"VisParams"` correspond to the raw DN range
-for Landsat Collection 2 surface reflectance. Values around 7000-12000 typically
+for Landsat Collection 2 surface reflectance. Values around 7000 to 12000 typically
 produce a well-balanced true-color image. Adjust these based on your scene --
 bright desert scenes may need a higher max, while dark forested regions may need
 a lower min.
@@ -268,7 +263,7 @@ vegetation, and bare soil. This band is the key to building cloud masks.
 ### Cloud Masking with SCL
 
 Clouds and their shadows are the primary obstacle to optical satellite imagery.
-The SCL band provides per-pixel classification that we can use to mask unwanted
+The SCL band provides per-pixel classification that you can use to mask unwanted
 pixels before compositing. A compact reusable version of this cloud-masking
 pattern appears in Appendix C, Pattern 4.
 
@@ -291,7 +286,7 @@ composite = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
   GEEMedian;
 
 (* Step 2: Build the cloud mask from SCL *)
-scl = composite // GEESelectBands[{"SCL"}];
+scl = composite // GEESelectBands[{"SCL_median"}];
 
 mask = scl //
   GEENotEquals[3] //
@@ -301,7 +296,7 @@ mask = scl //
 
 (* Step 3: Apply the mask to the RGB bands *)
 clean = composite //
-  GEESelectBands[{"B4", "B3", "B2"}] //
+  GEESelectBands[{"B4_median", "B3_median", "B2_median"}] //
   GEEUpdateMask[mask];
 
 (* Step 4: Render *)
@@ -309,6 +304,10 @@ img = GEEComputePixels[madridBbox, clean,
   "ImageSize" -> {1024, 1024},
   "VisParams" -> <|"min" -> 0, "max" -> 3000|>]
 ```
+
+> **Note:** For production workflows, apply cloud masking per-image using
+> `GEECollectionMap` before compositing (see Appendix C, Pattern 4). The
+> post-median approach shown here is a simplified approximation.
 
 The mask is constructed by combining multiple `GEENotEquals` tests with
 `GEEAnd`. Each `GEENotEquals` produces a binary (0/1) image, and `GEEAnd`
@@ -397,8 +396,8 @@ not obscure the geology.
 ## 2.4 MODIS Imagery
 
 The Moderate Resolution Imaging Spectroradiometer (MODIS) flies on NASA's Terra
-and Aqua satellites, providing daily global coverage at 250 m to 1 km
-resolution. While coarser than Landsat or Sentinel-2, MODIS is unmatched for
+(operating since 1999) and Aqua (since 2002) satellites, providing daily global
+coverage at 250 m to 1 km resolution. While coarser than Landsat or Sentinel-2, MODIS is unmatched for
 large-scale, high-frequency monitoring.
 
 ### Key Datasets
@@ -587,7 +586,7 @@ sarDualPol = GEECollection["COPERNICUS/S1_GRD"] //
 sarDualImg = GEEComputePixels[mekongBbox, sarDualPol,
   "ImageSize" -> {1024, 1024},
   "VisParams" -> <|
-    "bands" -> {"VV", "VH", "VV"},
+    "bands" -> {"VV_median", "VH_median", "VV_median"},
     "min" -> {-25, -30, -25},
     "max" -> {0, -5, 0}
   |>]
@@ -940,8 +939,10 @@ s2WithNdvi = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
   GEEFilterBounds[bbox] //
   GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 20] //
   GEECollectionMap[
-    GEEAddBands[
-      GEENormalizedDifference[{"B8", "B4"}] // GEERename[{"NDVI"}]
+    Function[img,
+      img // GEEAddBands[
+        img // GEENormalizedDifference[{"B8", "B4"}] // GEERename[{"NDVI"}]
+      ]
     ]
   ];
 
@@ -975,8 +976,10 @@ ndviCollection = GEECollection["COPERNICUS/S2_SR_HARMONIZED"] //
   GEEFilterBounds[bbox] //
   GEEFilterProperty["CLOUDY_PIXEL_PERCENTAGE", "LessThan", 20] //
   GEECollectionMap[
-    GEESelectBands[{"B8", "B4"}] //
-      GEENormalizedDifference[{"B8", "B4"}]
+    Function[img,
+      img // GEESelectBands[{"B8", "B4"}] //
+        GEENormalizedDifference[{"B8", "B4"}]
+    ]
   ];
 
 (* Maximum NDVI across the season *)
@@ -1016,6 +1019,10 @@ nearly every Google Earth Engine analysis:
 | Post-processing | `ImageAdjust`, `Sharpen`, `ColorConvert`, `GraphicsRow` |
 
 The pipeline pattern -- `GEECollection // Filter // Select // Aggregate` --
-is the foundation of everything that follows. Chapter 3 will build on these
-fundamentals to compute spectral indices (NDVI, NDWI, EVI) and perform
-band math for environmental analysis.
+is the foundation of everything that follows. Chapter 3 applies these
+fundamentals to climate and weather datasets, while Chapter 5 extends them
+to spectral indices (NDVI, EVI, LAI) and agricultural analysis.
+
+---
+
+*Next: [Chapter 3: Climate and Weather Analysis](chapter-03-climate-weather.md)*

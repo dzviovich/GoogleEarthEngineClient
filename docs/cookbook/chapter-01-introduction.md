@@ -1,11 +1,12 @@
 # Chapter 1: Introduction and Getting Started
 
-This chapter introduces Google Earth Engine, explains what the
-GoogleEarthEngineClient paclet provides, walks through installation and
-authentication, and demonstrates five practical queries that showcase the
-breadth of the paclet. By the end, you will understand how expression trees
-work, which functions trigger server-side computation, and the conventions
-used throughout this book.
+Google Earth Engine puts petabytes of Earth observation data at your
+fingertips -- and this paclet lets you access it from a Mathematica notebook.
+This chapter explains what the GoogleEarthEngineClient paclet provides,
+walks through installation and authentication, and demonstrates five
+practical queries that showcase the breadth of the paclet. By the end, you
+will understand how expression trees work, which functions trigger
+server-side computation, and the conventions used throughout this book.
 
 ---
 
@@ -58,7 +59,7 @@ analysis happens in your notebook.
 
 ## 1.2 The GoogleEarthEngineClient Paclet
 
-The paclet provides approximately 95 public functions organized into seven
+The paclet provides approximately 95 public functions organized into eight
 categories:
 
 | Category              | Key Functions                                              | Count |
@@ -178,10 +179,11 @@ subsequent API calls. You only need to call `GEEConnect` once per session.
 
 ```wolfram
 $GEEConnection
-(* <|"Project" -> "my-gee-project",
-     "AccessToken" -> "ya29...",
-     "Expiry" -> DateObject[...],
-     "KeyFile" -> "/path/to/service-account-key.json"|> *)
+(* <|"AccessToken" -> "ya29...",
+     "Expiry" -> 1743868200,
+     "Project" -> "my-gee-project",
+     "KeyFile" -> "/path/to/service-account-key.json",
+     "KeyData" -> <|...|>|> *)
 ```
 
 You can inspect individual fields:
@@ -191,6 +193,9 @@ $GEEConnection["Project"]
 (* "my-gee-project" *)
 
 $GEEConnection["Expiry"]
+(* 1743868200 -- Unix timestamp; use FromUnixTime to convert *)
+
+FromUnixTime[$GEEConnection["Expiry"]]
 (* DateObject[{2026, 4, 5, 15, 30, 0}, "Instant", "Gregorian", "UTC"] *)
 ```
 
@@ -230,7 +235,8 @@ FindFile["/path/to/key.json"]
 
 The following examples assume you have already called `GEEConnect`
 successfully. Each example demonstrates a different category of the paclet's
-functionality.
+functionality. If the `//` pipe syntax is unfamiliar, see Section 1.5 for
+how expression trees work.
 
 ### Example 1: Point Query -- Elevation at a Location
 
@@ -294,9 +300,9 @@ BarChart[elevations,
   PlotLabel -> "Capital City Elevations from SRTM"]
 ```
 
-**Expected output:** A bar chart with Kathmandu highest (~1296 m), followed
-by Bogota (~2556 m), Mexico City (~2240 m), Denver (~1609 m), and Nairobi
-(~1661 m).
+**Expected output:** A bar chart with Bogota highest (~2556 m), followed by
+Mexico City (~2240 m), Nairobi (~1661 m), Denver (~1609 m), and Kathmandu
+(~1296 m).
 
 ---
 

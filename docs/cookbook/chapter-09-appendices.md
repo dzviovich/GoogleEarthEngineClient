@@ -6,6 +6,8 @@
 
 All public functions in the GoogleEarthEngineClient paclet, organized by category. The **Operator** column indicates whether the function supports a curried form for use with `//` (postfix application).
 
+**No** = direct form only; **N/A** = zero-argument or variable; **Yes** = supports curried `//` form.
+
 ### Authentication
 
 | Function | Description | Operator | Example |
@@ -106,7 +108,7 @@ All public functions in the GoogleEarthEngineClient paclet, organized by categor
 
 | Function | Description | Operator | Example |
 |---|---|---|---|
-| `GEEGeometry` | Create a point or rectangle geometry | No | `GEEGeometry[{-105.0, 39.7}]` |
+| `GEEGeometry` | Create a point or rectangle geometry | No | `GEEGeometry[{39.7, -105.0}]` |
 | `GEEPolygon` | Create a polygon from coordinate pairs | No | `GEEPolygon[{{-105, 39}, {-104, 39}, {-104, 40}, {-105, 40}}]` |
 | `GEELineString` | Create a line geometry from coordinate pairs | No | `GEELineString[{{-105, 39}, {-104, 40}}]` |
 | `GEEBuffer` | Buffer a geometry by distance in meters | Yes | `geom // GEEBuffer[1000]` |
@@ -257,93 +259,98 @@ All public functions in the GoogleEarthEngineClient paclet, organized by categor
 
 ## Appendix B: GEE Dataset Catalog Quick Reference
 
+This catalog reflects datasets available as of early 2026. For the latest catalog, visit the [GEE Data Catalog](https://developers.google.com/earth-engine/datasets/catalog).
+
 ### Optical Imagery
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| Landsat 5 SR | `LANDSAT/LT05/C02/T1_L2` | 30 m | 1984--2012, 16 days | SR_B1--SR_B5, SR_B7, ST_B6 |
-| Landsat 7 SR | `LANDSAT/LE07/C02/T1_L2` | 30 m | 1999--present, 16 days | SR_B1--SR_B5, SR_B7, ST_B6 |
-| Landsat 8 SR | `LANDSAT/LC08/C02/T1_L2` | 30 m | 2013--present, 16 days | SR_B1--SR_B7, ST_B10 |
-| Landsat 9 SR | `LANDSAT/LC09/C02/T1_L2` | 30 m | 2021--present, 16 days | SR_B1--SR_B7, ST_B10 |
-| Sentinel-2 SR | `COPERNICUS/S2_SR_HARMONIZED` | 10 m | 2017--present, 5 days | B2, B3, B4, B8, B11, B12, SCL |
-| Sentinel-2 Cloud Prob. | `COPERNICUS/S2_CLOUD_PROBABILITY` | 10 m | 2017--present, 5 days | probability |
-| MODIS Terra SR | `MODIS/061/MOD09GA` | 500 m | 2000--present, daily | sur_refl_b01--sur_refl_b07 |
-| NAIP | `USDA/NAIP/DOQQ` | 0.6--1 m | Varies by state, ~2--3 yr | R, G, B, N |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| Landsat 5 SR | `LANDSAT/LT05/C02/T1_L2` | IMAGE_COLLECTION | 30 m | 1984--2012, 16 days | SR_B1--SR_B5, SR_B7, ST_B6 |
+| Landsat 7 SR | `LANDSAT/LE07/C02/T1_L2` | IMAGE_COLLECTION | 30 m | 1999--present, 16 days | SR_B1--SR_B5, SR_B7, ST_B6 |
+| Landsat 8 SR | `LANDSAT/LC08/C02/T1_L2` | IMAGE_COLLECTION | 30 m | 2013--present, 16 days | SR_B1--SR_B7, ST_B10 |
+| Landsat 9 SR | `LANDSAT/LC09/C02/T1_L2` | IMAGE_COLLECTION | 30 m | 2021--present, 16 days | SR_B1--SR_B7, ST_B10 |
+| Sentinel-2 SR | `COPERNICUS/S2_SR_HARMONIZED` | IMAGE_COLLECTION | 10 m | 2017--present, 5 days | B2, B3, B4, B8, B11, B12, SCL |
+| Sentinel-2 Cloud Prob. | `COPERNICUS/S2_CLOUD_PROBABILITY` | IMAGE_COLLECTION | 10 m | 2017--present, 5 days | probability |
+| MODIS Terra SR | `MODIS/061/MOD09GA` | IMAGE_COLLECTION | 500 m | 2000--present, daily | sur_refl_b01--sur_refl_b07 |
+| NAIP | `USDA/NAIP/DOQQ` | IMAGE_COLLECTION | 0.6--1 m | Varies by state, ~2--3 yr | R, G, B, N |
 
 ### Radar
 
-| Dataset | Asset ID | Resolution | Key Bands |
-|---|---|---|---|
-| Sentinel-1 GRD | `COPERNICUS/S1_GRD` | 10 m | VV, VH, angle |
+| Dataset | Asset ID | Type | Resolution | Key Bands |
+|---|---|---|---|---|
+| Sentinel-1 GRD | `COPERNICUS/S1_GRD` | IMAGE_COLLECTION | 10 m | VV, VH, angle |
 
 ### Elevation and Terrain
 
-| Dataset | Asset ID | Resolution | Key Bands |
-|---|---|---|---|
-| SRTM 30 m | `USGS/SRTMGL1_003` | 30 m | elevation |
-| ALOS DEM | `JAXA/ALOS/AW3D30/V3_2` | 30 m | DSM |
-| Copernicus DEM GLO-30 | `COPERNICUS/DEM/GLO30` | 30 m | DEM |
+| Dataset | Asset ID | Type | Resolution | Key Bands |
+|---|---|---|---|---|
+| SRTM 30 m | `USGS/SRTMGL1_003` | IMAGE | 30 m | elevation |
+| ALOS DEM | `JAXA/ALOS/AW3D30/V3_2` | IMAGE | 30 m | DSM |
+| Copernicus DEM GLO-30 | `COPERNICUS/DEM/GLO30` | IMAGE_COLLECTION | 30 m | DEM |
 
 ### Climate and Weather
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| ERA5 Monthly | `ECMWF/ERA5_LAND/MONTHLY_AGGR` | 11 km | 1950--present, monthly | temperature_2m, total_precipitation_sum |
-| CHIRPS Precipitation | `UCSB-CHG/CHIRPS/DAILY` | 5.5 km | 1981--present, daily | precipitation |
-| GPM Precipitation | `NASA/GPM_L3/IMERG_V07` | 11 km | 2000--present, 30 min | precipitation |
-| MODIS LST | `MODIS/061/MOD11A1` | 1 km | 2000--present, daily | LST_Day_1km, LST_Night_1km |
-| MODIS ET | `MODIS/061/MOD16A2` | 500 m | 2001--present, 8 days | ET, PET |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| ERA5 Monthly | `ECMWF/ERA5_LAND/MONTHLY_AGGR` | IMAGE_COLLECTION | 11 km | 1950--present, monthly | temperature_2m, total_precipitation_sum |
+| CHIRPS Precipitation | `UCSB-CHG/CHIRPS/DAILY` | IMAGE_COLLECTION | 5.5 km | 1981--present, daily | precipitation |
+| GPM Precipitation | `NASA/GPM_L3/IMERG_V07` | IMAGE_COLLECTION | 11 km | 2000--present, 30 min | precipitation |
+| MODIS LST | `MODIS/061/MOD11A1` | IMAGE_COLLECTION | 1 km | 2000--present, daily | LST_Day_1km, LST_Night_1km |
+| MODIS ET | `MODIS/061/MOD16A2` | IMAGE_COLLECTION | 500 m | 2001--present, 8 days | ET, PET |
 
 ### Vegetation
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| MODIS NDVI | `MODIS/061/MOD13A2` | 1 km | 2000--present, 16 days | NDVI, EVI |
-| MODIS LAI | `MODIS/061/MCD15A3H` | 500 m | 2002--present, 4 days | Lai, Fpar |
-| USDA CDL | `USDA/NASS/CDL` | 30 m | 2008--present, yearly | cropland |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| MODIS NDVI | `MODIS/061/MOD13A2` | IMAGE_COLLECTION | 1 km | 2000--present, 16 days | NDVI, EVI |
+| MODIS LAI | `MODIS/061/MCD15A3H` | IMAGE_COLLECTION | 500 m | 2002--present, 4 days | Lai, Fpar |
+| USDA CDL | `USDA/NASS/CDL` | IMAGE_COLLECTION | 30 m | 2008--present, yearly | cropland |
 
 ### Land Cover
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| ESA WorldCover | `ESA/WorldCover/v200` | 10 m | 2021 | Map |
-| MODIS Land Cover | `MODIS/061/MCD12Q1` | 500 m | 2001--present, yearly | LC_Type1 |
-| Dynamic World | `GOOGLE/DYNAMICWORLD/V1` | 10 m | 2015--present, ~5 days | label, water, trees, ... |
-| NLCD | `USGS/NLCD_RELEASES/2021_REL/NLCD` | 30 m | Multi-year | landcover |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| ESA WorldCover | `ESA/WorldCover/v200` | IMAGE_COLLECTION | 10 m | 2021 | Map |
+| MODIS Land Cover | `MODIS/061/MCD12Q1` | IMAGE_COLLECTION | 500 m | 2001--present, yearly | LC_Type1 |
+| Dynamic World | `GOOGLE/DYNAMICWORLD/V1` | IMAGE_COLLECTION | 10 m | 2015--present, ~5 days | label, water, trees, ... |
+| NLCD | `USGS/NLCD_RELEASES/2021_REL/NLCD` | IMAGE | 30 m | Multi-year | landcover |
 
 ### Water
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| JRC Global Surface Water | `JRC/GSW1_4/GlobalSurfaceWater` | 30 m | 1984--2021 | occurrence, recurrence, seasonality |
-| MODIS Snow Cover | `MODIS/061/MOD10A1` | 500 m | 2000--present, daily | NDSI_Snow_Cover |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| JRC Global Surface Water | `JRC/GSW1_4/GlobalSurfaceWater` | IMAGE | 30 m | 1984--2021 | occurrence, recurrence, seasonality |
+| MODIS Snow Cover | `MODIS/061/MOD10A1` | IMAGE_COLLECTION | 500 m | 2000--present, daily | NDSI_Snow_Cover |
 
 ### Nightlights and Population
 
-| Dataset | Asset ID | Resolution | Temporal | Key Bands |
-|---|---|---|---|---|
-| VIIRS DNB Monthly | `NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG` | 500 m | 2012--present, monthly | avg_rad |
-| DMSP-OLS Nightlights | `NOAA/DMSP-OLS/NIGHTTIME_LIGHTS` | 1 km | 1992--2013, yearly | stable_lights |
-| WorldPop | `WorldPop/GP/100m/pop` | 100 m | 2000--2020, yearly | population |
-| GHSL Built-Up | `JRC/GHSL/P2023A/GHS_BUILT_S` | 10 m | Multi-epoch | built_surface_nres |
+| Dataset | Asset ID | Type | Resolution | Temporal | Key Bands |
+|---|---|---|---|---|---|
+| VIIRS DNB Monthly | `NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG` | IMAGE_COLLECTION | 500 m | 2012--present, monthly | avg_rad |
+| DMSP-OLS Nightlights | `NOAA/DMSP-OLS/NIGHTTIME_LIGHTS` | IMAGE_COLLECTION | 1 km | 1992--2013, yearly | stable_lights |
+| WorldPop | `WorldPop/GP/100m/pop` | IMAGE_COLLECTION | 100 m | 2000--2020, yearly | population |
+| GHSL Built-Up | `JRC/GHSL/P2023A/GHS_BUILT_S` | IMAGE_COLLECTION | 10 m | Multi-epoch | built_surface_nres |
 
 ### Atmosphere
 
-| Dataset | Asset ID | Resolution | Key Bands |
-|---|---|---|---|
-| Sentinel-5P NO2 | `COPERNICUS/S5P/OFFL/L3_NO2` | 1113 m | tropospheric_NO2_column_number_density |
-| Sentinel-5P SO2 | `COPERNICUS/S5P/OFFL/L3_SO2` | 7 km | SO2_column_number_density |
-| Sentinel-5P CO | `COPERNICUS/S5P/OFFL/L3_CO` | 1113 m | CO_column_number_density |
-| Sentinel-5P O3 | `COPERNICUS/S5P/OFFL/L3_O3` | 7 km | O3_column_number_density |
-| MODIS AOD | `MODIS/061/MOD04_3K` | 3 km | Optical_Depth_Land_And_Ocean |
+| Dataset | Asset ID | Type | Resolution | Key Bands |
+|---|---|---|---|---|
+| Sentinel-5P NO2 | `COPERNICUS/S5P/OFFL/L3_NO2` | IMAGE_COLLECTION | 1113 m | tropospheric_NO2_column_number_density |
+| Sentinel-5P SO2 | `COPERNICUS/S5P/OFFL/L3_SO2` | IMAGE_COLLECTION | 7 km | SO2_column_number_density |
+| Sentinel-5P CO | `COPERNICUS/S5P/OFFL/L3_CO` | IMAGE_COLLECTION | 1113 m | CO_column_number_density |
+| Sentinel-5P O3 | `COPERNICUS/S5P/OFFL/L3_O3` | IMAGE_COLLECTION | 7 km | O3_column_number_density |
+| MODIS AOD (3 km) | `MODIS/061/MOD04_3K` | IMAGE_COLLECTION | 3 km | Optical_Depth_Land_And_Ocean |
+| MODIS AOD (10 km) | `MODIS/061/MOD04_L2` | IMAGE_COLLECTION | 10 km | Optical_Depth_Land_And_Ocean |
+
+> **Note:** `MOD04_3K` offers higher spatial resolution (3 km) but with more noise and fewer valid retrievals. `MOD04_L2` (10 km, used in Chapter 3) provides more stable retrievals over a wider range of surface types. Choose based on your spatial resolution needs.
 
 ### Soil
 
-| Dataset | Asset ID | Resolution | Key Bands |
-|---|---|---|---|
-| OpenLandMap Clay | `OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02` | 250 m | b0, b10, b30, b60, b100, b200 |
-| OpenLandMap Sand | `OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02` | 250 m | b0, b10, b30, b60, b100, b200 |
-| OpenLandMap Organic Carbon | `OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02` | 250 m | b0, b10, b30, b60, b100, b200 |
+| Dataset | Asset ID | Type | Resolution | Key Bands |
+|---|---|---|---|---|
+| OpenLandMap Clay | `OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02` | IMAGE | 250 m | b0, b10, b30, b60, b100, b200 |
+| OpenLandMap Sand | `OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02` | IMAGE | 250 m | b0, b10, b30, b60, b100, b200 |
+| OpenLandMap Organic Carbon | `OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02` | IMAGE | 250 m | b0, b10, b30, b60, b100, b200 |
 
 ---
 
@@ -410,6 +417,8 @@ GEEComputePixels[bbox, lst]
 
 ### 4. Cloud Masking with SCL Band
 
+Use this for cloud-free composites where per-image masking is needed.
+
 ```wolfram
 (* Define a cloud-masking function using the Scene Classification Layer *)
 maskClouds[img_] :=
@@ -440,8 +449,11 @@ GEEComputePixels[bbox, composite]
 
 ### 5. Time Series Extraction (Monthly Loop Pattern)
 
+Use this to build per-month statistics for trend analysis or seasonal decomposition.
+
 ```wolfram
 bbox = {-93.3, 41.5, -93.1, 41.7};
+(* Month 13 normalizes to January of next year *)
 months = Table[
     {DateString[{2023, m, 1}, "ISODate"],
      DateString[{2023, m + 1, 1}, "ISODate"]},
@@ -449,14 +461,15 @@ months = Table[
 ];
 
 monthlyNDVI = Table[
-    Module[{img},
+    Module[{img, result},
         img =
             GEECollection["COPERNICUS/S2_SR_HARMONIZED"]
             // GEEFilterDate[start, end]
             // GEEFilterBounds[bbox]
             // GEEMedian
             // GEENormalizedDifference[{"B8", "B4"}];
-        GEEReduceRegion[img, GEEGeometry[bbox], "mean", 100]
+        result = GEECompute[GEEReduceRegion[img, GEEGeometry[bbox], "mean", 100]];
+        result["nd"]
     ],
     {{start, end}, months}
 ];
@@ -482,7 +495,9 @@ dem = GEELoadImage["USGS/SRTMGL1_003"];
 
 elevationStats = Association @ KeyValueMap[
     Function[{name, bbox},
-        name -> GEEReduceRegion[dem, GEEGeometry[bbox], "mean", 30]
+        name -> First @ Values @ GEECompute[
+            GEEReduceRegion[dem, GEEGeometry[bbox], "mean", 30]
+        ]
     ],
     cities
 ];
@@ -591,7 +606,9 @@ nightlight =
 
 radiance = Association @ KeyValueMap[
     Function[{name, bbox},
-        name -> GEEReduceRegion[nightlight, GEEGeometry[bbox], "mean", 500]
+        name -> First @ Values @ GEECompute[
+            GEEReduceRegion[nightlight, GEEGeometry[bbox], "mean", 500]
+        ]
     ],
     cities
 ];
@@ -617,7 +634,7 @@ s2 =
     // GEESelectBands[{"B2", "B3", "B4", "B8", "B11", "B12"}];
 
 (* Sample random pixels *)
-samples = GEESample[s2, GEEGeometry[bbox], 100];
+samples = GEECompute[GEESample[s2, GEEGeometry[bbox], 100]];
 
 (* Convert to Dataset for analysis *)
 ds = Dataset[samples];
@@ -633,7 +650,7 @@ precip =
     // GEEFilterDate["2023-03-01", "2023-05-31"]
     // GEEFilterBounds[bbox]
     // GEECollectionSum
-    // GEESelectBands[{"precipitation"}]
+    // GEESelectBands[{"precipitation_sum"}]
     // GEEVisualize[<|
         "min" -> 0, "max" -> 800,
         "palette" -> {"white", "lightblue", "blue", "purple"}
@@ -643,6 +660,8 @@ GEEComputePixels[bbox, precip]
 ```
 
 ### 13. Quality Mosaic (Best-Pixel Selection)
+
+Use this when you need the single best pixel per location rather than a statistical composite.
 
 ```wolfram
 bbox = {-122.5, 37.5, -121.5, 38.0};
@@ -701,11 +720,7 @@ s2 =
 evi =
     s2 // GEEExpression[
         "2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))",
-        <|
-            "NIR"  -> <|"type" -> "Image", "id" -> "B8"|>,
-            "RED"  -> <|"type" -> "Image", "id" -> "B4"|>,
-            "BLUE" -> <|"type" -> "Image", "id" -> "B2"|>
-        |>
+        <|"NIR" -> "B8", "RED" -> "B4", "BLUE" -> "B2"|>
     ]
     // GEEVisualize[<|
         "min" -> -0.1, "max" -> 0.7,
@@ -768,7 +783,7 @@ GEEComputePixels[bbox, evi]
 | `ClassifierMeasurements` | Evaluate accuracy of GEE-derived classification |
 | `LinearModelFit` | Regression between spectral indices and field data |
 | `FindFit` | Fit phenology curves to NDVI time series |
-| `DimensionReduction` | PCA on multi-band imagery for feature reduction |
+| `DimensionReduce` | PCA on multi-band imagery for feature reduction |
 
 ### Signal Processing
 

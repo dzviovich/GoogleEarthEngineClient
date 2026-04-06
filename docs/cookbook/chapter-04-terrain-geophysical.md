@@ -8,10 +8,12 @@ elevation data and its derivatives using the GoogleEarthEngineClient paclet,
 and then extends the techniques to land cover, soil properties, and geophysical
 texture analysis.
 
-Throughout this chapter we make heavy use of the `//` postfix (pipe) operator
-to build composable server-side processing pipelines. Computations run on the
-Google Earth Engine backend; only the final rendered pixels are transferred to
-your Mathematica session.
+Throughout this chapter, examples make heavy use of the `//` postfix (pipe)
+operator to build composable server-side processing pipelines. Computations run
+on the Google Earth Engine backend; only the final rendered pixels are
+transferred to your Mathematica session.
+
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -21,11 +23,11 @@ A DEM assigns an elevation value to every pixel on the Earth's surface. Google
 Earth Engine hosts several global DEMs at varying resolutions and vintages.
 The three most commonly used are:
 
-| Dataset | Asset ID | Resolution | Notes |
-|---------|----------|-----------|-------|
-| SRTM v3 | `USGS/SRTMGL1_003` | 30 m | Shuttle Radar Topography Mission (2000). Near-global coverage 60N--56S. IMAGE type. |
-| ALOS World 3D | `JAXA/ALOS/AW3D30/V3_2` | 30 m | PRISM stereo photogrammetry. Better accuracy in rugged mountainous terrain. |
-| Copernicus GLO-30 | `COPERNICUS/DEM/GLO30` | 30 m | Most recent (2021). Derived from TanDEM-X radar interferometry. |
+| Dataset | Asset ID | Type | Resolution | Notes |
+|---------|----------|------|-----------|-------|
+| SRTM v3 | `USGS/SRTMGL1_003` | IMAGE | 30 m | Shuttle Radar Topography Mission (2000). Near-global coverage 60N--56S. |
+| ALOS World 3D | `JAXA/ALOS/AW3D30/V3_2` | IMAGE_COLLECTION | 30 m | PRISM stereo photogrammetry. Better accuracy in rugged mountainous terrain. |
+| Copernicus GLO-30 | `COPERNICUS/DEM/GLO30` | IMAGE_COLLECTION | 30 m | Most recent (2021). Derived from TanDEM-X radar interferometry. |
 
 SRTM is an `IMAGE` asset (a single global mosaic), so you load it with
 `GEELoadImage` rather than `GEECollection`.
@@ -72,7 +74,7 @@ everest = GEEIdentify[
   GeoPosition[{27.99, 86.93}],
   "USGS/SRTMGL1_003"
 ]
-(* Returns <|"Position" -> ..., "Values" -> <|"elevation" -> 8729|>, ...  |> *)
+(* Returns <|"Position" -> ..., "Values" -> {8729}, "Bands" -> {"elevation"}, ...  |> *)
 ```
 
 Note that SRTM reports approximately 8729 m for Everest because the radar
@@ -175,7 +177,7 @@ GraphicsRow[{swissAlps, alosImg},
 Raw elevation is only the beginning. Slope, aspect, and hillshade are
 first-order derivatives that reveal the shape of the land surface.
 
-`GEETerrain` wraps the GEE `Algorithms.Terrain` function, computing slope
+`GEETerrain` wraps the GEE `Terrain` function, computing slope
 (degrees), aspect (degrees from north), and hillshade (0--255) from a DEM in
 a single server-side call. The result is a multi-band image.
 
@@ -370,16 +372,17 @@ is robust to outliers and preserves sharp edges better.
 medianDEM = dem // GEEFocalMedian[100];
 ```
 
-### 4.3.3 Local Relief Model (Topographic Prominence)
+### 4.3.3 Local Elevation Range (Topographic Ruggedness)
 
-A local relief model (LRM) reveals fine-scale landforms that are invisible
+Local elevation range reveals fine-scale landforms that are invisible
 in the raw DEM because they are overwhelmed by regional elevation trends.
-The technique subtracts a smoothed surface from the original, isolating
-local relief.
+The technique computes the difference between the focal maximum and focal
+minimum, yielding the range of elevation within a neighborhood.
 
-The formula is: `LRM = FocalMax(dem, r) - FocalMin(dem, r)`. This yields the
+The formula is: `Range = FocalMax(dem, r) - FocalMin(dem, r)`. This yields the
 range of elevation within a neighborhood of radius `r`, highlighting ridges,
-valleys, and other features at that scale.
+valleys, and other features at that scale. (Note: this differs from a true
+Local Relief Model, which subtracts a smoothed surface from the original DEM.)
 
 ```wolfram
 dem = GEELoadImage["USGS/SRTMGL1_003"];
@@ -404,6 +407,13 @@ High local relief values (deep red) mark the canyon rims where the
 difference between nearby maxima (plateau surface) and minima (canyon floor)
 is greatest. Low values (white) indicate either flat plateaus or the flat
 canyon floor itself.
+
+**Performance note:** Focal operations use a circular kernel whose area
+scales with radius squared. A 1000 m radius on 30 m SRTM data creates a
+kernel covering roughly 3400 pixels -- this is computationally expensive
+and may time out on large bounding boxes. Start with a small region or
+reduce the radius. You can also `GEEReproject` to a coarser scale first
+to reduce the number of pixels the kernel must process.
 
 ### 4.3.4 Resampling and Reprojection
 
@@ -487,8 +497,8 @@ totalFlatArea = GEECompute[
   flatAreaM2 // GEEReduceRegion[bbox, "sum", 30]
 ]
 
-(* Convert to km^2 *)
-flatAreaKm2 = totalFlatArea / 1.0*^6
+(* Convert to km^2 -- GEECompute returns an Association, so extract the value *)
+flatAreaKm2 = First[Values[totalFlatArea]] / 1.0*^6
 ```
 
 ### 4.4.3 Terrain Classification with Boolean Logic
@@ -596,7 +606,10 @@ cover dataset. It classifies every 10 m pixel into one of 11 classes.
 | 100 | Moss and lichen | `FAE6A0` |
 
 ```wolfram
-lc = GEELoadImage["ESA/WorldCover/v200"];
+(* ESA WorldCover v200 is an IMAGE_COLLECTION; filter and mosaic *)
+lc = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic;
 
 (* Land cover map of the Netherlands *)
 bbox = {3.3, 50.7, 7.2, 53.6};
@@ -627,14 +640,18 @@ The approach is: (1) create a binary mask for each class, (2) multiply by
 pixel area, and (3) sum with `GEEReduceRegion`.
 
 ```wolfram
-lc = GEELoadImage["ESA/WorldCover/v200"];
+(* ESA WorldCover v200 is an IMAGE_COLLECTION *)
+lc = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic;
 bbox = GEEGeometry[{3.3, 50.7, 7.2, 53.6}];
 
 (* Function to compute area for a single class value *)
-classArea[classValue_Integer] := Module[{mask, areaImage},
+classArea[classValue_Integer] := Module[{mask, areaImage, stats},
   mask = lc // GEEEquals[classValue];
   areaImage = GEEMultiply[mask, GEEPixelArea[]];
-  GEECompute[areaImage // GEEReduceRegion[bbox, "sum", 100]]
+  stats = GEECompute[areaImage // GEEReduceRegion[bbox, "sum", 100]];
+  First[Values[stats]]  (* extract numeric value from Association *)
 ]
 
 (* Compute area for each WorldCover class *)
@@ -704,7 +721,10 @@ from GEE.
 
 ```wolfram
 (* Compute forest cover fraction for several South American countries *)
-lc = GEELoadImage["ESA/WorldCover/v200"];
+(* ESA WorldCover v200 is an IMAGE_COLLECTION *)
+lc = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic;
 
 forestFraction[countryEntity_] := Module[
   {bbox, region, forestMask, forestArea, totalArea},
@@ -718,7 +738,7 @@ forestFraction[countryEntity_] := Module[
   totalArea = GEECompute[
     GEEPixelArea[] // GEEReduceRegion[region, "sum", 500]
   ];
-  forestArea / totalArea
+  First[Values[forestArea]] / First[Values[totalArea]]
 ]
 
 countries = {
@@ -846,13 +866,18 @@ surface runoff, and habitat suitability.
 
 `GEEEntropy` computes Shannon entropy within a neighborhood, quantifying
 local pixel value diversity. High entropy indicates heterogeneous terrain;
-low entropy indicates uniform surfaces.
+low entropy indicates uniform surfaces. Internally, `GEEEntropy` constructs
+a `Kernel.circle` from the radius -- you pass the radius in meters, not a
+raw kernel object. The input image must have integer pixel values; use
+`GEEToInt` to convert continuous data (such as elevation) before calling
+`GEEEntropy`.
 
 ```wolfram
 dem = GEELoadImage["USGS/SRTMGL1_003"];
 
+(* GEEEntropy requires integer input -- convert the DEM first *)
 (* Entropy with a 500 m radius neighborhood *)
-entropyImg = dem // GEEEntropy[500];
+entropyImg = dem // GEEToInt // GEEEntropy[500];
 
 (* Death Valley / Basin and Range region *)
 basinRangeBBox = {-117.5, 35.5, -116.0, 37.0};
@@ -881,13 +906,15 @@ Laplacian kernel highlights ridges, faults, and other linear features
 ```wolfram
 dem = GEELoadImage["USGS/SRTMGL1_003"];
 
-(* Laplacian edge-detection kernel *)
-laplacianKernel = <|
-  "type" -> "Kernel.fixed",
-  "width" -> 3,
-  "height" -> 3,
-  "weights" -> {0, -1, 0, -1, 4, -1, 0, -1, 0}
-|>;
+(* Laplacian edge-detection kernel -- must be a GEE expression tree *)
+laplacianKernel = <|"functionInvocationValue" -> <|
+  "functionName" -> "Kernel.fixed",
+  "arguments" -> <|
+    "width" -> <|"constantValue" -> 3|>,
+    "height" -> <|"constantValue" -> 3|>,
+    "weights" -> <|"constantValue" -> {0, -1, 0, -1, 4, -1, 0, -1, 0}|>
+  |>
+|>|>;
 
 edges = dem // GEEConvolve[laplacianKernel];
 
@@ -911,8 +938,8 @@ magnitude, and local relief into a multi-layer analysis.
 ```wolfram
 dem = GEELoadImage["USGS/SRTMGL1_003"];
 
-(* Three texture metrics *)
-entropy = dem // GEEEntropy[500];
+(* Three texture metrics -- GEEEntropy requires integer input *)
+entropy = dem // GEEToInt // GEEEntropy[500];
 localRelief = GEESubtract[dem // GEEFocalMax[1000], dem // GEEFocalMin[1000]];
 slope = dem // GEETerrain // GEESelectBands[{"slope"}];
 
@@ -1164,7 +1191,9 @@ Grid[{
 ### 4.9.4 Land Cover Overlay
 
 ```wolfram
-lc = GEELoadImage["ESA/WorldCover/v200"];
+lc = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic;
 
 lcImg = GEEComputePixels[yosemiteBBox, lc,
   "VisParams" -> <|
@@ -1249,5 +1278,10 @@ analysis with the GoogleEarthEngineClient paclet:
 - **Section 4.9** -- A complete multi-layer terrain report workflow
   combining all techniques into a dashboard.
 
-The next chapter extends these techniques to time-series analysis, where
-we track how landscapes change over months, years, and decades.
+The next chapter applies these techniques to vegetation and agriculture,
+covering spectral indices, crop monitoring, yield estimation, and
+precision farming workflows.
+
+---
+
+*Next: [Chapter 5: Vegetation, Agriculture & Precision Farming](chapter-05-vegetation-agriculture.md)*

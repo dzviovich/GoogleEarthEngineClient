@@ -6,10 +6,13 @@ atmospheric, and radiation products at global scales. This chapter demonstrates 
 to extract, process, and analyze these datasets using the GoogleEarthEngineClient
 paclet alongside Wolfram Language's built-in statistical and time series tools.
 
-Every example follows a consistent pattern: build a server-side processing pipeline
-with the `//` operator, retrieve the result with `GEECompute`, `GEEIdentify`, or
-`GEEComputePixels`, then analyze client-side with Wolfram Language functions such
-as `TimeSeries`, `LinearModelFit`, `MovingAverage`, and `DateListPlot`.
+Every example follows a consistent pattern: build a server-side processing
+pipeline with the `//` operator, retrieve the result with `GEECompute`,
+`GEEIdentify`, or `GEEComputePixels`, then analyze client-side with Wolfram
+Language functions such as `TimeSeries`, `LinearModelFit`, `MovingAverage`, and
+`DateListPlot`.
+
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -137,8 +140,10 @@ groundTemp = WeatherData["Austin", "Temperature",
 stationPos = GeoPosition[{30.30, -97.70}];
 satelliteLST = Table[
   Module[{dateStr, endStr, expr, result},
+    (* MOD11A2 is an 8-day composite; use an 8-day filter window
+       aligned to composite start dates *)
     dateStr = DateString[{2024, 7, d}, {"Year", "-", "Month", "-", "Day"}];
-    endStr = DateString[{2024, 7, d + 1}, {"Year", "-", "Month", "-", "Day"}];
+    endStr = DateString[{2024, 7, d + 8}, {"Year", "-", "Month", "-", "Day"}];
     expr = GEECollection["MODIS/061/MOD11A2"] //
       GEEFilterDate[dateStr, endStr] //
       GEESelectBands[{"LST_Day_1km"}] //
@@ -216,23 +221,30 @@ A rainfall anomaly highlights whether a given month was wetter or drier than
 normal. Compute the long-term July mean (e.g., 2010-2023), then subtract from
 the current year.
 
+> **Note:** This simplified approach averages all daily values in the date
+> range, not just July values. For a precise July climatology, compute each
+> year's July total separately and average them (see Section 3.2.3 for the
+> per-month loop pattern).
+
 ```wolfram
 (* Long-term July mean: 14 years of July data *)
 longTermJuly = GEECollection["UCSB-CHG/CHIRPS/DAILY"] //
   GEEFilterDate["2010-07-01", "2023-08-01"] //
   GEEFilterBounds[{68.0, 8.0, 90.0, 28.0}] //
   GEEFilterProperty["system:time_start", "GreaterThanOrEquals",
-    AbsoluteTime[{2010, 7, 1}] * 1000] //
+    UnixTime[DateObject[{2010, 7, 1}]] * 1000] //
   GEESelectBands[{"precipitation"}] //
   GEEMean //
   GEEMultiply[31];  (* Scale daily mean to monthly total *)
 
-(* Current year July total *)
+(* Current year July total -- use GEEMean * 31 so the output band name
+   (precipitation_mean) matches the long-term mean for subtraction *)
 currentJuly = GEECollection["UCSB-CHG/CHIRPS/DAILY"] //
   GEEFilterDate["2024-07-01", "2024-08-01"] //
   GEEFilterBounds[{68.0, 8.0, 90.0, 28.0}] //
   GEESelectBands[{"precipitation"}] //
-  GEECollectionSum;
+  GEEMean //
+  GEEMultiply[31];
 
 (* Anomaly = current - long-term mean *)
 anomaly = GEESubtract[currentJuly, longTermJuly];
@@ -250,6 +262,13 @@ GEEComputePixels[{68.0, 8.0, 90.0, 28.0}, anomaly,
 The Global Precipitation Measurement (GPM) IMERG product at
 `NASA/GPM_L3/IMERG_V07` provides higher temporal resolution precipitation
 data (half-hourly to monthly aggregates) at 0.1 degree (~10 km) resolution.
+
+> **Note:** GPM IMERG half-hourly records contain precipitation *rates*
+> (mm/hr), not accumulations. Using `GEECollectionSum` directly on the raw
+> values does not yield total precipitation -- you must multiply by 0.5
+> (the time step in hours) to convert rates to per-interval totals. For
+> monthly totals, consider using the monthly product
+> `NASA/GPM_L3/IMERG_MONTHLY_V07` instead.
 
 ```wolfram
 (* GPM monthly precipitation map for Southeast Asia *)
@@ -296,7 +315,7 @@ monthlyRain = Table[
     result = GEECompute[expr];
     First[Values[result]]
   ],
-  {yr, mo} -> months
+  {{yr, mo}, months}  (* Destructure each {year, month} pair *)
 ];
 
 (* Build a TimeSeries object *)
@@ -399,8 +418,8 @@ DateListPlot[tempTS,
 
 Wind speed is not stored directly in ERA5; instead, the eastward (u10) and
 northward (v10) components are provided separately. Wind speed is the magnitude
-of the wind vector: sqrt(u^2 + v^2). We compute this entirely server-side
-using the expression builder arithmetic.
+of the wind vector: sqrt(u^2 + v^2). The following example computes this entirely server-side
+using expression builder arithmetic.
 
 ```wolfram
 (* January 2024 mean wind speed over Western Europe *)
@@ -408,13 +427,18 @@ u10 = GEECollection["ECMWF/ERA5_LAND/DAILY_AGGR"] //
   GEEFilterDate["2024-01-01", "2024-02-01"] //
   GEEFilterBounds[{-10.0, 35.0, 15.0, 60.0}] //
   GEESelectBands[{"u_component_of_wind_10m"}] //
-  GEEMean;
+  GEEMean //
+  (* GEEMean appends _mean, producing "u_component_of_wind_10m_mean".
+     GEERename then replaces it with "wind" so both components share
+     a band name for arithmetic. *)
+  GEERename[{"wind"}];
 
 v10 = GEECollection["ECMWF/ERA5_LAND/DAILY_AGGR"] //
   GEEFilterDate["2024-01-01", "2024-02-01"] //
   GEEFilterBounds[{-10.0, 35.0, 15.0, 60.0}] //
   GEESelectBands[{"v_component_of_wind_10m"}] //
-  GEEMean;
+  GEEMean //
+  GEERename[{"wind"}];
 
 (* Wind speed = sqrt(u^2 + v^2) *)
 uSquared = u10 // GEEPow[2];
@@ -433,7 +457,7 @@ GEEComputePixels[{-10.0, 35.0, 15.0, 60.0}, windSpeed,
 
 When the arithmetic involves multiple bands from the same image, `GEEExpression`
 can be more concise than chaining individual math operators. This approach
-requires all bands in a single image, so we select both components and use
+requires all bands in a single image, so the pipeline selects both components and uses
 the text expression syntax.
 
 ```wolfram
@@ -468,7 +492,8 @@ aodExpr = GEECollection["MODIS/061/MOD04_L2"] //
   GEEFilterDate["2024-11-01", "2025-01-01"] //
   GEEFilterBounds[{72.0, 22.0, 88.0, 30.0}] //
   GEESelectBands[{"Optical_Depth_Land_And_Ocean"}] //
-  GEEMean;
+  GEEMean //
+  GEEMultiply[0.001];  (* Apply scale factor for AOD *)
 
 GEEComputePixels[{72.0, 22.0, 88.0, 30.0}, aodExpr,
   "VisParams" -> <|"min" -> 0, "max" -> 1.5,
@@ -577,11 +602,14 @@ irrigation or drawing from storage).
 
 ```wolfram
 (* Annual precipitation from CHIRPS (sum of daily values) *)
+(* GEECollectionSum appends _sum to band names; rename to a common
+   band name so GEESubtract can match bands between the two images *)
 annualPrecip = GEECollection["UCSB-CHG/CHIRPS/DAILY"] //
   GEEFilterDate["2024-01-01", "2025-01-01"] //
   GEEFilterBounds[{-122.0, 35.0, -119.0, 38.5}] //
   GEESelectBands[{"precipitation"}] //
-  GEECollectionSum;
+  GEECollectionSum //
+  GEERename[{"annual_mm"}];
 
 (* Annual ET from MODIS (sum of 8-day composites, scaled) *)
 annualET = GEECollection["MODIS/061/MOD16A2"] //
@@ -589,7 +617,8 @@ annualET = GEECollection["MODIS/061/MOD16A2"] //
   GEEFilterBounds[{-122.0, 35.0, -119.0, 38.5}] //
   GEESelectBands[{"ET"}] //
   GEECollectionSum //
-  GEEMultiply[0.1];
+  GEEMultiply[0.1] //
+  GEERename[{"annual_mm"}];
 
 (* Water balance = P - ET *)
 waterBalance = GEESubtract[annualPrecip, annualET];
@@ -1003,7 +1032,7 @@ GEEComputePixels[{-106.0, 39.0, -105.0, 40.0}, hillshade,
 ## 3.7 Putting It All Together: Multi-Variable Climate Dashboard
 
 This final section demonstrates how to combine multiple climate variables
-into a unified analysis. We extract temperature, precipitation, ET, and
+into a unified analysis. The workflow extracts temperature, precipitation, ET, and
 wind data for a single region and present them as an integrated dashboard.
 
 ```wolfram
@@ -1190,6 +1219,7 @@ Dataset[annualSummary]
 | `GEEFilterDate` | Filter by date range |
 | `GEEFilterBounds` | Filter by spatial extent |
 | `GEESelectBands` | Select specific bands |
+| `GEERename` | Rename bands for cross-image arithmetic |
 | `GEEMean` / `GEEMedian` | Temporal aggregation |
 | `GEECollectionSum` | Pixel-wise sum across collection |
 | `GEEMultiply` / `GEEAdd` / `GEESubtract` | Server-side arithmetic |
@@ -1204,3 +1234,7 @@ Dataset[annualSummary]
 | `GEEVisualize` | Server-side color mapping |
 | `GEETerrain` | Compute slope, aspect, hillshade |
 | `GEEClip` | Clip image to geometry |
+
+---
+
+*Next: [Chapter 4: Terrain and Geophysical Analysis](chapter-04-terrain-geophysical.md)*

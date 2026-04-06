@@ -1,13 +1,16 @@
 # Chapter 7: Urban and Population Analysis
 
 Cities occupy less than 3% of the Earth's land surface yet account for over 70% of
-global energy consumption and CO2 emissions. Satellite remote sensing provides a
-unique vantage point for studying urbanization: nighttime lights reveal economic
-activity, thermal sensors expose heat islands, and multispectral imagery tracks the
-physical expansion of impervious surfaces. This chapter demonstrates how to combine
-Google Earth Engine datasets with Wolfram Language analysis tools to quantify and
-visualize urban phenomena at scales ranging from a single neighborhood to a
-multi-city global comparison.
+global energy consumption and CO2 emissions. Understanding where and how cities grow
+is therefore central to climate adaptation, infrastructure planning, and public
+health. Satellite remote sensing provides a unique vantage point for studying
+urbanization: nighttime lights reveal economic activity, thermal sensors expose heat
+islands, and multispectral imagery tracks the physical expansion of impervious
+surfaces. This chapter demonstrates how to combine Google Earth Engine datasets with
+Wolfram Language analysis tools to quantify and visualize urban phenomena at scales
+ranging from a single neighborhood to a multi-city global comparison.
+
+**Prerequisite:** Authenticate per Section 1.3 and load the paclet with ``Needs["GoogleEarthEngineClient`"]``.
 
 ---
 
@@ -21,7 +24,8 @@ provide coverage from 1992 to the present.
 ### VIIRS Monthly Nighttime Lights
 
 The Visible Infrared Imaging Radiometer Suite (VIIRS) Day/Night Band produces
-monthly composites of nighttime radiance at approximately 500 m resolution. The
+monthly composites of nighttime radiance. The native sensor resolution is
+approximately 750 m, but the GEE product is gridded at approximately 500 m. The
 `avg_rad` band reports average radiance in nanowatts per square centimeter per
 steradian (nW/cm2/sr).
 
@@ -94,9 +98,8 @@ electrification.
 
 ### DMSP-OLS Historical Nightlights (1992--2013)
 
-For long-term urbanization studies, the Defense Meteorological Satellite Program
-Operational Linescan System (DMSP-OLS) provides annual composites spanning over two
-decades. The `stable_lights` band contains a 0--63 digital number representing
+For long-term urbanization studies, the DMSP-OLS (Defense Meteorological Satellite
+Program) nightlights dataset provides annual composites spanning over two decades. The `stable_lights` band contains a 0--63 digital number representing
 relative light intensity.
 
 **Track urbanization growth in Shenzhen over two decades:**
@@ -385,9 +388,10 @@ class and combining it with `GEEPixelArea`, you can compute the total built-up
 area within any polygon.
 
 ```wolfram
-worldCover = GEELoadImage[
-  "ESA/WorldCover/v200/2021"
-] // GEESelectBands[{"Map"}];
+worldCover = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic //
+  GEESelectBands[{"Map"}];
 
 (* Create a binary mask: 1 where built-up, 0 elsewhere *)
 builtUp = worldCover // GEEEquals[50];
@@ -443,9 +447,12 @@ lagosGeom = GEEGeometry[lagosBox];
 builtUpByEpoch = Association @ Map[
   Function[year,
     Module[{img, result},
-      img = GEELoadImage[
-        "JRC/GHSL/P2023A/GHS_BUILT_S/" <> ToString[year]
-      ] // GEESelectBands[{"built_surface"}];
+      img = GEECollection["JRC/GHSL/P2023A/GHS_BUILT_S"] //
+        GEEFilterDate[
+          DateString[{year, 1, 1}, "ISODate"],
+          DateString[{year + 1, 1, 1}, "ISODate"]] //
+        GEEMosaic //
+        GEESelectBands[{"built_surface_nres"}];
       result = GEECompute[
         img // GEEReduceRegion[lagosGeom, "sum", 100]
       ];
@@ -481,14 +488,20 @@ transitions have occurred.
 Compare ESA WorldCover products from 2020 and 2021 to find pixels that transitioned
 from vegetation (classes 10, 20, 30) to built-up (class 50).
 
+> **Caveat:** Differences between WorldCover v100 and v200 may reflect classifier improvements rather than actual land cover change. For robust change detection, use a consistent product across years (e.g., MODIS MCD12Q1) or apply the same classifier to multi-temporal imagery.
+
 ```wolfram
-lc2020 = GEELoadImage["ESA/WorldCover/v100/2020"] //
+lc2020 = GEECollection["ESA/WorldCover/v100"] //
+  GEEFilterDate["2020-01-01", "2021-01-01"] //
+  GEEMosaic //
   GEESelectBands[{"Map"}];
-lc2021 = GEELoadImage["ESA/WorldCover/v200/2021"] //
+lc2021 = GEECollection["ESA/WorldCover/v200"] //
+  GEEFilterDate["2021-01-01", "2022-01-01"] //
+  GEEMosaic //
   GEESelectBands[{"Map"}];
 
-(* Vegetation in 2020: tree cover (10), shrubland (20), grassland (30) *)
-veg2020 = lc2020 // GEELessThan[40];   (* classes < 40 are vegetation *)
+(* Classes < 40: tree cover, shrubland, grassland — cropland (40) excluded *)
+veg2020 = lc2020 // GEELessThan[40];
 
 (* Built-up in 2021 *)
 built2021 = lc2021 // GEEEquals[50];
@@ -826,10 +839,10 @@ naip = GEECollection["USDA/NAIP/DOQQ"] //
   GEESelectBands[{"R"}] //
   GEEMosaic;
 
-entropy = naip // GEEEntropy[30];
+entropy = naip // GEEToInt // GEEEntropy[30];
 
 GEEImage[
-  GeoPosition[{37.775, -37.415}],
+  GeoPosition[{37.775, -122.415}],
   entropy,
   GeoRange -> Quantity[5, "Kilometers"],
   RasterSize -> {1024, 1024},
@@ -851,7 +864,7 @@ queries these tables with spatial and attribute filters.
 (* Query US state boundaries for California *)
 features = GEEComputeFeatures[
   "TIGER/2018/States",
-  <|"property" -> "NAME", "op" -> "Equals", "value" -> "California"|>,
+  "NAME = 'California'",
   "MaxFeatures" -> 1
 ];
 
@@ -952,7 +965,9 @@ extractNDBI[bbox_] := Module[{img, geom},
 
 (* 4. Built-up area percentage from ESA WorldCover *)
 extractBuiltUpPct[bbox_] := Module[{builtUp, geom, builtArea, totalArea},
-  builtUp = GEELoadImage["ESA/WorldCover/v200/2021"] //
+  builtUp = GEECollection["ESA/WorldCover/v200"] //
+    GEEFilterDate["2021-01-01", "2022-01-01"] //
+    GEEMosaic //
     GEESelectBands[{"Map"}] //
     GEEEquals[50];
   geom = GEEGeometry[bbox];
@@ -1063,3 +1078,7 @@ These workflows are building blocks. A natural next step is to add temporal dept
 repeating the extraction for multiple years to construct time series of urban
 indicators -- or to scale the analysis to dozens or hundreds of cities for global
 comparative studies.
+
+---
+
+*Next: [Chapter 8: Advanced Techniques and Wolfram Language Integration](chapter-08-advanced-techniques.md)*
