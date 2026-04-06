@@ -19,7 +19,7 @@ GEEGetTile[assetId, z, x, y, opts]
 | `"Project"`   | `Automatic` | GCP project ID           |
 
 - `z` is the zoom level (integer 0--20), `x` and `y` are tile coordinates in the Web Mercator tiling scheme. Higher zoom levels show more detail over a smaller area.
-- The `point` overload accepts a `GeoPosition` and computes tile coordinates automatically. This is the easiest way to get a tile for a known location.
+- The `point` overload accepts a `GeoPosition` or a geographic `Entity` (e.g., `Entity["City", ...]`, `Entity["Mountain", ...]`) and computes tile coordinates automatically. This is the easiest way to get a tile for a known location.
 - `assetId` can be a string (e.g., `"USGS/SRTMGL1_003"`) or an expression builder Association (e.g., from `GEECollection[...] // GEEMedian`).
 - For `IMAGE_COLLECTION` assets (string form), the collection is automatically filtered to the tile's bounding box and the most recent 3 years of data, then mosaicked into a single image. This handles collections with heterogeneous band structures (e.g., Sentinel-2).
 - Internally creates a map ID via the `maps:create` endpoint, then fetches the rendered tile.
@@ -39,6 +39,17 @@ tile = GEEGetTile["USGS/SRTMGL1_003",
   "VisParams" -> <|"min" -> 0, "max" -> 3776,
     "palette" -> {"#000033", "#006600", "#339933",
       "#996633", "#CC9966", "#FFFFFF"}|>]
+```
+
+### Using a Geographic Entity
+
+Fetch a tile using a geographic entity instead of coordinates:
+
+```wolfram
+tile = GEEGetTile["USGS/SRTMGL1_003",
+  Entity["Mountain", "MountKilimanjaro"], 10,
+  "VisParams" -> <|"min" -> 0, "max" -> 5895,
+    "palette" -> {"darkgreen", "green", "yellow", "brown", "white"}|>]
 ```
 
 ### Basic: Explicit Tile Coordinates

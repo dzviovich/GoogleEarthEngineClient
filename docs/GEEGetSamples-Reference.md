@@ -1,6 +1,6 @@
 # GEEGetSamples
 
-Extract pixel values at multiple GeoPosition points from a GEE image asset.
+Extract pixel values at multiple points from a GEE image asset.
 
 ## Usage
 
@@ -16,7 +16,7 @@ GEEGetSamples[points, assetId, "Bands" -> bandList]
 | `"Bands"` | `Automatic` | List of band names, or `Automatic` for all |
 | `"Project"` | `Automatic` | GCP project ID |
 
-- `points` is a list of `GeoPosition` objects.
+- `points` is a list of `GeoPosition` objects, geographic `Entity` objects, or a mix of both. Entities are resolved to coordinates via `GeoPosition[entity]`.
 - Returns a list of Associations, each with keys `"Position"` and `"Values"`.
 - Delegates to `GEEIdentify` for each point.
 
@@ -46,15 +46,15 @@ ListLinePlot[elevations,
 
 ### Compare Nighttime Brightness Across Cities
 
-Sample VIIRS nighttime radiance at city centers to compare urbanization levels:
+Sample VIIRS nighttime radiance at city centers using geographic entities:
 
 ```wolfram
 cities = <|
-  "Tokyo" -> GeoPosition[{35.68, 139.69}],
-  "London" -> GeoPosition[{51.51, -0.13}],
-  "Cairo" -> GeoPosition[{30.04, 31.24}],
-  "São Paulo" -> GeoPosition[{-23.55, -46.63}],
-  "Nairobi" -> GeoPosition[{-1.29, 36.82}]
+  "Tokyo" -> Entity["City", {"Tokyo", "Tokyo", "Japan"}],
+  "London" -> Entity["City", {"London", "GreaterLondon", "UnitedKingdom"}],
+  "Cairo" -> Entity["City", {"Cairo", "Cairo", "Egypt"}],
+  "São Paulo" -> Entity["City", {"SaoPaulo", "SaoPaulo", "Brazil"}],
+  "Nairobi" -> Entity["City", {"Nairobi", "Nairobi", "Kenya"}]
 |>;
 results = GEEGetSamples[Values[cities],
   "NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG",

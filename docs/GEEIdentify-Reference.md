@@ -1,6 +1,6 @@
 # GEEIdentify
 
-Identify pixel values at a GeoPosition from a Google Earth Engine image asset.
+Identify pixel values at a point from a Google Earth Engine image asset.
 
 ## Usage
 
@@ -16,7 +16,7 @@ GEEIdentify[point, assetId, "Bands" -> bandList]
 | `"Bands"` | `Automatic` | List of band names, or `Automatic` for all |
 | `"Project"` | `Automatic` | GCP project ID |
 
-- `point` must be a `GeoPosition`.
+- `point` can be a `GeoPosition` or any geographic `Entity` such as `Entity["City", ...]`, `Entity["Mountain", ...]`, `Entity["Country", ...]`, etc. Entities are resolved to coordinates via `GeoPosition[entity]`.
 - `assetId` can refer to an `IMAGE` or `IMAGE_COLLECTION` asset. Collections are automatically filtered to a small region around the query point and the most recent 3 years of data, then mosaicked into a single image.
 - Returns an Association with keys `"Position"`, `"Values"`, and `"Bands"`.
 - `"Values"` is a list of numeric pixel values (one per band). Nodata pixels return `Null`.
@@ -36,17 +36,35 @@ result["Values"]   (* {5880} — SRTM 30 m resolution *)
 result["Bands"]    (* {"elevation"} *)
 ```
 
+### Using Geographic Entities
+
+Query pixel values using geographic entities instead of raw coordinates. Any entity that `GeoPosition` can resolve is supported:
+
+```wolfram
+(* Mountain entity *)
+GEEIdentify[Entity["Mountain", "MountEverest"],
+  "USGS/SRTMGL1_003"]
+
+(* City entity *)
+GEEIdentify[Entity["City", {"Paris", "IleDeFrance", "France"}],
+  "USGS/SRTMGL1_003"]
+
+(* Airport entity *)
+GEEIdentify[Entity["Airport", "KJFK"],
+  "USGS/SRTMGL1_003"]
+```
+
 ### Compare Elevations Across Locations
 
-Retrieve elevations for several world capitals and display as a bar chart:
+Retrieve elevations for several world capitals using entities and display as a bar chart:
 
 ```wolfram
 cities = <|
-  "Mexico City" -> GeoPosition[{19.43, -99.13}],
-  "Denver" -> GeoPosition[{39.74, -104.99}],
-  "Nairobi" -> GeoPosition[{-1.29, 36.82}],
-  "Bogota" -> GeoPosition[{4.71, -74.07}],
-  "Kathmandu" -> GeoPosition[{27.70, 85.32}]
+  "Mexico City" -> Entity["City", {"MexicoCity", "DistritoFederal", "Mexico"}],
+  "Denver" -> Entity["City", {"Denver", "Colorado", "UnitedStates"}],
+  "Nairobi" -> Entity["City", {"Nairobi", "Nairobi", "Kenya"}],
+  "Bogota" -> Entity["City", {"Bogota", "Bogota", "Colombia"}],
+  "Kathmandu" -> Entity["City", {"Kathmandu", "Bagmati", "Nepal"}]
 |>;
 elevations = Association @ Map[
   # -> GEEIdentify[cities[#], "USGS/SRTMGL1_003"]["Values"][[1]] &,

@@ -40,22 +40,26 @@ assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEGetTile::usage = "GEEGetTile[assetId, z, x, y] fetch a map tile at \
 zoom level z, tile coordinates x, y for a GEE asset. Return an Image.\n\
-GEEGetTile[assetId, point, z] fetch the tile containing the GeoPosition \
-point at the given zoom level.\n\
+GEEGetTile[assetId, point, z] fetch the tile containing a GeoPosition \
+or geographic Entity at the given zoom level.\n\
 GEEGetTile[assetId, z, x, y, opts] fetch with options \"Bands\" and \
 \"VisParams\".\n\
 assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEIdentify::usage = "GEEIdentify[point, assetId] identify pixel values \
-at a GeoPosition from a Google Earth Engine image asset. Return an \
+at a point from a Google Earth Engine image asset. Return an \
 Association with keys \"Position\", \"Values\", and \"Bands\".\n\
 GEEIdentify[point, assetId, opts] identify with option \"Bands\".\n\
+point can be a GeoPosition, or a geographic Entity such as \
+Entity[\"City\", ...], Entity[\"Mountain\", ...], etc.\n\
 assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEGetSamples::usage = "GEEGetSamples[points, assetId] extract pixel \
-values at a list of GeoPosition points from a GEE image asset. Return \
-a list of Associations with keys \"Position\" and \"Values\".\n\
+values at a list of points from a GEE image asset. Return a list of \
+Associations with keys \"Position\" and \"Values\".\n\
 GEEGetSamples[points, assetId, opts] extract with option \"Bands\".\n\
+points can be GeoPosition objects, geographic Entity objects, or a \
+mix of both.\n\
 assetId can be an asset ID string or a pre-built GEE expression Association."
 
 GEEComputeFeatures::usage = "GEEComputeFeatures[assetId, filter] query \
@@ -423,7 +427,7 @@ GEEGetTile::noauth = "Not authenticated. Call GEEConnect first.";
 GEEIdentify::fetchfail = "Failed to identify at `1`.";
 GEEIdentify::parsefail = "Response from identify is not valid JSON.";
 GEEIdentify::apierr = "`1`";
-GEEIdentify::badpoint = "Expected a GeoPosition, got `1`.";
+GEEIdentify::badpoint = "Expected a GeoPosition or geographic Entity, got `1`.";
 GEEIdentify::noauth = "Not authenticated. Call GEEConnect first.";
 
 GEEGetSamples::fetchfail = "Failed to get samples from `1`.";
@@ -791,10 +795,10 @@ buildVisualization[imageExpr_Association, visParams_Association] :=
   Module[{args},
     args = <|"image" -> imageExpr|>;
     If[KeyExistsQ[visParams, "min"],
-      args = Append[args, "min" -> <|"constantValue" -> {visParams["min"]}|>]
+      args = Append[args, "min" -> <|"constantValue" -> visParams["min"]|>]
     ];
     If[KeyExistsQ[visParams, "max"],
-      args = Append[args, "max" -> <|"constantValue" -> {visParams["max"]}|>]
+      args = Append[args, "max" -> <|"constantValue" -> visParams["max"]|>]
     ];
     If[KeyExistsQ[visParams, "palette"],
       args = Append[args,
@@ -806,7 +810,7 @@ buildVisualization[imageExpr_Association, visParams_Association] :=
     ];
     If[KeyExistsQ[visParams, "gamma"],
       args = Append[args,
-        "gamma" -> <|"constantValue" -> {visParams["gamma"]}|>]
+        "gamma" -> <|"constantValue" -> visParams["gamma"]|>]
     ];
     <|"functionInvocationValue" -> <|
       "functionName" -> "Image.visualize",
@@ -1097,7 +1101,23 @@ fetchSTACMetadata[assetId_String] :=
   ]
 
 fetchCollectionBandNames[assetId_String, project_] :=
-  Quiet@Module[{expr, bandExpr, requestBody, result},
+  Quiet@Module[{path, json, assets, firstImage, bands,
+      expr, bandExpr, requestBody, result},
+    (* Try listing one child image to get full band metadata *)
+    path = assetPath[assetId] <> ":listAssets?pageSize=1";
+    json = geeGET[path, project];
+    assets = If[AssociationQ[json], Lookup[json, "assets", {}], {}];
+    If[Length[assets] > 0,
+      firstImage = First[assets];
+      bands = Map[
+        <|"Name" -> Lookup[#, "id", ""],
+          "DataType" -> Lookup[#, "dataType", <||>],
+          "Grid" -> Lookup[#, "grid", <||>]|> &,
+        Lookup[firstImage, "bands", {}]
+      ];
+      If[Length[bands] > 0, Return[bands]]
+    ];
+    (* Fallback: compute band names via EE expression *)
     expr = <|"functionInvocationValue" -> <|
       "functionName" -> "Collection.first",
       "arguments" -> <|
@@ -1111,8 +1131,7 @@ fetchCollectionBandNames[assetId_String, project_] :=
     requestBody = <|"expression" -> wrapExpression[bandExpr]|>;
     result = geePOST["value:compute", requestBody, project];
     If[AssociationQ[result] && ListQ[result["result"]],
-      Map[<|"Name" -> #, "DataType" -> <||>, "Grid" -> <||>|> &,
-        result["result"]],
+      Map[<|"Name" -> #|> &, result["result"]],
       {}
     ]
   ]
@@ -1607,13 +1626,11 @@ GEEComputePixels[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ},
 
       expr = prepareImageExpression[assetId, bands, visParams, bbox];
 
-      (* When user provides visParams, honor their requested format.
-         Otherwise use GEO_TIFF internally to preserve full dynamic range
-         and let Mathematica handle display scaling. *)
-      internalFormat = If[Length[visParams] > 0,
-        ToUpperCase[fileFormat],
-        "GEO_TIFF"
-      ];
+      (* When visParams are provided, Image.visualize produces byte data;
+         use PNG to preserve the 8-bit range correctly.
+         Without visParams, use GEO_TIFF to preserve full dynamic range
+         and rescale client-side. *)
+      internalFormat = If[Length[visParams] > 0, "PNG", "GEO_TIFF"];
 
       grid = buildGridSpec[bbox, imageSize, crs];
 
@@ -1637,44 +1654,41 @@ GEEComputePixels[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ},
         Message[GEEComputePixels::fetchfail, assetId]
       ];
 
-      If[internalFormat === "GEO_TIFF" && ToUpperCase[fileFormat] =!= "GEO_TIFF",
-        (* Internal TIFF fetch: import as GeoTIFF data to get correct
-           signed values, then rescale to 0-1 for display.
-           Single-band: returns a 2D matrix {h, w}.
-           Multi-band: returns a list of 2D matrices {band1, band2, ...}.
-           Nodata values (detected as statistical outliers far below the
-           data range) are clamped to the valid minimum before rescaling. *)
-        Module[{rawData, stacked, flat, validMin, validMax},
-          rawData = ImportByteArray[responseBytes, {"GeoTIFF", "Data"}];
-          img = Which[
-            Length[Dimensions[rawData]] === 2,
-              Module[{arr},
-                arr = Reverse[N@Normal[rawData]];
-                flat = Flatten[arr];
+      If[internalFormat === "PNG",
+        (* Image.visualize applied server-side; PNG preserves 8-bit range *)
+        img = ImportByteArray[responseBytes, "PNG"],
+        If[ToUpperCase[fileFormat] =!= "GEO_TIFF",
+          (* Internal TIFF fetch: import as GeoTIFF data to get correct
+             signed values, then rescale to 0-1 for display.
+             Single-band: returns a 2D matrix {h, w}.
+             Multi-band: returns a list of 2D matrices {band1, band2, ...}.
+             Nodata values (detected as statistical outliers far below the
+             data range) are clamped to the valid minimum before rescaling. *)
+          Module[{rawData, stacked, flat, validMin, validMax},
+            rawData = ImportByteArray[responseBytes, {"GeoTIFF", "Data"}];
+            img = Which[
+              Length[Dimensions[rawData]] === 2,
+                Module[{arr},
+                  arr = Reverse[N@Normal[rawData]];
+                  flat = Flatten[arr];
+                  {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
+                  arr = Clip[arr, {validMin, validMax}];
+                  Image[Rescale[arr], "Real32"]
+                ],
+              ListQ[rawData] && Length[Dimensions[rawData[[1]]]] === 2,
+                stacked = MapThread[List, Reverse /@ (Normal /@ rawData), 2];
+                stacked = N@stacked;
+                flat = Flatten[stacked];
                 {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
-                arr = Clip[arr, {validMin, validMax}];
-                Image[Rescale[arr], "Real32"]
-              ],
-            ListQ[rawData] && Length[Dimensions[rawData[[1]]]] === 2,
-              stacked = MapThread[List, Reverse /@ (Normal /@ rawData), 2];
-              stacked = N@stacked;
-              flat = Flatten[stacked];
-              {validMin, validMax} = Quantile[flat, {0.02, 0.98}];
-              stacked = Clip[stacked, {validMin, validMax}];
-              Image[Rescale[stacked], "Real32", ColorSpace -> "RGB"],
-            True,
-              Message[GEEComputePixels::notimage, Head[rawData]];
-              Confirm[$Failed]
-          ]
-        ],
-        (* User-requested format: import directly *)
-        img = ImportByteArray[responseBytes,
-          Switch[internalFormat,
-            "PNG", "PNG",
-            "JPEG" | "JPG", "JPEG",
-            "GEO_TIFF" | "GEOTIFF" | "TIFF", "TIFF",
-            _, "PNG"
-          ]
+                stacked = Clip[stacked, {validMin, validMax}];
+                Image[Rescale[stacked], "Real32", ColorSpace -> "RGB"],
+              True,
+                Message[GEEComputePixels::notimage, Head[rawData]];
+                Confirm[$Failed]
+            ]
+          ],
+          (* User explicitly requested GEO_TIFF: import directly *)
+          img = ImportByteArray[responseBytes, "TIFF"]
         ]
       ];
 
@@ -1864,6 +1878,17 @@ GEEGetTile[assetId : (_String | _Association), point_GeoPosition, z_Integer,
     GEEGetTile[assetId, z, rowCol[[2]], rowCol[[1]], opts]
   ]
 
+GEEGetTile[assetId : (_String | _Association), point_Entity, z_Integer,
+    opts : OptionsPattern[]] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[point]];
+    If[MatchQ[pos, _GeoPosition],
+      GEEGetTile[assetId, pos, z, opts],
+      Message[GEEGetTile::fetchfail, InputForm[point]];
+      $Failed
+    ]
+  ]
+
 GEEGetTile[other___] := (
   Message[GEEGetTile::fetchfail, InputForm[{other}]];
   $Failed
@@ -1916,7 +1941,18 @@ GEEIdentify[point_GeoPosition, assetId : (_String | _Association),
     ]
   ]
 
-GEEIdentify[point_, url_String, opts : OptionsPattern[]] := (
+GEEIdentify[point_Entity, assetId : (_String | _Association),
+    opts : OptionsPattern[]] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[point]];
+    If[MatchQ[pos, _GeoPosition],
+      GEEIdentify[pos, assetId, opts],
+      Message[GEEIdentify::badpoint, InputForm[point]];
+      $Failed
+    ]
+  ]
+
+GEEIdentify[point_?(!MatchQ[#, _Entity] &), url_String, opts : OptionsPattern[]] := (
   Message[GEEIdentify::badpoint, InputForm[point]];
   $Failed
 )
@@ -1934,13 +1970,15 @@ GEEGetSamples[points_List, assetId : (_String | _Association), opts : OptionsPat
       bands = OptionValue["Bands"];
       project = OptionValue["Project"];
       results = Map[
-        Module[{id},
-          id = GEEIdentify[#, assetId,
+        Module[{pt, id},
+          pt = If[MatchQ[#, _Entity],
+            Quiet[GeoPosition[#]], #];
+          id = GEEIdentify[pt, assetId,
             "Bands" -> bands, "Project" -> project];
           If[AssociationQ[id],
-            <|"Position" -> #,
+            <|"Position" -> id["Position"],
               "Values" -> id["Values"]|>,
-            <|"Position" -> #,
+            <|"Position" -> pt,
               "Values" -> Missing["Failed"]|>
           ]
         ] &,

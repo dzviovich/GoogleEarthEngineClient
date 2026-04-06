@@ -28,14 +28,16 @@ All public functions in the GoogleEarthEngineClient paclet, organized by categor
 |---|---|---|---|
 | `GEEComputePixels` | Compute pixels for a GEE image over a bounding box | No | `GEEComputePixels[{-122, 37, -121, 38}, "USGS/SRTMGL1_003"]` |
 | `GEEImage` | Return a geo-tagged Image of a region from a GEE asset | No | `GEEImage[Entity["City", {"Denver", "Colorado", "UnitedStates"}], expr]` |
-| `GEEGetTile` | Fetch a single map tile at a given zoom/x/y | No | `GEEGetTile["USGS/SRTMGL1_003", 10, 164, 395]` |
+| `GEEGetTile` | Fetch a single map tile at a given zoom/x/y | No | `GEEGetTile["USGS/SRTMGL1_003", Entity["Mountain", "MountFuji"], 10]` |
 
 ### Point Queries
 
+Points accept `GeoPosition` objects or geographic `Entity` objects (cities, mountains, countries, airports, etc.).
+
 | Function | Description | Operator | Example |
 |---|---|---|---|
-| `GEEIdentify` | Identify pixel values at a single point | No | `GEEIdentify[GeoPosition[{37.7, -122.4}], expr]` |
-| `GEEGetSamples` | Extract pixel values at multiple points | No | `GEEGetSamples[{GeoPosition[{37, -122}]}, expr]` |
+| `GEEIdentify` | Identify pixel values at a single point | No | `GEEIdentify[Entity["Mountain", "MountEverest"], expr]` |
+| `GEEGetSamples` | Extract pixel values at multiple points | No | `GEEGetSamples[{Entity["City", {"Denver", "Colorado", "UnitedStates"}]}, expr]` |
 
 ### Feature Queries
 
@@ -742,7 +744,8 @@ GEEComputePixels[bbox, evi]
 | `GeoRegionValuePlot` | Choropleth maps from GEE-derived regional statistics |
 | `GeoListPlot` | Plot sampled point data on a map |
 | `GeoBubbleChart` | Proportional symbol maps from GEE statistics |
-| `GeoPosition` | Specify query points for `GEEIdentify` and `GEEGetSamples` |
+| `GeoPosition` | Specify query points for `GEEIdentify`, `GEEGetSamples`, and `GEEGetTile` |
+| `Entity` | Use geographic entities (cities, mountains, etc.) as query points — resolved via `GeoPosition[entity]` |
 | `GeoDistance` | Measure distances between sample locations |
 | `GeoElevationData` | Compare local Wolfram DEM data with GEE SRTM |
 | `GeoBoundingBox` | Extract bounding boxes from entities for use with `GEEComputePixels` |
