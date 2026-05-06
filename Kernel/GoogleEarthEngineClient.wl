@@ -24,8 +24,9 @@ for a GEE image asset over the bounding box {west, south, east, north}. \
 Return an Image.\n\
 GEEComputePixels[region, assetId] compute pixels over the bounding box of \
 region. Supported region types include GeoPosition, Polygon, GeoPolygon, \
-GeoPath, Line, GeoDisk, GeoCircle, Entity, and any object accepted by \
-GeoBoundingBox.\n\
+GeoPath, Line, GeoDisk, GeoCircle, Entity, any object accepted by \
+GeoBoundingBox, or a List of such primitives (the combined bounding box \
+is used).\n\
 GEEComputePixels[bbox, assetId, opts] compute with options \"ImageSize\", \
 \"FileFormat\", \"Bands\", and \"CRS\".\n\
 assetId can be an asset ID string or a pre-built GEE expression Association."
@@ -100,8 +101,8 @@ GEEFilterBounds::usage = "GEEFilterBounds[collection, bbox] filter a \
 collection expression by spatial bounds {west, south, east, north}.\n\
 GEEFilterBounds[bbox] operator form for use with //.\n\
 GEEFilterBounds[region] also accepts GeoPosition, Polygon, GeoPolygon, \
-GeoDisk, GeoCircle, Rectangle, Entity, and other geo primitives; the \
-bounding box is computed automatically via GeoBoundingBox."
+GeoDisk, GeoCircle, Rectangle, Entity, other geo primitives, or a List \
+of such primitives; the combined bounding box is computed automatically."
 
 GEEFilterBounds::bboxfail = "Could not compute a bounding box from `1`."
 
@@ -151,8 +152,22 @@ GEEReduceRegion[geometry, reducer, scale] operator form for use with //."
 
 GEEGeometry::usage = "GEEGeometry[{lat, lon}] create a GEE point \
 geometry expression.\n\
+GEEGeometry[GeoPosition[{lat, lon}]] create a GEE point geometry from a \
+GeoPosition.\n\
 GEEGeometry[{west, south, east, north}] create a GEE rectangle geometry \
-expression."
+expression.\n\
+GEEGeometry[geoPrimitive] create a GEE rectangle geometry from the bounding \
+box of a Wolfram geographic primitive (Entity, GeoDisk, GeoCircle, \
+GeoPolygon, GeoPath, Polygon, Line, etc.).\n\
+GEEGeometry[{geoPrimitive1, geoPrimitive2, ...}] create a GEE rectangle \
+geometry from the combined bounding box of a list of geographic primitives."
+
+GEEGeoBounds::usage = "GEEGeoBounds[geoPrimitive] return the bounding box of \
+a Wolfram geographic primitive in {west, south, east, north} order, the \
+format expected by GEEComputePixels and GEEGeometry. Accepts any region \
+that GeoBounds accepts (Entity, GeoPosition, GeoDisk, GeoCircle, GeoPolygon, \
+GeoPath, Polygon, Line, etc.), or a List of such primitives (the combined \
+bounding box is returned)."
 
 GEENormalizedDifference::usage = "GEENormalizedDifference[image, {band1, \
 band2}] compute (band1 - band2) / (band1 + band2) server-side.\n\
@@ -411,6 +426,7 @@ GEEComputePixels::fetchfail = "Failed to compute pixels from `1`.";
 GEEComputePixels::apierr = "GEE API error for `1`: `2`";
 GEEComputePixels::notimage = "Server returned `1` instead of an image.";
 GEEComputePixels::badbbox = "Expected bbox as {west, south, east, north}, got `1`.";
+GEEComputePixels::badimagesize = "ImageSize must be a positive integer or a pair {width, height} of positive integers, got `1`.";
 GEEComputePixels::bboxfail = "Could not compute bounding box from region `1`.";
 GEEComputePixels::noauth = "Not authenticated. Call GEEConnect first.";
 
@@ -447,6 +463,10 @@ GEEGeoGraphics::bboxfail = "Could not compute bounding box from the provided pri
 GEEGeoGraphics::bgfail = "Failed to fetch background map from `1`.";
 GEEGeoGraphics::noprims = "No geo primitives found in the input.";
 GEEGeoGraphics::noauth = "Not authenticated. Call GEEConnect first.";
+
+GEEGeoBounds::badprimitive = "Could not compute geographic bounds from `1`. Expected a Wolfram geographic primitive (Entity, GeoPosition, GeoDisk, GeoCircle, GeoPolygon, GeoPath, Polygon, Line, etc.).";
+
+GEEGeometry::badprimitive = "Could not build a GEE geometry from `1`. Expected {lat, lon}, {west, south, east, north}, or a Wolfram geographic primitive.";
 
 (* --- Options --- *)
 
@@ -790,6 +810,12 @@ buildBandSelection[imageExpr_Association, bands_List] :=
       |>
     |>
   |>|>
+
+expressionContainsVisualize[expr_Association] :=
+  Lookup[Lookup[expr, "functionInvocationValue", <||>],
+    "functionName", ""] === "Image.visualize"
+
+expressionContainsVisualize[_] := False
 
 buildVisualization[imageExpr_Association, visParams_Association] :=
   Module[{args},
@@ -1180,11 +1206,63 @@ projectionToCRS[Automatic] := "EPSG:3857"
 projectionToCRS[crs_String] := crs
 projectionToCRS[_] := "EPSG:3857"
 
+(* --- Bounding box helpers ---
+
+   Mathematica's GeoBoundingBox / GeoBounds accept a list of geo primitives
+   in current versions, but the behavior is fragile (older versions do not
+   thread, and partial Entity resolution failures collapse to non-canonical
+   results). The helpers below try the direct call first and fall back to
+   computing each primitive's bbox individually and merging via min/max. *)
+
+mergePrimitiveBBox[primitives_List] :=
+  Module[{boxes, valid, lats, lons},
+    If[primitives === {}, Return[$Failed]];
+    boxes = Quiet[Check[GeoBoundingBox[#], $Failed]] & /@ primitives;
+    valid = Cases[boxes, {_GeoPosition, _GeoPosition}];
+    If[valid === {}, Return[$Failed]];
+    lats = Join @@ ({#[[1, 1, 1]], #[[2, 1, 1]]} & /@ valid);
+    lons = Join @@ ({#[[1, 1, 2]], #[[2, 1, 2]]} & /@ valid);
+    {GeoPosition[{Min[lats], Min[lons]}],
+      GeoPosition[{Max[lats], Max[lons]}]}
+  ]
+
+mergePrimitiveBBox[_] := $Failed
+
+(* Robust GeoBoundingBox wrapper. Always returns {sw, ne} GeoPositions or
+   $Failed. Accepts any single primitive or a List of primitives. *)
+safeGeoBBox[region_] :=
+  Module[{result},
+    result = Quiet[Check[GeoBoundingBox[region], $Failed]];
+    If[MatchQ[result, {_GeoPosition, _GeoPosition}],
+      Return[result]
+    ];
+    If[ListQ[region],
+      mergePrimitiveBBox[region],
+      $Failed
+    ]
+  ]
+
+(* Robust GeoBoundingBox with padding/expansion. padding is a Quantity or
+   {Quantity, Quantity} accepted by GeoBoundingBox, or None for no padding. *)
+safeGeoBBox[region_, None] := safeGeoBBox[region]
+
+safeGeoBBox[region_, padding_] :=
+  Module[{result, base},
+    result = Quiet[Check[GeoBoundingBox[region, padding], $Failed]];
+    If[MatchQ[result, {_GeoPosition, _GeoPosition}],
+      Return[result]
+    ];
+    base = safeGeoBBox[region];
+    If[!MatchQ[base, {_GeoPosition, _GeoPosition}], Return[$Failed]];
+    result = Quiet[Check[GeoBoundingBox[base, padding], $Failed]];
+    If[MatchQ[result, {_GeoPosition, _GeoPosition}], result, base]
+  ]
+
 (* --- Region center computation --- *)
 
 regionCenter[region_] :=
   Module[{bbox, sw, ne},
-    bbox = GeoBoundingBox[region];
+    bbox = safeGeoBBox[region];
     If[MatchQ[bbox, {_GeoPosition, _GeoPosition}],
       {sw, ne} = bbox;
       GeoPosition[{(sw[[1, 1]] + ne[[1, 1]]) / 2,
@@ -1203,37 +1281,35 @@ computeBBox[region_, geoRange_, geoCenter_, padding_] :=
         sw = GeoPosition[{geoRange[[1, 1]], geoRange[[2, 1]]}];
         ne = GeoPosition[{geoRange[[1, 2]], geoRange[[2, 2]]}];
         box = {sw, ne};
-        If[padding =!= None, GeoBoundingBox[box, padding], box]
+        If[padding =!= None, safeGeoBBox[box, padding], box]
       ],
 
     NumericQ[geoRange],
       Module[{center},
         center = If[MatchQ[geoCenter, _GeoPosition],
           geoCenter, regionCenter[region]];
-        GeoBoundingBox[center, Quantity[geoRange, "Meters"]]
+        safeGeoBBox[center, Quantity[geoRange, "Meters"]]
       ],
 
     QuantityQ[geoRange] || MatchQ[geoRange, {__Quantity}],
       Module[{center},
         center = If[MatchQ[geoCenter, _GeoPosition],
           geoCenter, regionCenter[region]];
-        GeoBoundingBox[center, geoRange]
+        safeGeoBBox[center, geoRange]
       ],
 
     True,
-      If[padding =!= None,
-        GeoBoundingBox[region, padding],
-        GeoBoundingBox[region]
-      ]
+      safeGeoBBox[region, padding]
   ]
 
-(* Convert any geo primitive to {west, south, east, north} bbox *)
+(* Convert any geo primitive (or list of primitives) to a flat
+   {west, south, east, north} numeric bbox. *)
 toBoundingBox[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] :=
   bbox
 
 toBoundingBox[region_] :=
   Module[{result, sw, ne},
-    result = Quiet[GeoBoundingBox[region]];
+    result = safeGeoBBox[region];
     If[MatchQ[result, {_GeoPosition, _GeoPosition}],
       {sw, ne} = result;
       {sw[[1, 2]], sw[[1, 1]], ne[[1, 2]], ne[[1, 1]]},
@@ -1359,6 +1435,12 @@ extractGeoPositions[GeoPosition[coords : {{_?NumericQ, _?NumericQ} ..}]] :=
 extractGeoPositions[GeoMarker[pos_, ___]] :=
   extractGeoPositions[pos]
 
+extractGeoPositions[entity_Entity] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[entity]];
+    If[MatchQ[pos, _GeoPosition], {pos}, {}]
+  ]
+
 extractGeoPositions[GeoPath[coords_, ___]] :=
   extractGeoPositions[coords]
 
@@ -1380,11 +1462,29 @@ extractGeoPositions[GeoDisk[center_GeoPosition, radius_, ___]] :=
       {radius, Quantity[#, "AngularDegrees"]}] &,
       {0, 90, 180, 270}]]
 
+extractGeoPositions[GeoDisk[center_Entity, radius_, rest___]] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[center]];
+    If[MatchQ[pos, _GeoPosition],
+      extractGeoPositions[GeoDisk[pos, radius, rest]],
+      {}
+    ]
+  ]
+
 extractGeoPositions[GeoCircle[center_GeoPosition, radius_, ___]] :=
   Join[{center},
     Map[GeoDestination[center,
       {radius, Quantity[#, "AngularDegrees"]}] &,
       {0, 90, 180, 270}]]
+
+extractGeoPositions[GeoCircle[center_Entity, radius_, rest___]] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[center]];
+    If[MatchQ[pos, _GeoPosition],
+      extractGeoPositions[GeoCircle[pos, radius, rest]],
+      {}
+    ]
+  ]
 
 extractGeoPositions[coords : {{_?NumericQ, _?NumericQ} ..}] :=
   GeoPosition /@ coords
@@ -1418,6 +1518,15 @@ convertPrimitive[GeoMarker[pos_GeoPosition, style_], proj_] :=
   {style, PointSize[0.02],
    Point[projectCoords[First[pos], proj]]}
 
+convertPrimitive[GeoMarker[pos_Entity, rest___], proj_] :=
+  Module[{gp},
+    gp = Quiet[GeoPosition[pos]];
+    If[MatchQ[gp, _GeoPosition],
+      convertPrimitive[GeoMarker[gp, rest], proj],
+      {}
+    ]
+  ]
+
 convertPrimitive[GeoPath[coords_, ___], proj_] :=
   Line[Map[projectCoords[#, proj] &, normalizeGeoCoords[coords]]]
 
@@ -1428,9 +1537,27 @@ convertPrimitive[GeoDisk[center_GeoPosition, radius_, ___], proj_] :=
   Polygon[Map[projectCoords[#, proj] &,
     sampleGeoCircle[center, radius]]]
 
+convertPrimitive[GeoDisk[center_Entity, radius_, rest___], proj_] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[center]];
+    If[MatchQ[pos, _GeoPosition],
+      convertPrimitive[GeoDisk[pos, radius, rest], proj],
+      {}
+    ]
+  ]
+
 convertPrimitive[GeoCircle[center_GeoPosition, radius_, ___], proj_] :=
   Line[Map[projectCoords[#, proj] &,
     Append[#, First[#]] &[sampleGeoCircle[center, radius]]]]
+
+convertPrimitive[GeoCircle[center_Entity, radius_, rest___], proj_] :=
+  Module[{pos},
+    pos = Quiet[GeoPosition[center]];
+    If[MatchQ[pos, _GeoPosition],
+      convertPrimitive[GeoCircle[pos, radius, rest], proj],
+      {}
+    ]
+  ]
 
 convertPrimitive[Point[pos_GeoPosition], proj_] :=
   Point[projectCoords[First[pos], proj]]
@@ -1620,17 +1747,31 @@ GEEComputePixels[bbox : {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ},
       crs = OptionValue["CRS"];
       visParams = OptionValue["VisParams"];
 
+      imageSize = Which[
+        MatchQ[imageSize, {_Integer?Positive, _Integer?Positive}],
+          imageSize,
+        IntegerQ[imageSize] && Positive[imageSize],
+          {imageSize, imageSize},
+        True,
+          Message[GEEComputePixels::badimagesize, imageSize];
+          Confirm[$Failed]
+      ];
+
       If[StringQ[assetId] && !ListQ[bands] && Length[visParams] === 0,
         bands = autoBandsForFormat[assetId, fileFormat]
       ];
 
       expr = prepareImageExpression[assetId, bands, visParams, bbox];
 
-      (* When visParams are provided, Image.visualize produces byte data;
+      (* When Image.visualize is present (either via VisParams option or
+         pre-applied in the expression), it produces byte data;
          use PNG to preserve the 8-bit range correctly.
-         Without visParams, use GEO_TIFF to preserve full dynamic range
+         Without visualization, use GEO_TIFF to preserve full dynamic range
          and rescale client-side. *)
-      internalFormat = If[Length[visParams] > 0, "PNG", "GEO_TIFF"];
+      internalFormat = If[
+        Length[visParams] > 0 || expressionContainsVisualize[expr],
+        "PNG", "GEO_TIFF"
+      ];
 
       grid = buildGridSpec[bbox, imageSize, crs];
 
@@ -1715,7 +1856,7 @@ GEEComputePixels[region_, assetId : (_String | _Association), opts : OptionsPatt
     {south, west} = sw[[1]];
     {north, east} = ne[[1]];
     If[south == north || west == east,
-      result = Quiet[GeoBoundingBox[region, Quantity[1, "Kilometers"]]];
+      result = safeGeoBBox[region, Quantity[1, "Kilometers"]];
       If[!MatchQ[result, {_GeoPosition, _GeoPosition}],
         Message[GEEComputePixels::bboxfail, InputForm[region]];
         Return[$Failed]
@@ -1766,7 +1907,7 @@ GEEImage[region_, assetId : (_String | _Association), opts : OptionsPattern[]] :
 
     If[sw[[1]] === ne[[1]] &&
         (geoRange === Automatic || geoRange === All),
-      {sw, ne} = GeoBoundingBox[region, Quantity[10, "Kilometers"]]
+      {sw, ne} = safeGeoBBox[region, Quantity[10, "Kilometers"]]
     ];
 
     {south, west} = sw[[1]];
@@ -2158,7 +2299,7 @@ GEEGeoGraphics[primitives_, assetId : (_String | _Association), opts : OptionsPa
       ];
 
       If[sw[[1]] === ne[[1]] && geoRange === Automatic,
-        {sw, ne} = GeoBoundingBox[allPositions,
+        {sw, ne} = safeGeoBBox[allPositions,
           Quantity[10, "Kilometers"]]
       ];
 
@@ -2341,7 +2482,12 @@ GEESelectBands[expr_Association, bands_List] :=
     fn = Lookup[
       Lookup[expr, "functionInvocationValue", <||>],
       "functionName", ""];
-    If[StringMatchQ[fn, "Collection.*" | "ImageCollection.load" |
+    (* Collection-producing operations: map Image.select over each image.
+       Image-producing operations (Collection.first, ImageCollection.mosaic,
+       ImageCollection.reduce, etc.) get a direct Image.select. *)
+    If[MatchQ[fn, "Collection.filter" | "Collection.map" |
+        "Collection.limit" | "Collection.distinct" | "Collection.sort" |
+        "Collection.iterate" | "ImageCollection.load" |
         "ImageCollection.merge"],
       mapSelectBands[expr, bands],
       buildBandSelection[expr, bands]
@@ -2430,6 +2576,40 @@ GEEGeometry[{lat_?NumericQ, lon_?NumericQ}] :=
 
 GEEGeometry[{west_?NumericQ, south_?NumericQ, east_?NumericQ, north_?NumericQ}] :=
   buildGeometryRectangle[west, south, east, north]
+
+GEEGeometry[GeoPosition[{lat_?NumericQ, lon_?NumericQ}]] :=
+  buildGeometryPoint[lat, lon]
+
+GEEGeoBounds[geoPrimitive_] :=
+  Module[{raw, sw, ne, bbox},
+    raw = Quiet[Check[GeoBounds[geoPrimitive], $Failed]];
+    If[MatchQ[raw,
+        {{_?NumericQ, _?NumericQ}, {_?NumericQ, _?NumericQ}}],
+      Return[Flatten[Transpose[Reverse[raw]]]]
+    ];
+    raw = safeGeoBBox[geoPrimitive];
+    If[!MatchQ[raw, {_GeoPosition, _GeoPosition}],
+      Message[GEEGeoBounds::badprimitive, InputForm[geoPrimitive]];
+      Return[$Failed]
+    ];
+    {sw, ne} = raw;
+    bbox = {sw[[1, 2]], sw[[1, 1]], ne[[1, 2]], ne[[1, 1]]};
+    bbox
+  ]
+
+GEEGeometry[geoPrimitive_] :=
+  Module[{bbox},
+    bbox = GEEGeoBounds[geoPrimitive];
+    If[!MatchQ[bbox, {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}],
+      Return[$Failed]
+    ];
+    buildGeometryRectangle @@ bbox
+  ]
+
+GEEGeometry[other___] := (
+  Message[GEEGeometry::badprimitive, InputForm[{other}]];
+  $Failed
+)
 
 (* --- Tier 1 expression builder helpers --- *)
 
@@ -2756,7 +2936,7 @@ GEEQualityMosaic[collection_Association, qualityBand_String] :=
     "functionName" -> "ImageCollection.qualityMosaic",
     "arguments" -> <|
       "collection" -> collection,
-      "bandName" -> <|"constantValue" -> qualityBand|>
+      "qualityBand" -> <|"constantValue" -> qualityBand|>
     |>
   |>|>
 
@@ -3293,6 +3473,7 @@ Quiet[
   If[NameQ["Global`GEEFeatureCollection"], Remove["Global`GEEFeatureCollection"]];
   If[NameQ["Global`GEEReduceRegion"], Remove["Global`GEEReduceRegion"]];
   If[NameQ["Global`GEEGeometry"], Remove["Global`GEEGeometry"]];
+  If[NameQ["Global`GEEGeoBounds"], Remove["Global`GEEGeoBounds"]];
   If[NameQ["Global`GEENormalizedDifference"], Remove["Global`GEENormalizedDifference"]];
   If[NameQ["Global`GEEClip"], Remove["Global`GEEClip"]];
   If[NameQ["Global`GEEUpdateMask"], Remove["Global`GEEUpdateMask"]];

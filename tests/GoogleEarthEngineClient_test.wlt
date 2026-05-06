@@ -566,6 +566,116 @@ VerificationTest[
 EndTestSection[]
 
 (* ================================================================ *)
+(* === List-of-primitive bounding-box tests                      === *)
+(* ================================================================ *)
+
+BeginTestSection["List-of-primitive regions"]
+
+(* These tests exercise the offline bounding-box helpers — they do not
+   require a live GEE connection or network calls beyond Wolfram entity
+   resolution, which is needed to materialize the test geometry. *)
+
+$RegionA = Entity["AdministrativeDivision", {"Georgia", "UnitedStates"}];
+$RegionB = Entity["AdministrativeDivision", {"Virginia", "UnitedStates"}];
+
+(* Single primitive still works *)
+VerificationTest[
+  MatchQ[GEEGeoBounds[$RegionA],
+    {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}],
+  True,
+  TestID -> "GEEGeoBounds-single-entity"
+]
+
+(* List of two entities returns a merged {w, s, e, n} bbox *)
+VerificationTest[
+  Module[{single, multi},
+    single = GEEGeoBounds[$RegionA];
+    multi = GEEGeoBounds[{$RegionA, $RegionB}];
+    MatchQ[multi, {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}] &&
+      multi[[1]] <= single[[1]] && multi[[2]] <= single[[2]] &&
+      multi[[3]] >= single[[3]] && multi[[4]] >= single[[4]]
+  ],
+  True,
+  TestID -> "GEEGeoBounds-list-merges"
+]
+
+(* Mixed-type list: Entity + GeoDisk *)
+VerificationTest[
+  MatchQ[
+    GEEGeoBounds[{$RegionA,
+      GeoDisk[GeoPosition[{30.25, -97.75}], Quantity[100, "Kilometers"]]}],
+    {_?NumericQ, _?NumericQ, _?NumericQ, _?NumericQ}],
+  True,
+  TestID -> "GEEGeoBounds-mixed-list"
+]
+
+(* GEEGeometry of a list builds a Rectangle with the merged bbox *)
+VerificationTest[
+  Module[{geom, multi},
+    geom = GEEGeometry[{$RegionA, $RegionB}];
+    multi = GEEGeoBounds[{$RegionA, $RegionB}];
+    AssociationQ[geom] &&
+      geom["functionInvocationValue", "functionName"] ===
+        "GeometryConstructors.Rectangle" &&
+      geom["functionInvocationValue", "arguments", "coordinates",
+          "constantValue"] === multi
+  ],
+  True,
+  TestID -> "GEEGeometry-list-rectangle"
+]
+
+(* GEEFilterBounds also accepts a list of primitives *)
+VerificationTest[
+  AssociationQ[GEEFilterBounds[{$RegionA, $RegionB}][
+    Quiet[GEECollection[$TestCollectionAsset]]]],
+  True,
+  TestID -> "GEEFilterBounds-list"
+]
+
+(* GEEComputePixels with a list of entities must not fail at the
+   bounding-box stage. Use Check to convert the bboxfail message into a
+   detectable tag; without auth the call still fails downstream with
+   noauth/fetchfail, which is fine here. *)
+VerificationTest[
+  Quiet[
+    Check[
+      GEEComputePixels[{$RegionA, $RegionB}, "fake/asset"],
+      $BBoxFailureTag,
+      {GEEComputePixels::bboxfail}
+    ]
+  ] =!= $BBoxFailureTag,
+  True,
+  TestID -> "GEEComputePixels-list-no-bboxfail"
+]
+
+(* computeBBox helper merges over a list of entities *)
+VerificationTest[
+  MatchQ[
+    GoogleEarthEngineClient`Private`computeBBox[
+      {$RegionA, $RegionB}, Automatic, Automatic, None],
+    {_GeoPosition, _GeoPosition}],
+  True,
+  TestID -> "computeBBox-list-merges"
+]
+
+(* Empty list cleanly fails *)
+VerificationTest[
+  GEEGeoBounds[{}],
+  $Failed,
+  {GEEGeoBounds::badprimitive},
+  TestID -> "GEEGeoBounds-empty-list"
+]
+
+(* Plain numeric bbox still passes through unchanged *)
+VerificationTest[
+  GoogleEarthEngineClient`Private`toBoundingBox[{-97.8, 30.2, -97.7, 30.3}],
+  {-97.8, 30.2, -97.7, 30.3},
+  TestID -> "toBoundingBox-bbox-passthrough"
+]
+
+EndTestSection[]
+
+(* ================================================================ *)
 (* === Error handling tests                                      === *)
 (* ================================================================ *)
 
