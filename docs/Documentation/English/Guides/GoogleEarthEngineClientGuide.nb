@@ -1,0 +1,842 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     34961,        834]
+NotebookOptionsPosition[     27281,        677]
+NotebookOutlinePosition[     27825,        695]
+CellTagsIndexPosition[     27782,        692]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Google Earth Engine Client Guide", "GuideTitle",
+ CellID->240542882,ExpressionUUID->"58148ac9-2780-3a4c-b262-acd91ea61e15"],
+
+Cell["\<\
+Tools for authenticating with Google Earth Engine, retrieving satellite \
+imagery, querying pixel and feature data, and rendering geographic \
+visualizations using the GEE REST API v1.\
+\>", "GuideAbstract",
+ CellChangeTimes->{{3.9841660179699326`*^9, 3.9841660505794106`*^9}},
+ CellID->173047,ExpressionUUID->"7edeac07-82a7-dd45-a267-501d55c2739c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Authentication", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}},
+ CellID->182502659,ExpressionUUID->"5d5e4984-4333-6049-8ea4-75a7db26493b"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEConnect",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEConnect"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "12d4ae9c-daa7-9743-bbf0-eef3d9b00ee3"],
+ " \[LongDash] authenticate with a service account key file"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984167379756672*^9, 3.984167379756672*^9}},
+ CellID->155074659,ExpressionUUID->"9f8fdf15-0547-7f4b-afd3-b2454d40e776"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["$GEEConnection",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/$GEEConnection"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c5c6736a-1ff4-4e4e-8fcf-2d9846cbae62",ExpressionUUID->
+  "3fae7947-a1f6-044e-b486-3ebce43f1eed"],
+ " \[LongDash] current authentication state"
+}], "GuideText",
+ CellChangeTimes->{{3.984166081683031*^9, 3.98416610726412*^9}, {
+  3.98432904923905*^9, 3.98432904923905*^9}},
+ CellID->28925159,ExpressionUUID->"75b79e51-8296-d940-afc0-68f9570547a7"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Asset Metadata", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}},
+ CellID->236987664,ExpressionUUID->"4f975c98-353e-1644-bf0c-eb3b4540747d"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEGetAssetInfo",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEGetAssetInfo"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "2e2d70d5-37ec-7c47-b859-9cc73431dc8f"],
+ " \[LongDash] fetch metadata for an image, collection, or table asset"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9843290543418713`*^9, 
+  3.9843290543418713`*^9}},
+ CellID->8969617,ExpressionUUID->"4203ae36-d57d-db43-aaee-b40b8cd84a99"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEListAssets",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEListAssets"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c5c6736a-1ff4-4e4e-8fcf-2d9846cbae62",ExpressionUUID->
+  "7ff45dd4-8ad0-6e4d-b636-19ca39d290ac"],
+ " \[LongDash] list assets in a folder or collection"
+}], "GuideText",
+ CellChangeTimes->{{3.984166081683031*^9, 3.98416610726412*^9}, {
+  3.984166416866596*^9, 3.9841664442030735`*^9}, {3.984329059520172*^9, 
+  3.984329059520172*^9}},
+ CellID->322578286,ExpressionUUID->"be5e27e9-5dee-5340-aedf-da6bccf9af88"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Image  Retrieval", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}},
+ CellID->75423298,ExpressionUUID->"d8cc4be1-4827-6d4e-bce2-0a3e3af7fe7f"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEComputePixels",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEComputePixels"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "721a04f1-2cf2-934b-909c-0de3d9df033a"],
+ " \[LongDash] compute raw pixels over a bounding box"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984329064664871*^9, 3.984329064664871*^9}},
+ CellID->139604096,ExpressionUUID->"bb7fca45-1659-1c48-97f3-8e29cea101bf"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEImage",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEImage"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c5c6736a-1ff4-4e4e-8fcf-2d9846cbae62",ExpressionUUID->
+  "cc0afa2a-b4e5-464b-8208-665651873c33"],
+ " \[LongDash] ",
+ "return a geo-tagged image of a region"
+}], "GuideText",
+ CellChangeTimes->{{3.984166081683031*^9, 3.98416610726412*^9}, {
+   3.984166416866596*^9, 3.9841664442030735`*^9}, {3.984166538494137*^9, 
+   3.984166538494137*^9}, 3.9841665729139233`*^9, {3.9843290679916763`*^9, 
+   3.9843290679916763`*^9}},
+ CellID->130875970,ExpressionUUID->"c45fe29a-9ad5-1e4c-b19e-d5d764a7ad28"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEGetTile",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEGetTile"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7203e9e8-f947-4431-8b33-448c18d0e5e6",ExpressionUUID->
+  "3e58e09b-d491-5e4d-b816-d0d9898e06fe"],
+ " \[LongDash] fetch a rendered Web Mercator map tile"
+}], "GuideText",
+ CellChangeTimes->{{3.984166598815525*^9, 3.9841666072309113`*^9}, {
+  3.984329071173933*^9, 3.984329071173933*^9}},
+ CellID->699566940,ExpressionUUID->"629540fe-6d64-d84a-a5f8-d3622b6abe29"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Point Queries", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}, {
+  3.984166632972925*^9, 3.9841666358059254`*^9}},
+ CellID->799068808,ExpressionUUID->"326e0487-c366-7140-8abc-48f088ca0f9c"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEIdentify",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEIdentify"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "8b9ace68-d186-da42-9ce4-46fec1340a31"],
+ " \[LongDash] identify pixel values at a single point"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984166644515848*^9, 3.9841666587352085`*^9}, {
+  3.9843290754391975`*^9, 3.9843290754391975`*^9}},
+ CellID->134980823,ExpressionUUID->"33df9dcf-25fb-774a-bf3f-51c762e7e364"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEGetSamples",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEGetSamples"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c5c6736a-1ff4-4e4e-8fcf-2d9846cbae62",ExpressionUUID->
+  "0b5bf523-f954-6a45-aa2b-1afc99b8a62e"],
+ " \[LongDash] batch pixel extraction at multiple points"
+}], "GuideText",
+ CellChangeTimes->{{3.984166081683031*^9, 3.98416610726412*^9}, {
+   3.984166416866596*^9, 3.9841664442030735`*^9}, {3.984166538494137*^9, 
+   3.984166538494137*^9}, 3.9841665729139233`*^9, {3.9841666684567547`*^9, 
+   3.984166678293453*^9}, {3.9843290811030464`*^9, 3.9843290811030464`*^9}},
+ CellID->552876973,ExpressionUUID->"e2e351ad-a769-ac45-9b2f-773052f6f119"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Feature Queries", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}, {
+  3.984166632972925*^9, 3.9841666358059254`*^9}, {3.9841667054046955`*^9, 
+  3.984166710895006*^9}},
+ CellID->307957855,ExpressionUUID->"6b0a889e-ad1d-814e-bee2-595963007cb5"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEComputeFeatures",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEComputeFeatures"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "02f12ee5-3e9a-2549-85ce-111826ffd2e1"],
+ " \[LongDash] query features from a FeatureCollection"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984166644515848*^9, 3.9841666587352085`*^9}, {
+  3.984166721182293*^9, 3.984166730358822*^9}, {3.9843290859925594`*^9, 
+  3.9843290859925594`*^9}},
+ CellID->9504049,ExpressionUUID->"993fc85c-3ca7-b14e-8624-65c82c300c65"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Computation", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}, {
+  3.984166632972925*^9, 3.9841666358059254`*^9}, {3.9841667054046955`*^9, 
+  3.9841667417450275`*^9}},
+ CellID->158455290,ExpressionUUID->"0f868805-824e-c648-8dca-a01e00ed0aae"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEECompute",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEECompute"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "3e1c0459-9cad-1b40-b049-c61bc92875c0"],
+ " \[LongDash] evaluate an arbitrary GEE expression tree"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984166644515848*^9, 3.9841666587352085`*^9}, {
+  3.984166721182293*^9, 3.9841667588681545`*^9}, {3.9843290921084595`*^9, 
+  3.9843290921084595`*^9}},
+ CellID->2642327,ExpressionUUID->"9d385c07-9af3-244b-87f8-4c4352c8684f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Visualization", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}, {
+  3.984166632972925*^9, 3.9841666358059254`*^9}, {3.9841667054046955`*^9, 
+  3.9841667417450275`*^9}, {3.9841668015757713`*^9, 3.984166805310831*^9}},
+ CellID->204987406,ExpressionUUID->"0408f8fa-6034-c74c-8264-ec1ff8071db0"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEEGeographics",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEGeographics"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "9187c584-9c72-f84c-9a11-3d231ca036aa"],
+ " \[LongDash] render geo primitives on a GEE background map"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984166644515848*^9, 3.9841666587352085`*^9}, {
+  3.984166721182293*^9, 3.984166798066124*^9}, {3.9843290965914593`*^9, 
+  3.9843290965914593`*^9}},
+ CellID->67681657,ExpressionUUID->"83101d6e-67e5-dd43-b433-63051180a91f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Expression  Builders", "GuideFunctionsSection",
+ CellChangeTimes->{{3.9841661330921974`*^9, 3.9841661342404537`*^9}, {
+  3.984166182574465*^9, 3.9841661878421803`*^9}, {3.9841663549603806`*^9, 
+  3.9841663579531364`*^9}, {3.984166454890068*^9, 3.98416648310849*^9}, {
+  3.984166632972925*^9, 3.9841666358059254`*^9}, {3.9841667054046955`*^9, 
+  3.9841667417450275`*^9}, {3.9841668015757713`*^9, 3.984166805310831*^9}, {
+  3.9843289867717266`*^9, 3.9843289929386425`*^9}},
+ CellID->208007819,ExpressionUUID->"08b4ea32-3742-284f-b3c9-39cab7407b7c"],
+
+Cell["\<\
+composable pipeline operators for filtering, transforming, and aggregating \
+collections\
+\>", "GuideText",
+ CellID->235755208,ExpressionUUID->"3ce69ff7-a8d8-624e-91bf-2cc82e7251f7"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["GEECollection",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEECollection"]], 
+  "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"c40ac8e4-27e1-4161-a8df-4d4f38357a23",ExpressionUUID->
+  "2374d2bb-8e04-f546-b2ed-37f5a569be2a"],
+ " \[LongDash] load an ImageCollection asset"
+}], "GuideText",
+ CellChangeTimes->{{3.9841660646971245`*^9, 3.984166093113199*^9}, {
+  3.984166410100254*^9, 3.984166435722721*^9}, {3.9841665319209576`*^9, 
+  3.9841665610348167`*^9}, {3.984166644515848*^9, 3.9841666587352085`*^9}, {
+  3.984166721182293*^9, 3.984166798066124*^9}, {3.9843290273902264`*^9, 
+  3.9843290392244835`*^9}, {3.98432909972665*^9, 3.98432909972665*^9}},
+ CellID->1985051,ExpressionUUID->"e4b37588-ca76-034a-a38c-41f8fb781f74"],
+
+Cell[TextData[{
+ Cell[BoxData["GEELoadImage"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "14e442dc-af13-804a-8e72-33fc3e41ee08"],
+ " \[LongDash] load a single Image asset"
+}], "GuideText",
+ CellChangeTimes->{{3.984329112336767*^9, 3.9843291227507687`*^9}},
+ CellID->126856772,ExpressionUUID->"3d0ced94-98c7-e64f-8d47-6919c743e56f"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEFeatureCollection"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "6bf2cea9-7eba-fd47-9501-429a50fec84a"],
+ " \[LongDash] load a FeatureCollection (table) asset"
+}], "GuideText",
+ CellChangeTimes->{{3.98432913458642*^9, 3.9843291468034344`*^9}},
+ CellID->326281579,ExpressionUUID->"27409979-0cf4-0342-9c58-67910d29d297"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEFilterDate"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "75fb76b9-ba4b-8945-9f16-a9058ea91245"],
+ " \[LongDash] filter collection by date range"
+}], "GuideText",
+ CellChangeTimes->{{3.9843291552658424`*^9, 3.9843291659072456`*^9}},
+ CellID->273159913,ExpressionUUID->"8d310d67-1c57-6947-b27d-3a0b47e36a97"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEFilterBounds"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "57da4f5c-5f6f-8647-8050-a8156d819875"],
+ " \[LongDash] filter collection by spatial bounding box"
+}], "GuideText",
+ CellChangeTimes->{{3.9843291726838856`*^9, 3.984329181365427*^9}},
+ CellID->106281996,ExpressionUUID->"2ec8b28a-104e-bd4d-b60a-e9a03c6ba424"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEFilterProperty"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "33752f00-c106-4842-af2b-a7fdbf7b66fa"],
+ " \[LongDash] filter collection by metadata property"
+}], "GuideText",
+ CellChangeTimes->{{3.9843291875766315`*^9, 3.984329193629896*^9}},
+ CellID->121512091,ExpressionUUID->"b61863ad-2d97-104f-812a-cea48ebcdf74"],
+
+Cell[TextData[{
+ Cell[BoxData["GEESelectBands"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "2a523d85-03ae-b14c-845e-c60fef73eb97"],
+ " \[LongDash] select specific bands from an image or collection"
+}], "GuideText",
+ CellChangeTimes->{{3.9843292147838306`*^9, 3.984329225719101*^9}},
+ CellID->371290005,ExpressionUUID->"d880e592-881c-ff4d-a718-3c49c8a958aa"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEMosaic"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "9b39009f-a45d-e246-842d-276728046105"],
+ " \[LongDash] mosaic collection into a single image"
+}], "GuideText",
+ CellChangeTimes->{{3.984329220274*^9, 3.9843292312299786`*^9}},
+ CellID->249975216,ExpressionUUID->"b4366ce6-d750-5447-8b39-648cbbada4d3"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEMedian"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "2712bef8-64d0-a541-b7b5-17e0d8ff41ba"],
+ " \[LongDash] per-pixel median composite"
+}], "GuideText",
+ CellChangeTimes->{{3.9843292360941086`*^9, 3.984329241872076*^9}},
+ CellID->205688648,ExpressionUUID->"57247040-f53c-4441-ba77-a832bb7a1b57"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEMean"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "0acb7dd4-fd8e-e948-909c-2169269c3f77"],
+ " \[LongDash] per-pixel mean composite"
+}], "GuideText",
+ CellChangeTimes->{{3.9843292482908783`*^9, 3.9843292528361626`*^9}},
+ CellID->168021414,ExpressionUUID->"fe020ed9-811e-3e47-bdc1-6c7fca0a4c5f"],
+
+Cell[TextData[{
+ Cell[BoxData["GEESort"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "735f31b2-5972-924e-8729-f22d77d4527a"],
+ " \[LongDash] sort collection by a metadata property"
+}], "GuideText",
+ CellChangeTimes->{{3.984329258775097*^9, 3.984329265926193*^9}},
+ CellID->108746978,ExpressionUUID->"64530717-d2b0-7d43-86a3-cb0c9b3c2671"],
+
+Cell[TextData[{
+ Cell[BoxData["GEELimit"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "dd615d5a-1478-2145-9e54-0d1c08d98d9c"],
+ " \[LongDash] limit collection to at most n images"
+}], "GuideText",
+ CellChangeTimes->{{3.984329270903452*^9, 3.9843292763467026`*^9}},
+ CellID->205435891,ExpressionUUID->"ef42cab6-e155-c14d-b4bd-0a46c7a478c4"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEFirst"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "b49c9c20-1cab-cf4c-b696-4655abce7322"],
+ " \[LongDash] get the first image from a collection"
+}], "GuideText",
+ CellChangeTimes->{{3.984329281748972*^9, 3.9843292906576424`*^9}},
+ CellID->314429526,ExpressionUUID->"bacde1ac-e4af-0640-b068-934763e2535b"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEVisualize"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "cdce3151-8019-8640-b5b1-b21774fb0315"],
+ " \[LongDash] apply server-side visualization to an image"
+}], "GuideText",
+ CellChangeTimes->{{3.98432943297801*^9, 3.9843294739993515`*^9}},
+ CellID->42486292,ExpressionUUID->"744e165e-36ba-7849-ba8f-8d2eb5a4f17a"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEGeometry"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "1ca113c3-919e-ac43-b131-df8d40781446"],
+ " \[LongDash] create a GEE point or rectangle geometry"
+}], "GuideText",
+ CellChangeTimes->{{3.9843293183349113`*^9, 3.9843293375715103`*^9}},
+ CellID->246415068,ExpressionUUID->"3e58b4ef-40c5-5e4f-be2c-c5080b595e13"],
+
+Cell[TextData[{
+ Cell[BoxData["GEEReduceRegion"], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7ae2180d-7bd0-4ce2-b95c-1a040e51c73f",ExpressionUUID->
+  "b9605805-ead6-a04a-b5eb-a5b80327884d"],
+ " \[LongDash] compute a statistic over a region"
+}], "GuideText",
+ CellChangeTimes->{{3.9843293286871853`*^9, 3.984329335483984*^9}},
+ CellID->13756275,ExpressionUUID->"d96a81a5-4f7f-ab40-a653-50c080f77daf"],
+
+Cell[CellGroupData[{
+
+Cell["\t", "GuideDelimiter",
+ CellID->174435986,ExpressionUUID->"f7477359-3834-2548-8226-19acee770a24"],
+
+Cell[TextData[{
+ StyleBox["Region-driven functions (",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEComputePixels",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEComputePixels"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEImage",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEImage"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEFilterBounds",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEFilterBounds"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEGeometry",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEGeometry"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[",  ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEGeoBounds",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEGeoBounds"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[") accept a single geographic primitive or a List of primitives \
+\[LongDash] the combined bounding box is used.",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"]
+}], "InlineGuideFunctionListing",
+ CellChangeTimes->{{3.9870787853366356`*^9, 3.9870788633588276`*^9}},
+ CellID->87375557,ExpressionUUID->"c4a324f1-3e9a-ae4c-b5d5-70c5cb2f921a"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Related Guides", "GuideMoreAboutSection",
+ CellChangeTimes->{{3.8430423939366693`*^9, 3.843042395176153*^9}},
+ CellID->335926776,ExpressionUUID->"809981a1-3134-f94c-a2bb-de593548c3cb"],
+
+Cell[TextData[ButtonBox["Maps & Cartography",
+ BaseStyle->"Hyperlink",
+ ButtonData->"guide/MapsAndCartography"]], "GuideMoreAbout",
+ CellChangeTimes->{
+  3.98416683304895*^9, 3.9841669189001236`*^9, {3.984166970711935*^9, 
+   3.9841669707129307`*^9}},
+ CellID->264237355,ExpressionUUID->"b0d788bf-d571-a947-8022-ffe6c44a55dc"],
+
+Cell[TextData[ButtonBox["Geographic Data & Entities",
+ BaseStyle->"Hyperlink",
+ ButtonData->{
+   URL["https://guide/GeographicData"], None},
+ ButtonNote->"https://guide/GeographicData"]], "GuideMoreAbout",
+ CellChangeTimes->{{3.9841669984219055`*^9, 3.984167028029869*^9}},
+ CellID->403980986,ExpressionUUID->"e8826165-a704-b040-abc3-ad107313231c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Related Links", "GuideRelatedLinksSection",
+ CellID->363707593,ExpressionUUID->"9ac68869-01e4-e140-917c-cb210c66e7ea"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  RowBox[{"Google", " ", "Earth", " ", "Engine", " ", "Data", " ", 
+   RowBox[{"Catalog", ":"}]}]], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7203e9e8-f947-4431-8b33-448c18d0e5e6",ExpressionUUID->
+  "d908b33f-9d63-b649-9f63-7c6738302cfb"],
+ "  ",
+ ButtonBox["https://developers.google.com/earth-engine/datasets",
+  BaseStyle->"Hyperlink",
+  ButtonData->{
+    URL["https://developers.google.com/earth-engine/datasets"], None},
+  ButtonNote->"https://developers.google.com/earth-engine/datasets"]
+}], "GuideText",
+ CellChangeTimes->{{3.984167083078106*^9, 3.9841671190968*^9}, {
+  3.9841672763878307`*^9, 3.984167276388832*^9}},
+ CellID->34194043,ExpressionUUID->"cba38631-6753-ed45-a725-51490af88140"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  RowBox[{"GEE", " ", "REST", " ", "API", " ", 
+   RowBox[{"Reference", ":"}]}]], "InlineGuideFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"7203e9e8-f947-4431-8b33-448c18d0e5e6",ExpressionUUID->
+  "ccd595cd-9764-8043-985f-9d0c4c7bc8e2"],
+ "  ",
+ ButtonBox["https://developers.google.com/earth-engine/reference/rest",
+  BaseStyle->"Hyperlink",
+  ButtonData->{
+    URL["https://developers.google.com/earth-engine/reference/rest"], None},
+  ButtonNote->"https://developers.google.com/earth-engine/reference/rest"]
+}], "GuideText",
+ CellChangeTimes->{{3.984167143764204*^9, 3.9841671562692375`*^9}, {
+  3.984167283036356*^9, 3.9841672830373516`*^9}},
+ CellID->89862310,ExpressionUUID->"3d249ae3-c16b-a346-a967-dd44979223e7"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Metadata", "MetadataSection",
+ CellID->274094263,ExpressionUUID->"4295bcad-82b6-8a4f-9246-ab60bea53df0"],
+
+Cell[TextData[{
+ "New in: ",
+ Cell["14.3", "HistoryData",
+  CellTags->"New",ExpressionUUID->"6d9f112d-9496-0c40-95c4-f19db6b52acc"],
+ " | Modified in: ",
+ Cell[" ", "HistoryData",
+  CellTags->"Modified",ExpressionUUID->"c0815b9c-f99c-6b42-939c-c4ab01b156a0"],
+ " | Obsolete in: ",
+ Cell[" ", "HistoryData",
+  CellTags->"Obsolete",ExpressionUUID->"a966f17d-3545-0c40-955e-203ae4b87c29"]
+}], "History",
+ CellChangeTimes->{{3.9841672455794697`*^9, 3.984167246321123*^9}},
+ CellID->325439643,ExpressionUUID->"a100c821-7649-6140-bed3-6947fa4bf970"],
+
+Cell[CellGroupData[{
+
+Cell["Categorization", "CategorizationSection",
+ CellID->761183645,ExpressionUUID->"0f4fd1cd-9ea1-7a45-b866-89c6297f7d16"],
+
+Cell["Guide", "Categorization",
+ CellLabel->"Entity Type",
+ CellID->330301271,ExpressionUUID->"29a210c7-030b-5842-8120-09535c9cc17b"],
+
+Cell["GoogleEarthEngineClient", "Categorization",
+ CellLabel->"Paclet Name",
+ CellID->313196315,ExpressionUUID->"8567d9a9-4ae3-9848-b354-2d1fa05ec35d"],
+
+Cell["GoogleEarthEngineClient", "Categorization",
+ CellChangeTimes->{3.987078822482237*^9},
+ CellLabel->"Context",
+ CellID->220274228,ExpressionUUID->"f57e87ee-6c09-cd4c-a4ad-30bc6542b7d7"],
+
+Cell["GoogleEarthEngineClient/guide/GoogleEarthEngineClientGuide", \
+"Categorization",
+ CellLabel->"URI",
+ CellID->110084122,ExpressionUUID->"a242dc9a-d66b-9e48-881d-81e417c3be94"]
+}, Closed]],
+
+Cell[CellGroupData[{
+
+Cell["Keywords", "KeywordsSection",
+ CellID->2653607,ExpressionUUID->"3a05a343-ccff-c146-8d3d-859598387458"],
+
+Cell["\<\
+google earth engine, gee, satellite imagery, remote sensing, \
+geospatial,elevation, srtm, landsat, sentinel, raster, earth observation\
+\>", "Keywords",
+ CellChangeTimes->{
+  3.9841671725609646`*^9, {3.984167207747999*^9, 3.9841672396610355`*^9}},
+ CellID->660222104,ExpressionUUID->"e2139263-43ce-e348-b4db-811506d8fa41"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{700.5, 729.75},
+WindowMargins->{{-11.25, Automatic}, {Automatic, -974.25}},
+TaggingRules-><|"Paclet" -> "GoogleEarthEngineClient"|>,
+FrontEndVersion->"14.3 for Microsoft Windows (64-bit) (July 8, 2025)",
+StyleDefinitions->FrontEnd`FileName[{"Wolfram"}, "GuidePageStylesExt.nb", 
+  CharacterEncoding -> "UTF-8"],
+ExpressionUUID->"f165e800-9d36-b44c-8679-7471d3c662e2"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 129, 1, 86, "GuideTitle",ExpressionUUID->"58148ac9-2780-3a4c-b262-acd91ea61e15",
+ CellID->240542882],
+Cell[708, 25, 359, 6, 45, "GuideAbstract",ExpressionUUID->"7edeac07-82a7-dd45-a267-501d55c2739c",
+ CellID->173047]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[1104, 36, 243, 3, 71, "GuideFunctionsSection",ExpressionUUID->"5d5e4984-4333-6049-8ea4-75a7db26493b",
+ CellID->182502659],
+Cell[1350, 41, 595, 13, 23, "GuideText",ExpressionUUID->"9f8fdf15-0547-7f4b-afd3-b2454d40e776",
+ CellID->155074659],
+Cell[1948, 56, 581, 13, 23, "GuideText",ExpressionUUID->"75b79e51-8296-d940-afc0-68f9570547a7",
+ CellID->28925159]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2566, 74, 296, 4, 71, "GuideFunctionsSection",ExpressionUUID->"4f975c98-353e-1644-bf0c-eb3b4540747d",
+ CellID->236987664],
+Cell[2865, 80, 667, 14, 23, "GuideText",ExpressionUUID->"4203ae36-d57d-db43-aaee-b40b8cd84a99",
+ CellID->8969617],
+Cell[3535, 96, 642, 14, 23, "GuideText",ExpressionUUID->"be5e27e9-5dee-5340-aedf-da6bccf9af88",
+ CellID->322578286]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4214, 115, 342, 4, 71, "GuideFunctionsSection",ExpressionUUID->"d8cc4be1-4827-6d4e-bce2-0a3e3af7fe7f",
+ CellID->75423298],
+Cell[4559, 121, 700, 14, 23, "GuideText",ExpressionUUID->"bb7fca45-1659-1c48-97f3-8e29cea101bf",
+ CellID->139604096],
+Cell[5262, 137, 717, 16, 23, "GuideText",ExpressionUUID->"c45fe29a-9ad5-1e4c-b19e-d5d764a7ad28",
+ CellID->130875970],
+Cell[5982, 155, 589, 13, 23, "GuideText",ExpressionUUID->"629540fe-6d64-d84a-a5f8-d3622b6abe29",
+ CellID->699566940]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6608, 173, 391, 5, 71, "GuideFunctionsSection",ExpressionUUID->"326e0487-c366-7140-8abc-48f088ca0f9c",
+ CellID->799068808],
+Cell[7002, 180, 746, 15, 23, "GuideText",ExpressionUUID->"33df9dcf-25fb-774a-bf3f-51c762e7e364",
+ CellID->134980823],
+Cell[7751, 197, 774, 15, 23, "GuideText",ExpressionUUID->"e2e351ad-a769-ac45-9b2f-773052f6f119",
+ CellID->552876973]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8562, 217, 444, 6, 71, "GuideFunctionsSection",ExpressionUUID->"6b0a889e-ad1d-814e-bee2-595963007cb5",
+ CellID->307957855],
+Cell[9009, 225, 807, 16, 23, "GuideText",ExpressionUUID->"993fc85c-3ca7-b14e-8624-65c82c300c65",
+ CellID->9504049]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9853, 246, 442, 6, 71, "GuideFunctionsSection",ExpressionUUID->"0f868805-824e-c648-8dca-a01e00ed0aae",
+ CellID->158455290],
+Cell[10298, 254, 795, 16, 23, "GuideText",ExpressionUUID->"9d385c07-9af3-244b-87f8-4c4352c8684f",
+ CellID->2642327]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[11130, 275, 492, 6, 71, "GuideFunctionsSection",ExpressionUUID->"0408f8fa-6034-c74c-8264-ec1ff8071db0",
+ CellID->204987406],
+Cell[11625, 283, 806, 16, 23, "GuideText",ExpressionUUID->"83101d6e-67e5-dd43-b433-63051180a91f",
+ CellID->67681657]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12468, 304, 552, 7, 71, "GuideFunctionsSection",ExpressionUUID->"08b4ea32-3742-284f-b3c9-39cab7407b7c",
+ CellID->208007819],
+Cell[13023, 313, 192, 4, 22, "GuideText",ExpressionUUID->"3ce69ff7-a8d8-624e-91bf-2cc82e7251f7",
+ CellID->235755208],
+Cell[13218, 319, 831, 16, 23, "GuideText",ExpressionUUID->"e4b37588-ca76-034a-a38c-41f8fb781f74",
+ CellID->1985051],
+Cell[14052, 337, 426, 8, 23, "GuideText",ExpressionUUID->"3d0ced94-98c7-e64f-8d47-6919c743e56f",
+ CellID->126856772],
+Cell[14481, 347, 446, 8, 23, "GuideText",ExpressionUUID->"27409979-0cf4-0342-9c58-67910d29d297",
+ CellID->326281579],
+Cell[14930, 357, 435, 8, 23, "GuideText",ExpressionUUID->"8d310d67-1c57-6947-b27d-3a0b47e36a97",
+ CellID->273159913],
+Cell[15368, 367, 445, 8, 23, "GuideText",ExpressionUUID->"2ec8b28a-104e-bd4d-b60a-e9a03c6ba424",
+ CellID->106281996],
+Cell[15816, 377, 444, 8, 23, "GuideText",ExpressionUUID->"b61863ad-2d97-104f-812a-cea48ebcdf74",
+ CellID->121512091],
+Cell[16263, 387, 452, 8, 23, "GuideText",ExpressionUUID->"d880e592-881c-ff4d-a718-3c49c8a958aa",
+ CellID->371290005],
+Cell[16718, 397, 432, 8, 23, "GuideText",ExpressionUUID->"b4366ce6-d750-5447-8b39-648cbbada4d3",
+ CellID->249975216],
+Cell[17153, 407, 424, 8, 23, "GuideText",ExpressionUUID->"57247040-f53c-4441-ba77-a832bb7a1b57",
+ CellID->205688648],
+Cell[17580, 417, 422, 8, 23, "GuideText",ExpressionUUID->"fe020ed9-811e-3e47-bdc1-6c7fca0a4c5f",
+ CellID->168021414],
+Cell[18005, 427, 432, 8, 23, "GuideText",ExpressionUUID->"64530717-d2b0-7d43-86a3-cb0c9b3c2671",
+ CellID->108746978],
+Cell[18440, 437, 433, 8, 23, "GuideText",ExpressionUUID->"ef42cab6-e155-c14d-b4bd-0a46c7a478c4",
+ CellID->205435891],
+Cell[18876, 447, 434, 8, 23, "GuideText",ExpressionUUID->"bacde1ac-e4af-0640-b068-934763e2535b",
+ CellID->314429526],
+Cell[19313, 457, 442, 8, 23, "GuideText",ExpressionUUID->"744e165e-36ba-7849-ba8f-8d2eb5a4f17a",
+ CellID->42486292],
+Cell[19758, 467, 442, 8, 23, "GuideText",ExpressionUUID->"3e58b4ef-40c5-5e4f-be2c-c5080b595e13",
+ CellID->246415068],
+Cell[20203, 477, 436, 8, 23, "GuideText",ExpressionUUID->"d96a81a5-4f7f-ab40-a653-50c080f77daf",
+ CellID->13756275],
+Cell[CellGroupData[{
+Cell[20664, 489, 103, 1, 26, "GuideDelimiter",ExpressionUUID->"f7477359-3834-2548-8226-19acee770a24",
+ CellID->174435986],
+Cell[20770, 492, 1869, 58, 61, "InlineGuideFunctionListing",ExpressionUUID->"c4a324f1-3e9a-ae4c-b5d5-70c5cb2f921a",
+ CellID->87375557]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[22688, 556, 190, 2, 73, "GuideMoreAboutSection",ExpressionUUID->"809981a1-3134-f94c-a2bb-de593548c3cb",
+ CellID->335926776],
+Cell[22881, 560, 326, 6, 23, "GuideMoreAbout",ExpressionUUID->"b0d788bf-d571-a947-8022-ffe6c44a55dc",
+ CellID->264237355],
+Cell[23210, 568, 348, 6, 23, "GuideMoreAbout",ExpressionUUID->"e8826165-a704-b040-abc3-ad107313231c",
+ CellID->403980986]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[23595, 579, 124, 1, 73, "GuideRelatedLinksSection",ExpressionUUID->"9ac68869-01e4-e140-917c-cb210c66e7ea",
+ CellID->363707593],
+Cell[23722, 582, 769, 16, 23, "GuideText",ExpressionUUID->"cba38631-6753-ed45-a725-51490af88140",
+ CellID->34194043],
+Cell[24494, 600, 773, 16, 23, "GuideText",ExpressionUUID->"3d249ae3-c16b-a346-a967-dd44979223e7",
+ CellID->89862310]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[25304, 621, 110, 1, 71, "MetadataSection",ExpressionUUID->"4295bcad-82b6-8a4f-9246-ab60bea53df0",
+ CellID->274094263],
+Cell[25417, 624, 543, 12, 25, "History",ExpressionUUID->"a100c821-7649-6140-bed3-6947fa4bf970",
+ CellID->325439643],
+Cell[CellGroupData[{
+Cell[25985, 640, 122, 1, 20, "CategorizationSection",ExpressionUUID->"0f4fd1cd-9ea1-7a45-b866-89c6297f7d16",
+ CellID->761183645],
+Cell[26110, 643, 133, 2, 70, "Categorization",ExpressionUUID->"29a210c7-030b-5842-8120-09535c9cc17b",
+ CellID->330301271],
+Cell[26246, 647, 151, 2, 70, "Categorization",ExpressionUUID->"8567d9a9-4ae3-9848-b354-2d1fa05ec35d",
+ CellID->313196315],
+Cell[26400, 651, 189, 3, 70, "Categorization",ExpressionUUID->"f57e87ee-6c09-cd4c-a4ad-30bc6542b7d7",
+ CellID->220274228],
+Cell[26592, 656, 180, 3, 70, "Categorization",ExpressionUUID->"a242dc9a-d66b-9e48-881d-81e417c3be94",
+ CellID->110084122]
+}, Closed]],
+Cell[CellGroupData[{
+Cell[26809, 664, 108, 1, 20, "KeywordsSection",ExpressionUUID->"3a05a343-ccff-c146-8d3d-859598387458",
+ CellID->2653607],
+Cell[26920, 667, 333, 6, 37, "Keywords",ExpressionUUID->"e2139263-43ce-e348-b4db-811506d8fa41",
+ CellID->660222104]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+

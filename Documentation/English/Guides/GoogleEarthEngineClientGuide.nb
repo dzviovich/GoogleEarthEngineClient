@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       154,          7]
-NotebookDataLength[     32612,        761]
-NotebookOptionsPosition[     25228,        610]
-NotebookOutlinePosition[     25768,        628]
-CellTagsIndexPosition[     25725,        625]
+NotebookDataLength[     34961,        834]
+NotebookOptionsPosition[     27281,        677]
+NotebookOutlinePosition[     27825,        695]
+CellTagsIndexPosition[     27782,        692]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -483,7 +483,73 @@ Cell[TextData[{
  " \[LongDash] compute a statistic over a region"
 }], "GuideText",
  CellChangeTimes->{{3.9843293286871853`*^9, 3.984329335483984*^9}},
- CellID->13756275,ExpressionUUID->"d96a81a5-4f7f-ab40-a653-50c080f77daf"]
+ CellID->13756275,ExpressionUUID->"d96a81a5-4f7f-ab40-a653-50c080f77daf"],
+
+Cell[CellGroupData[{
+
+Cell["\t", "GuideDelimiter",
+ CellID->174435986,ExpressionUUID->"f7477359-3834-2548-8226-19acee770a24"],
+
+Cell[TextData[{
+ StyleBox["Region-driven functions (",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEComputePixels",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEComputePixels"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEImage",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEImage"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEFilterBounds",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEFilterBounds"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[", ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEGeometry",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEGeometry"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[",  ",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[ButtonBox["GEEGeoBounds",
+  BaseStyle->"Link",
+  ButtonData->"paclet:GoogleEarthEngineClient/tutorial/GEEGeoBounds"],
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"],
+ StyleBox[") accept a single geographic primitive or a List of primitives \
+\[LongDash] the combined bounding box is used.",
+  FontFamily->"Source Sans Pro",
+  FontSize->14,
+  FontWeight->"Normal"]
+}], "InlineGuideFunctionListing",
+ CellChangeTimes->{{3.9870787853366356`*^9, 3.9870788633588276`*^9}},
+ CellID->87375557,ExpressionUUID->"c4a324f1-3e9a-ae4c-b5d5-70c5cb2f921a"]
+}, Open  ]]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -583,7 +649,8 @@ Cell["GoogleEarthEngineClient", "Categorization",
  CellLabel->"Paclet Name",
  CellID->313196315,ExpressionUUID->"8567d9a9-4ae3-9848-b354-2d1fa05ec35d"],
 
-Cell["GoogleEarthEngineClient`", "Categorization",
+Cell["GoogleEarthEngineClient", "Categorization",
+ CellChangeTimes->{3.987078822482237*^9},
  CellLabel->"Context",
  CellID->220274228,ExpressionUUID->"f57e87ee-6c09-cd4c-a4ad-30bc6542b7d7"],
 
@@ -608,8 +675,8 @@ geospatial,elevation, srtm, landsat, sentinel, raster, earth observation\
 }, Open  ]]
 }, Open  ]]
 },
-WindowSize->{700.5, 770.25},
-WindowMargins->{{658.5, Automatic}, {Automatic, 25.5}},
+WindowSize->{700.5, 729.75},
+WindowMargins->{{-11.25, Automatic}, {Automatic, -974.25}},
 TaggingRules-><|"Paclet" -> "GoogleEarthEngineClient"|>,
 FrontEndVersion->"14.3 for Microsoft Windows (64-bit) (July 8, 2025)",
 StyleDefinitions->FrontEnd`FileName[{"Wolfram"}, "GuidePageStylesExt.nb", 
@@ -721,45 +788,51 @@ Cell[19313, 457, 442, 8, 23, "GuideText",ExpressionUUID->"744e165e-36ba-7849-ba8
 Cell[19758, 467, 442, 8, 23, "GuideText",ExpressionUUID->"3e58b4ef-40c5-5e4f-be2c-c5080b595e13",
  CellID->246415068],
 Cell[20203, 477, 436, 8, 23, "GuideText",ExpressionUUID->"d96a81a5-4f7f-ab40-a653-50c080f77daf",
- CellID->13756275]
+ CellID->13756275],
+Cell[CellGroupData[{
+Cell[20664, 489, 103, 1, 26, "GuideDelimiter",ExpressionUUID->"f7477359-3834-2548-8226-19acee770a24",
+ CellID->174435986],
+Cell[20770, 492, 1869, 58, 61, "InlineGuideFunctionListing",ExpressionUUID->"c4a324f1-3e9a-ae4c-b5d5-70c5cb2f921a",
+ CellID->87375557]
+}, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[20676, 490, 190, 2, 73, "GuideMoreAboutSection",ExpressionUUID->"809981a1-3134-f94c-a2bb-de593548c3cb",
+Cell[22688, 556, 190, 2, 73, "GuideMoreAboutSection",ExpressionUUID->"809981a1-3134-f94c-a2bb-de593548c3cb",
  CellID->335926776],
-Cell[20869, 494, 326, 6, 23, "GuideMoreAbout",ExpressionUUID->"b0d788bf-d571-a947-8022-ffe6c44a55dc",
+Cell[22881, 560, 326, 6, 23, "GuideMoreAbout",ExpressionUUID->"b0d788bf-d571-a947-8022-ffe6c44a55dc",
  CellID->264237355],
-Cell[21198, 502, 348, 6, 23, "GuideMoreAbout",ExpressionUUID->"e8826165-a704-b040-abc3-ad107313231c",
+Cell[23210, 568, 348, 6, 23, "GuideMoreAbout",ExpressionUUID->"e8826165-a704-b040-abc3-ad107313231c",
  CellID->403980986]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[21583, 513, 124, 1, 73, "GuideRelatedLinksSection",ExpressionUUID->"9ac68869-01e4-e140-917c-cb210c66e7ea",
+Cell[23595, 579, 124, 1, 73, "GuideRelatedLinksSection",ExpressionUUID->"9ac68869-01e4-e140-917c-cb210c66e7ea",
  CellID->363707593],
-Cell[21710, 516, 769, 16, 23, "GuideText",ExpressionUUID->"cba38631-6753-ed45-a725-51490af88140",
+Cell[23722, 582, 769, 16, 23, "GuideText",ExpressionUUID->"cba38631-6753-ed45-a725-51490af88140",
  CellID->34194043],
-Cell[22482, 534, 773, 16, 23, "GuideText",ExpressionUUID->"3d249ae3-c16b-a346-a967-dd44979223e7",
+Cell[24494, 600, 773, 16, 23, "GuideText",ExpressionUUID->"3d249ae3-c16b-a346-a967-dd44979223e7",
  CellID->89862310]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[23292, 555, 110, 1, 71, "MetadataSection",ExpressionUUID->"4295bcad-82b6-8a4f-9246-ab60bea53df0",
+Cell[25304, 621, 110, 1, 71, "MetadataSection",ExpressionUUID->"4295bcad-82b6-8a4f-9246-ab60bea53df0",
  CellID->274094263],
-Cell[23405, 558, 543, 12, 25, "History",ExpressionUUID->"a100c821-7649-6140-bed3-6947fa4bf970",
+Cell[25417, 624, 543, 12, 25, "History",ExpressionUUID->"a100c821-7649-6140-bed3-6947fa4bf970",
  CellID->325439643],
 Cell[CellGroupData[{
-Cell[23973, 574, 122, 1, 20, "CategorizationSection",ExpressionUUID->"0f4fd1cd-9ea1-7a45-b866-89c6297f7d16",
+Cell[25985, 640, 122, 1, 20, "CategorizationSection",ExpressionUUID->"0f4fd1cd-9ea1-7a45-b866-89c6297f7d16",
  CellID->761183645],
-Cell[24098, 577, 133, 2, 70, "Categorization",ExpressionUUID->"29a210c7-030b-5842-8120-09535c9cc17b",
+Cell[26110, 643, 133, 2, 70, "Categorization",ExpressionUUID->"29a210c7-030b-5842-8120-09535c9cc17b",
  CellID->330301271],
-Cell[24234, 581, 151, 2, 70, "Categorization",ExpressionUUID->"8567d9a9-4ae3-9848-b354-2d1fa05ec35d",
+Cell[26246, 647, 151, 2, 70, "Categorization",ExpressionUUID->"8567d9a9-4ae3-9848-b354-2d1fa05ec35d",
  CellID->313196315],
-Cell[24388, 585, 148, 2, 70, "Categorization",ExpressionUUID->"f57e87ee-6c09-cd4c-a4ad-30bc6542b7d7",
+Cell[26400, 651, 189, 3, 70, "Categorization",ExpressionUUID->"f57e87ee-6c09-cd4c-a4ad-30bc6542b7d7",
  CellID->220274228],
-Cell[24539, 589, 180, 3, 70, "Categorization",ExpressionUUID->"a242dc9a-d66b-9e48-881d-81e417c3be94",
+Cell[26592, 656, 180, 3, 70, "Categorization",ExpressionUUID->"a242dc9a-d66b-9e48-881d-81e417c3be94",
  CellID->110084122]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[24756, 597, 108, 1, 20, "KeywordsSection",ExpressionUUID->"3a05a343-ccff-c146-8d3d-859598387458",
+Cell[26809, 664, 108, 1, 20, "KeywordsSection",ExpressionUUID->"3a05a343-ccff-c146-8d3d-859598387458",
  CellID->2653607],
-Cell[24867, 600, 333, 6, 37, "Keywords",ExpressionUUID->"e2139263-43ce-e348-b4db-811506d8fa41",
+Cell[26920, 667, 333, 6, 37, "Keywords",ExpressionUUID->"e2139263-43ce-e348-b4db-811506d8fa41",
  CellID->660222104]
 }, Open  ]]
 }, Open  ]]

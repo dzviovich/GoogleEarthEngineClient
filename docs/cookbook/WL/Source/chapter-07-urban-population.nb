@@ -1,0 +1,3130 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[    129370,       3120]
+NotebookOptionsPosition[    113562,       2879]
+NotebookOutlinePosition[    113967,       2895]
+CellTagsIndexPosition[    113924,       2892]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Chapter 7: Urban and Population Analysis", "Title",ExpressionUUID->"5c8e95fa-67ef-e94f-9145-a2af8eb44863"],
+
+Cell["\<\
+Cities occupy less than 3% of the Earth's land surface yet account for over \
+70% of global energy consumption and CO2 emissions. Understanding where and \
+how cities grow is therefore central to climate adaptation, infrastructure \
+planning, and public health. Satellite remote sensing provides a unique \
+vantage point for studying urbanization: nighttime lights reveal economic \
+activity, thermal sensors expose heat islands, and multispectral imagery \
+tracks the physical expansion of impervious surfaces. This chapter \
+demonstrates how to combine Google Earth Engine datasets with Wolfram \
+Language analysis tools to quantify and visualize urban phenomena at scales \
+ranging from a single neighborhood to a multi-city global comparison.\
+\>", "Text",ExpressionUUID->"b9043b68-17e9-f14e-befb-8ea1905d5c27"],
+
+Cell[TextData[{
+ StyleBox["Prerequisite:",
+  FontWeight->Bold],
+ " Authenticate per Section 1.3 and load the paclet with ",
+ Cell["Needs[\"GoogleEarthEngineClient`\"]", "InlineCode",ExpressionUUID->
+  "437a67da-08c4-4e42-b8bd-a1946fa54988"],
+ "."
+}], "Text",ExpressionUUID->"fd609d81-1643-ea40-947b-d34a2dac74b4"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"25650ee8-ded9-3948-a7de-2f5261731a34"],
+
+Cell[CellGroupData[{
+
+Cell["7.1 Nighttime Lights", "Chapter",ExpressionUUID->"cff4917e-5cc3-0f4b-a5b5-4730a92abf4d"],
+
+Cell["\<\
+Nighttime light emissions are among the most direct satellite-observable \
+proxies for human economic activity. Brighter lights generally correlate with \
+higher population density, greater GDP, and more developed infrastructure. \
+Two complementary datasets provide coverage from 1992 to the present.\
+\>", "Text",ExpressionUUID->"f745e8e7-afd9-f042-add9-8125b214e35c"],
+
+Cell[CellGroupData[{
+
+Cell["VIIRS Monthly Nighttime Lights", "Section",ExpressionUUID->"906c0056-1b5e-e146-a302-acc77d3be43d"],
+
+Cell[TextData[{
+ "The Visible Infrared Imaging Radiometer Suite (VIIRS) Day/Night Band \
+produces monthly composites of nighttime radiance. The native sensor \
+resolution is approximately 750 m, but the GEE product is gridded at \
+approximately 500 m. The ",
+ Cell["avg_rad", "InlineCode",ExpressionUUID->
+  "01c438fb-3356-004d-b7b2-75324b539900"],
+ " band reports average radiance in nanowatts per square centimeter per \
+steradian (nW/cm2/sr)."
+}], "Text",ExpressionUUID->"0db81222-1e31-1d47-849c-0371131886e6"],
+
+Cell[TextData[StyleBox["Nightlight map of the Tokyo metropolitan area:",
+ FontWeight->Bold]], "Text",ExpressionUUID->"785301cf-259f-344f-aadd-\
+6c8999567e46"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"tokyoLights", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+        "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"", 
+         "]"}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterBounds", "[", 
+        RowBox[{"{", 
+         RowBox[{
+         "139.5", ",", " ", "35.4", ",", " ", "140.1", ",", " ", "35.9"}], 
+         "}"}], "]"}]}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+     "GEEMedian"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Entity", "[", 
+    RowBox[{"\"\<City\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Tokyo\>\"", ",", " ", "\"\<Tokyo\>\"", ",", 
+       " ", "\"\<Japan\>\""}], "}"}]}], "]"}], ",", "\n", "  ", "tokyoLights",
+    ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"60", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "80"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#000000\>\"", ",", " ", "\"\<#0d0887\>\"", ",", 
+         " ", "\"\<#7e03a8\>\"", ",", "\n", "      ", "\"\<#cc4778\>\"", ",", 
+         " ", "\"\<#f89540\>\"", ",", " ", "\"\<#f0f921\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]}], "Input",ExpressionUUID->"4c60d0cc-5832-6740-\
+afa9-73906e7a35b4"],
+
+Cell["\<\
+The palette runs from black (no light) through purple and orange to bright \
+yellow, giving a sense of the radiance gradient from rural periphery to the \
+dense urban core. The median composite over six months reduces noise from \
+cloud contamination and transient light sources.\
+\>", "Text",ExpressionUUID->"5480e5f7-9fa5-0741-a6f2-7d739ef29229"],
+
+Cell[TextData[StyleBox["Compare nightlight radiance across multiple cities:",
+ FontWeight->Bold]], "Text",ExpressionUUID->"a29cd7e8-63b5-b34e-88bf-\
+91bb9342741a"],
+
+Cell[TextData[{
+ "To quantify differences between cities, extract the mean radiance over each \
+urban footprint with ",
+ Cell["GEEReduceRegion", "InlineCode",ExpressionUUID->
+  "e65562e0-c469-f14b-a45f-d436d1f93c55"],
+ " and compile results into a ",
+ Cell["Dataset", "InlineCode",ExpressionUUID->
+  "b0455353-e5a3-ac4e-b691-4660618629a0"],
+ "."
+}], "Text",ExpressionUUID->"6c1da732-09d0-1846-9021-c88749cbb3b4"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"cities", " ", "=", " ", 
+    RowBox[{"<|", "\n", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Tokyo\>\"", "    ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+        "139.5", ",", " ", "35.5", ",", " ", "140.0", ",", " ", "35.85"}], 
+        "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<New York\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "74.1"}], ",", " ", "40.6", ",", " ", 
+         RowBox[{"-", "73.7"}], ",", " ", "40.9"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<London\>\"", "   ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "0.3"}], ",", " ", "51.35", ",", " ", "0.1", ",", " ", 
+         "51.6"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Mumbai\>\"", "   ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+        "72.75", ",", " ", "18.9", ",", " ", "73.05", ",", " ", "19.2"}], 
+        "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Lagos\>\"", "    ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"3.2", ",", " ", "6.35", ",", " ", "3.55", ",", " ", "6.65"}],
+         "}"}]}]}], "\n", "|>"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"viirs", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+       "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"", 
+        "]"}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterDate", "[", 
+        RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+        "]"}]}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+     "GEEMedian"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"radiance", " ", "=", " ", 
+    RowBox[{"Association", " ", "@", " ", 
+     RowBox[{"KeyValueMap", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Function", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"name", ",", " ", "bbox"}], "}"}], ",", "\n", "    ", 
+         RowBox[{"name", " ", "->", " ", 
+          RowBox[{"First", " ", "@", " ", 
+           RowBox[{"Values", " ", "@", " ", 
+            RowBox[{"GEECompute", "[", "\n", "      ", 
+             RowBox[{"viirs", " ", "//", " ", 
+              RowBox[{"GEEReduceRegion", "[", 
+               RowBox[{
+                RowBox[{"GEEGeometry", "[", "bbox", "]"}], ",", 
+                " ", "\"\<mean\>\"", ",", " ", "500"}], "]"}]}], "\n", "    ",
+              "]"}]}]}]}]}], "\n", "  ", "]"}], ",", "\n", "  ", "cities"}], 
+      "\n", "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"BarChart", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Values", "[", "radiance", "]"}], ",", "\n", "  ", 
+   RowBox[{"ChartLabels", " ", "->", " ", 
+    RowBox[{"Keys", "[", "radiance", "]"}]}], ",", "\n", "  ", 
+   RowBox[{"AxesLabel", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{
+     "None", ",", " ", "\"\<Mean Radiance (nW/cm\[ThinSpace]2/sr)\>\""}], 
+     "}"}]}], ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", 
+    " ", "\"\<VIIRS Mean Nightlight Radiance (Jan-Jun 2024)\>\""}], ",", "\n",
+    "  ", 
+   RowBox[{"ChartStyle", " ", "->", " ", "\"\<DarkRainbow\>\""}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"c66d3f97-547d-e64d-966b-b4edf5e28ac6"],
+
+Cell["\<\
+The resulting bar chart provides an immediate visual comparison. Cities like \
+Tokyo and New York typically show significantly higher radiance than rapidly \
+growing cities like Lagos, where large portions of the metropolitan area \
+still lack continuous electrification.\
+\>", "Text",ExpressionUUID->"0eaeece8-7210-d44d-8f74-4b89d8501844"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["DMSP-OLS Historical Nightlights (1992--2013)", "Section",ExpressionUUID->"c339b3c5-4f1c-6841-8189-9ecea6a82755"],
+
+Cell[TextData[{
+ "For long-term urbanization studies, the DMSP-OLS (Defense Meteorological \
+Satellite Program) nightlights dataset provides annual composites spanning \
+over two decades. The ",
+ Cell["stable_lights", "InlineCode",ExpressionUUID->
+  "4acc075e-e399-cb4c-b8e9-a140cc819c3b"],
+ " band contains a 0--63 digital number representing relative light intensity."
+}], "Text",ExpressionUUID->"f5168e74-127f-fb41-8f80-e92139519509"],
+
+Cell[TextData[StyleBox["Track urbanization growth in Shenzhen over two \
+decades:",
+ FontWeight->Bold]], "Text",ExpressionUUID->"c1e957d2-b633-bb4e-a51d-\
+355f8d8e4f42"],
+
+Cell["\<\
+Shenzhen transformed from a small town to a megacity in a single generation. \
+DMSP nightlights capture this expansion.\
+\>", "Text",ExpressionUUID->"dca1100c-3e56-4346-8058-cf9ff49d1db6"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"years", " ", "=", " ", 
+    RowBox[{"{", 
+     RowBox[{"1992", ",", " ", "2002", ",", " ", "2013"}], "}"}]}], ";"}], 
+  "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"shenzhenBBox", " ", "=", " ", 
+    RowBox[{"{", 
+     RowBox[{"113.7", ",", " ", "22.4", ",", " ", "114.4", ",", " ", "22.7"}],
+      "}"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"images", " ", "=", " ", 
+    RowBox[{"Association", " ", "@", " ", 
+     RowBox[{"Map", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Function", "[", 
+        RowBox[{"year", ",", "\n", "    ", 
+         RowBox[{"year", " ", "->", " ", 
+          RowBox[{"(", "\n", "      ", 
+           RowBox[{
+            RowBox[{
+             RowBox[{
+              RowBox[{
+              "GEECollection", "[", "\"\<NOAA/DMSP-OLS/NIGHTTIME_LIGHTS\>\"", 
+               "]"}], " ", "//", "\n", "        ", 
+              RowBox[{"GEEFilterDate", "[", "\n", "          ", 
+               RowBox[{
+                RowBox[{"DateString", "[", 
+                 RowBox[{
+                  RowBox[{"{", 
+                   RowBox[{"year", ",", " ", "1", ",", " ", "1"}], "}"}], ",",
+                   " ", "\"\<ISODate\>\""}], "]"}], ",", "\n", "          ", 
+                RowBox[{"DateString", "[", 
+                 RowBox[{
+                  RowBox[{"{", 
+                   RowBox[{
+                    RowBox[{"year", " ", "+", " ", "1"}], ",", " ", "1", ",", 
+                    " ", "1"}], "}"}], ",", " ", "\"\<ISODate\>\""}], "]"}]}],
+                "]"}]}], " ", "//", "\n", "        ", 
+             RowBox[{"GEESelectBands", "[", 
+              RowBox[{"{", "\"\<stable_lights\>\"", "}"}], "]"}]}], " ", "//",
+             "\n", "        ", "GEEMedian"}], "\n", "    ", ")"}]}]}], "\n", 
+        "  ", "]"}], ",", "\n", "  ", "years"}], "\n", "]"}]}]}], ";"}], 
+  "\n"}], "\n", 
+ RowBox[{"Grid", "[", 
+  RowBox[{"{", "\n", "  ", 
+   RowBox[{
+    RowBox[{"Map", "[", "\n", "    ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"GEEImage", "[", "\n", "      ", 
+        RowBox[{
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{"22.55", ",", " ", "114.05"}], "}"}], "]"}], ",", " ", 
+         RowBox[{"images", "[", "#", "]"}], ",", "\n", "      ", 
+         RowBox[{"GeoRange", " ", "->", " ", 
+          RowBox[{"Quantity", "[", 
+           RowBox[{"40", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n",
+          "      ", 
+         RowBox[{"RasterSize", " ", "->", " ", 
+          RowBox[{"{", 
+           RowBox[{"512", ",", " ", "512"}], "}"}]}], ",", "\n", "      ", 
+         RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+            RowBox[{"\"\<max\>\"", " ", "->", " ", "63"}], ",", "\n", 
+            "        ", 
+            RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+             RowBox[{"{", 
+              
+              RowBox[{"\"\<#000000\>\"", ",", " ", "\"\<#ffff00\>\"", ",", 
+               " ", "\"\<#ffffff\>\""}], "}"}]}]}], "|>"}]}]}], "\n", "    ", 
+        "]"}], " ", "&"}], ",", "\n", "    ", "years"}], "\n", "  ", "]"}], ",",
+     "\n", "  ", 
+    RowBox[{"Map", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Style", "[", 
+        RowBox[{
+         RowBox[{"ToString", "[", "#", "]"}], ",", " ", "Bold", ",", " ", 
+         "14"}], "]"}], " ", "&"}], ",", " ", "years"}], "]"}]}], "\n", "}"}],
+   "]"}]}], "Input",ExpressionUUID->"bd48fef8-c387-0349-8187-b096501bf304"],
+
+Cell["\<\
+The three panels show the progressive brightening and spatial expansion of \
+Shenzhen's lit area, a hallmark of rapid urbanization.\
+\>", "Text",ExpressionUUID->"282ae9ad-899e-364f-934c-4d3020fc19ad"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Wolfram Integration: GeoRegionValuePlot", "Section",ExpressionUUID->"1a8ebebb-734e-eb48-a162-6f8ce421c615"],
+
+Cell["\<\
+Combine GEE-extracted radiance statistics with Wolfram's built-in geographic \
+visualization to produce a choropleth map of nightlight intensity by country \
+or state.\
+\>", "Text",ExpressionUUID->"6eb222d4-ef0d-3342-9b75-c0749218f7fc"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"states", " ", "=", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<California\>\"", ",", " ", "\"\<Texas\>\"", ",", 
+      " ", "\"\<NewYork\>\"", ",", " ", "\"\<Florida\>\"", ",", 
+      " ", "\"\<Illinois\>\""}], "}"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"stateBoxes", " ", "=", " ", 
+    RowBox[{"<|", "\n", "  ", 
+     RowBox[{
+      RowBox[{"\"\<California\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "124.5"}], ",", " ", "32.5", ",", " ", 
+         RowBox[{"-", "114.1"}], ",", " ", "42.0"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Texas\>\"", "      ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "106.7"}], ",", " ", "25.8", ",", " ", 
+         RowBox[{"-", "93.5"}], ",", " ", "36.5"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<NewYork\>\"", "    ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "79.8"}], ",", " ", "40.5", ",", " ", 
+         RowBox[{"-", "71.8"}], ",", " ", "45.0"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Florida\>\"", "    ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "87.6"}], ",", " ", "24.5", ",", " ", 
+         RowBox[{"-", "80.0"}], ",", " ", "31.0"}], "}"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Illinois\>\"", "   ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "91.5"}], ",", " ", "36.9", ",", " ", 
+         RowBox[{"-", "87.0"}], ",", " ", "42.5"}], "}"}]}]}], "\n", "|>"}]}],
+    ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"viirs", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+       "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"", 
+        "]"}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterDate", "[", 
+        RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+        "]"}]}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+     "GEEMedian"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"stateRadiance", " ", "=", " ", 
+    RowBox[{"KeyValueMap", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Function", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"state", ",", " ", "bbox"}], "}"}], ",", "\n", "    ", 
+        RowBox[{
+         RowBox[{"Entity", "[", 
+          RowBox[{"\"\<AdministrativeDivision\>\"", ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"state", ",", " ", "\"\<UnitedStates\>\""}], "}"}]}], 
+          "]"}], " ", "->", "\n", "      ", 
+         RowBox[{"First", " ", "@", " ", 
+          RowBox[{"Values", " ", "@", " ", 
+           RowBox[{"GEECompute", "[", "\n", "        ", 
+            RowBox[{"viirs", " ", "//", " ", 
+             RowBox[{"GEEReduceRegion", "[", 
+              RowBox[{
+               RowBox[{"GEEGeometry", "[", "bbox", "]"}], ",", 
+               " ", "\"\<mean\>\"", ",", " ", "1000"}], "]"}]}], "\n", 
+            "      ", "]"}]}]}]}]}], "\n", "  ", "]"}], ",", "\n", "  ", 
+      "stateBoxes"}], "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GeoRegionValuePlot", "[", 
+  RowBox[{"stateRadiance", ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", " ", "\"\<Mean Nightlight Radiance by State\>\""}],
+    ",", "\n", "  ", 
+   RowBox[{"ColorFunction", " ", "->", " ", "\"\<SunsetColors\>\""}], ",", 
+   "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", "\"\<UnitedStates\>\""}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"f9520f1b-2fb5-8549-93cb-1d15f3a37442"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logarithmic Scaling for High Dynamic Range", "Section",ExpressionUUID->"132cfbf4-d7a5-0c40-9874-2018bae70753"],
+
+Cell["\<\
+Nighttime radiance spans several orders of magnitude. Applying a log \
+transform server-side compresses the dynamic range before visualization, \
+revealing detail in both dim rural areas and saturated urban cores.\
+\>", "Text",ExpressionUUID->"d793033d-4044-d648-8bf7-0a23b09834f5"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"viirs", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+          "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"", 
+           "]"}], " ", "//", "\n", "  ", 
+          RowBox[{"GEEFilterDate", "[", 
+           RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+           "]"}]}], " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterBounds", "[", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"-", "74.3"}], ",", " ", "40.4", ",", " ", 
+            RowBox[{"-", "73.6"}], ",", " ", "41.0"}], "}"}], "]"}]}], " ", "//",
+         "\n", "  ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+       "  ", "GEEMedian"}], " ", "//", "\n", "  ", 
+      RowBox[{"GEEAdd", "[", "1", "]"}]}], " ", "//", "       ", 
+     RowBox[{"(*", " ", 
+      RowBox[{"shift", " ", "to", " ", "avoid", " ", "log", 
+       RowBox[{"(", "0", ")"}]}], " ", "*)"}], "\n", "  ", "GEELog10"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"40.7", ",", " ", 
+      RowBox[{"-", "73.95"}]}], "}"}], "]"}], ",", "\n", "  ", "viirs", ",", 
+   "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"50", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "2.5"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#000004\>\"", ",", " ", "\"\<#51127c\>\"", ",", 
+         " ", "\"\<#b73779\>\"", ",", "\n", "      ", "\"\<#fc8961\>\"", ",", 
+         " ", "\"\<#fcfdbf\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"027719cb-e05c-a94d-83bf-773ed6e2a8b9"],
+
+Cell[TextData[{
+ "Adding 1 before taking ",
+ Cell["GEELog10", "InlineCode",ExpressionUUID->
+  "777ed290-fe1d-864c-acfa-df168867fff4"],
+ " avoids undefined values at zero-radiance pixels. The resulting image \
+reveals suburban structure that would otherwise be invisible against the \
+bright Manhattan core."
+}], "Text",ExpressionUUID->"8ba6a044-25a0-964c-b836-df710f9d7352"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"51be24fe-7eef-be4c-888b-c6d259d49e1e"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.2 Urban Heat Island Effect", "Chapter",ExpressionUUID->"da198a57-f9b9-b24b-a897-8d7a22f0f10e"],
+
+Cell["\<\
+Urban surfaces -- asphalt, concrete, and rooftops -- absorb and re-emit solar \
+radiation far more efficiently than vegetation, creating the urban heat \
+island (UHI) effect. Satellite-derived land surface temperature (LST) is the \
+primary tool for mapping this phenomenon.\
+\>", "Text",ExpressionUUID->"b537b340-153f-d042-95a9-3e207ed15066"],
+
+Cell[CellGroupData[{
+
+Cell["Landsat 8 Surface Temperature", "Section",ExpressionUUID->"1c78fd0f-7f14-8a42-b801-0e02d44e24ee"],
+
+Cell[TextData[{
+ "Landsat 8 Collection 2 Level 2 provides a thermal band (",
+ Cell["ST_B10", "InlineCode",ExpressionUUID->
+  "20780e4d-aa58-8f4b-b202-76e6f08f3cb1"],
+ ") with a linear scale factor. The conversion pipeline transforms raw \
+digital numbers to degrees Celsius. For the general treatment of \
+satellite-derived land surface temperature including MODIS LST and \
+ground-station validation, see Sections 3.1 and 3.1.3."
+}], "Text",ExpressionUUID->"9e9bab36-de0a-914a-a2f1-a028af7bfe51"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"lstCelsius", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<LANDSAT/LC08/C02/T1_L2\>\"", "]"}], 
+            " ", "//", "\n", "  ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"\"\<2023-06-01\>\"", ",", " ", "\"\<2023-09-01\>\""}], 
+             "]"}]}], " ", "//", "\n", "  ", 
+           RowBox[{"GEEFilterBounds", "[", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"-", "77.2"}], ",", " ", "38.75", ",", " ", 
+              RowBox[{"-", "76.8"}], ",", " ", "39.05"}], "}"}], "]"}]}], " ",
+           "//", "\n", "  ", 
+          RowBox[{"GEEFilterProperty", "[", 
+           
+           RowBox[{"\"\<CLOUD_COVER\>\"", ",", " ", "\"\<LessThan\>\"", ",", 
+            " ", "20"}], "]"}]}], " ", "//", "\n", "  ", 
+         RowBox[{"GEESelectBands", "[", 
+          RowBox[{"{", "\"\<ST_B10\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+        "  ", "GEEMedian"}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEMultiply", "[", "0.00341802", "]"}]}], " ", "//", "   ", 
+      RowBox[{"(*", " ", 
+       RowBox[{"scale", " ", "factor"}], " ", "*)"}], "\n", "  ", 
+      RowBox[{"GEEAdd", "[", "149.0", "]"}]}], " ", "//", "             ", 
+     RowBox[{"(*", " ", 
+      RowBox[{"offset", " ", "to", " ", "Kelvin"}], " ", "*)"}], "\n", "  ", 
+     RowBox[{"GEEAdd", "[", 
+      RowBox[{"-", "273.15"}], "]"}]}]}], ";"}], "            ", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Kelvin", " ", "to", " ", "Celsius"}], " ", "*)"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"38.9", ",", " ", 
+      RowBox[{"-", "77.0"}]}], "}"}], "]"}], ",", "\n", "  ", "lstCelsius", ",",
+    "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"30", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "25"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "50"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#313695\>\"", ",", " ", "\"\<#4575b4\>\"", ",", 
+         " ", "\"\<#abd9e9\>\"", ",", "\n", "      ", "\"\<#fee090\>\"", ",", 
+         " ", "\"\<#f46d43\>\"", ",", " ", "\"\<#a50026\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]}], "Input",ExpressionUUID->"c35d35b0-93bf-bf45-\
+8f71-917c4c6096f9"],
+
+Cell["\<\
+This produces a surface temperature map of Washington, D.C., where the \
+National Mall, downtown corridors, and parking lots appear as hot spots \
+against the cooler green spaces of Rock Creek Park and the Potomac River \
+margins.\
+\>", "Text",ExpressionUUID->"2777d590-b941-2841-b168-c6ff509e4b22"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["MODIS Land Surface Temperature", "Section",ExpressionUUID->"4d602989-4143-944f-a7c0-caaace97b311"],
+
+Cell[TextData[{
+ "For broader-scale or time-series UHI analysis, MODIS provides 8-day LST \
+composites (",
+ Cell["MOD11A2", "InlineCode",ExpressionUUID->
+  "401e703d-2aa3-4a41-a174-1cfc68e5fb54"],
+ ") at 1 km resolution. The ",
+ Cell["LST_Day_1km", "InlineCode",ExpressionUUID->
+  "7c213a96-2ba7-7447-80e5-ed6d9c5c9691"],
+ " band requires multiplication by 0.02 to convert to Kelvin."
+}], "Text",ExpressionUUID->"4e2d3a4c-79e2-e348-a176-d94c464f3f8e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"modisLST", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{"GEECollection", "[", "\"\<MODIS/061/MOD11A2\>\"", "]"}], 
+          " ", "//", "\n", "  ", 
+          RowBox[{"GEEFilterDate", "[", 
+           RowBox[{"\"\<2023-06-01\>\"", ",", " ", "\"\<2023-09-01\>\""}], 
+           "]"}]}], " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterBounds", "[", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"-", "88.0"}], ",", " ", "41.6", ",", " ", 
+            RowBox[{"-", "87.4"}], ",", " ", "42.1"}], "}"}], "]"}]}], " ", "//",
+         "\n", "  ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", "\"\<LST_Day_1km\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+       "  ", "GEEMedian"}], " ", "//", "\n", "  ", 
+      RowBox[{"GEEMultiply", "[", "0.02", "]"}]}], " ", "//", "        ", 
+     RowBox[{"(*", " ", 
+      RowBox[{"scale", " ", "to", " ", "Kelvin"}], " ", "*)"}], "\n", "  ", 
+     RowBox[{"GEEAdd", "[", 
+      RowBox[{"-", "273.15"}], "]"}]}]}], ";"}], "           ", 
+  RowBox[{"(*", " ", 
+   RowBox[{"to", " ", "Celsius"}], " ", "*)"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Entity", "[", 
+    RowBox[{"\"\<City\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Chicago\>\"", ",", " ", "\"\<Illinois\>\"", ",", 
+       " ", "\"\<UnitedStates\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+   "modisLST", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"40", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"512", ",", " ", "512"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "25"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "45"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#2166ac\>\"", ",", " ", "\"\<#67a9cf\>\"", ",", 
+         " ", "\"\<#d1e5f0\>\"", ",", "\n", "      ", "\"\<#fddbc7\>\"", ",", 
+         " ", "\"\<#ef8a62\>\"", ",", " ", "\"\<#b2182b\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]}], "Input",ExpressionUUID->"9fcb6f67-e6b4-2241-\
+a3bb-8b2099927fb7"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Quantifying UHI Intensity", "Section",ExpressionUUID->"11cbee54-eb00-714b-b82e-a8ff661faefb"],
+
+Cell["\<\
+UHI intensity is defined as the difference in surface temperature between the \
+urban core and a nearby rural reference. Extract mean LST for two geometries \
+and compute the differential.\
+\>", "Text",ExpressionUUID->"f6cf604c-9377-e449-90c7-e5fa0870c9f4"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"lstCelsius", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<LANDSAT/LC08/C02/T1_L2\>\"", "]"}], 
+            " ", "//", "\n", "  ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"\"\<2023-06-01\>\"", ",", " ", "\"\<2023-09-01\>\""}], 
+             "]"}]}], " ", "//", "\n", "  ", 
+           RowBox[{"GEEFilterBounds", "[", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"-", "74.1"}], ",", " ", "40.6", ",", " ", 
+              RowBox[{"-", "73.7"}], ",", " ", "40.9"}], "}"}], "]"}]}], " ", 
+          "//", "\n", "  ", 
+          RowBox[{"GEEFilterProperty", "[", 
+           
+           RowBox[{"\"\<CLOUD_COVER\>\"", ",", " ", "\"\<LessThan\>\"", ",", 
+            " ", "15"}], "]"}]}], " ", "//", "\n", "  ", 
+         RowBox[{"GEESelectBands", "[", 
+          RowBox[{"{", "\"\<ST_B10\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+        "  ", "GEEMedian"}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEMultiply", "[", "0.00341802", "]"}]}], " ", "//", "\n", 
+      "  ", 
+      RowBox[{"GEEAdd", "[", "149.0", "]"}]}], " ", "//", "\n", "  ", 
+     RowBox[{"GEEAdd", "[", 
+      RowBox[{"-", "273.15"}], "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Urban", " ", 
+    RowBox[{"core", ":", " ", 
+     RowBox[{"Midtown", " ", "Manhattan"}]}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"urbanGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "73.99"}], ",", " ", "40.74", ",", " ", 
+       RowBox[{"-", "73.96"}], ",", " ", "40.76"}], "}"}], "]"}]}], ";"}], 
+  "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Rural", " ", 
+    RowBox[{"reference", ":", " ", 
+     RowBox[{
+     "farmland", " ", "in", " ", "northern", " ", "New", " ", "Jersey"}]}]}], 
+   " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ruralGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "74.55"}], ",", " ", "40.85", ",", " ", 
+       RowBox[{"-", "74.45"}], ",", " ", "40.95"}], "}"}], "]"}]}], ";"}], 
+  "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"urbanLST", " ", "=", " ", 
+   RowBox[{"First", " ", "@", " ", 
+    RowBox[{"Values", " ", "@", " ", 
+     RowBox[{"GEECompute", "[", "\n", "  ", 
+      RowBox[{"lstCelsius", " ", "//", " ", 
+       RowBox[{"GEEReduceRegion", "[", 
+        RowBox[{"urbanGeom", ",", " ", "\"\<mean\>\"", ",", " ", "30"}], 
+        "]"}]}], "\n", "]"}]}]}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ruralLST", " ", "=", " ", 
+    RowBox[{"First", " ", "@", " ", 
+     RowBox[{"Values", " ", "@", " ", 
+      RowBox[{"GEECompute", "[", "\n", "  ", 
+       RowBox[{"lstCelsius", " ", "//", " ", 
+        RowBox[{"GEEReduceRegion", "[", 
+         RowBox[{"ruralGeom", ",", " ", "\"\<mean\>\"", ",", " ", "30"}], 
+         "]"}]}], "\n", "]"}]}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"uhiIntensity", " ", "=", " ", 
+    RowBox[{"urbanLST", " ", "-", " ", "ruralLST"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"Dataset", "[", 
+  RowBox[{"<|", "\n", "  ", 
+   RowBox[{
+    RowBox[{"\"\<Urban Mean LST\>\"", " ", "->", " ", 
+     RowBox[{"Quantity", "[", 
+      RowBox[{
+       RowBox[{"Round", "[", 
+        RowBox[{"urbanLST", ",", " ", "0.1"}], "]"}], ",", 
+       " ", "\"\<DegreesCelsius\>\""}], "]"}]}], ",", "\n", "  ", 
+    RowBox[{"\"\<Rural Mean LST\>\"", " ", "->", " ", 
+     RowBox[{"Quantity", "[", 
+      RowBox[{
+       RowBox[{"Round", "[", 
+        RowBox[{"ruralLST", ",", " ", "0.1"}], "]"}], ",", 
+       " ", "\"\<DegreesCelsius\>\""}], "]"}]}], ",", "\n", "  ", 
+    RowBox[{"\"\<UHI Intensity\>\"", "  ", "->", " ", 
+     RowBox[{"Quantity", "[", 
+      RowBox[{
+       RowBox[{"Round", "[", 
+        RowBox[{"uhiIntensity", ",", " ", "0.1"}], "]"}], ",", 
+       " ", "\"\<DegreesCelsius\>\""}], "]"}]}]}], "\n", "|>"}], 
+  "]"}]}], "Input",ExpressionUUID->"52e5955f-6f66-cc46-bcaf-22c37c6ecba8"],
+
+Cell["\<\
+A typical summertime UHI intensity for New York City is 4--8 degrees Celsius, \
+depending on the reference site and atmospheric conditions.\
+\>", "Text",ExpressionUUID->"4aa41c50-9f34-6145-a454-b05975e37e75"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Overlay Temperature on GeoGraphics", "Section",ExpressionUUID->"b1709b95-ea7b-154a-8da0-d0b5d2558328"],
+
+Cell[TextData[{
+ "Use ",
+ Cell["GEEGeoGraphics", "InlineCode",ExpressionUUID->
+  "65fe990e-0d8d-7843-9444-9d5b86c44813"],
+ " to overlay urban boundary annotations on a thermal basemap."
+}], "Text",ExpressionUUID->"61b60396-903c-5c40-a59b-a3ccde24a2c6"],
+
+Cell[BoxData[
+ RowBox[{"GEEGeoGraphics", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"EdgeForm", "[", 
+      RowBox[{"{", 
+       RowBox[{"Thick", ",", " ", "White"}], "}"}], "]"}], ",", " ", 
+     RowBox[{"FaceForm", "[", "None", "]"}], ",", "\n", "   ", 
+     RowBox[{"GeoPolygon", "[", 
+      RowBox[{"{", "\n", "     ", 
+       RowBox[{
+        RowBox[{"GeoPosition", "[", 
+         RowBox[{"{", 
+          RowBox[{"40.76", ",", " ", 
+           RowBox[{"-", "73.99"}]}], "}"}], "]"}], ",", " ", 
+        RowBox[{"GeoPosition", "[", 
+         RowBox[{"{", 
+          RowBox[{"40.76", ",", " ", 
+           RowBox[{"-", "73.96"}]}], "}"}], "]"}], ",", "\n", "     ", 
+        RowBox[{"GeoPosition", "[", 
+         RowBox[{"{", 
+          RowBox[{"40.74", ",", " ", 
+           RowBox[{"-", "73.96"}]}], "}"}], "]"}], ",", " ", 
+        RowBox[{"GeoPosition", "[", 
+         RowBox[{"{", 
+          RowBox[{"40.74", ",", " ", 
+           RowBox[{"-", "73.99"}]}], "}"}], "]"}]}], "\n", "   ", "}"}], 
+      "]"}], ",", "\n", "   ", "White", ",", " ", 
+     RowBox[{"GeoMarker", "[", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"40.75", ",", " ", 
+          RowBox[{"-", "73.975"}]}], "}"}], "]"}], ",", "\n", "     ", 
+       RowBox[{"\"\<Label\>\"", " ", "->", " ", "\"\<Urban Core\>\""}]}], 
+      "]"}]}], "}"}], ",", "\n", "  ", "lstCelsius", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"25", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"800", ",", " ", "800"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "28"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "48"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#313695\>\"", ",", " ", "\"\<#fee090\>\"", ",", 
+         " ", "\"\<#a50026\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]], "Input",ExpressionUUID->"bf5d62e8-b624-7442-8950-0eeca27c6952"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"a619cf43-ba5d-7d4a-bd07-bf0aeeeda219"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.3 Built-Up Area and Impervious Surface", "Chapter",ExpressionUUID->"7a8efd7b-2a3c-1941-8e63-630152679a4a"],
+
+Cell["\<\
+Impervious surfaces -- roads, buildings, and pavement -- are the physical \
+manifestation of urbanization. Mapping their extent and growth is fundamental \
+to urban planning, hydrology, and climate adaptation studies.\
+\>", "Text",ExpressionUUID->"6c6fed18-e8df-1648-bc43-1b36cbc2450f"],
+
+Cell[CellGroupData[{
+
+Cell["Normalized Difference Built-Up Index (NDBI)", "Section",ExpressionUUID->"fac8759b-ffe7-a142-b5c2-248369d7625e"],
+
+Cell["\<\
+NDBI exploits the higher reflectance of built-up surfaces in the short-wave \
+infrared (SWIR) relative to the near-infrared (NIR). For Sentinel-2, NDBI is \
+computed as (B11 - B8) / (B11 + B8). Positive values indicate built-up areas.\
+\>", "Text",ExpressionUUID->"40f0d91e-37a6-454a-ba1e-7b48db69d3ab"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ndbi", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-03-01\>\"", ",", " ", "\"\<2024-06-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{
+          "77.0", ",", " ", "28.4", ",", " ", "77.4", ",", " ", "28.8"}], 
+          "}"}], "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "10"}], "]"}]}], " ", "//", "\n", 
+      "  ", "GEEMedian"}], " ", "//", "\n", "  ", 
+     RowBox[{"GEENormalizedDifference", "[", 
+      RowBox[{"{", 
+       RowBox[{"\"\<B11\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Entity", "[", 
+    RowBox[{"\"\<City\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<NewDelhi\>\"", ",", " ", "\"\<Delhi\>\"", ",", 
+       " ", "\"\<India\>\""}], "}"}]}], "]"}], ",", "\n", "  ", "ndbi", ",", 
+   "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"30", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", 
+       RowBox[{"-", "0.3"}]}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "0.3"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#1a9850\>\"", ",", " ", "\"\<#ffffbf\>\"", ",", 
+         " ", "\"\<#d73027\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"0e2cfa98-b43b-a942-a930-c9b7893bdf51"],
+
+Cell["\<\
+Green tones represent vegetated areas (negative NDBI), yellow marks the \
+transition zone, and red highlights dense built-up land. The sharp contrast \
+between Old Delhi's compact urban fabric and the surrounding agricultural \
+belt is clearly visible.\
+\>", "Text",ExpressionUUID->"797fbe6c-e453-2a4b-b4e9-13af8591e8f6"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["ESA WorldCover Built-Up Class", "Section",ExpressionUUID->"e3f03d12-18bd-f941-aee7-1e8a5219531b"],
+
+Cell[TextData[{
+ "ESA WorldCover is a 10 m resolution global land cover product derived from \
+Sentinel-1 and Sentinel-2. Class 50 represents built-up areas. By isolating \
+this class and combining it with ",
+ Cell["GEEPixelArea", "InlineCode",ExpressionUUID->
+  "51005381-53ea-9045-8e91-76be0e990fac"],
+ ", you can compute the total built-up area within any polygon."
+}], "Text",ExpressionUUID->"5c6187c7-5988-7949-9ba7-1e84da8a581c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"worldCover", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"GEECollection", "[", "\"\<ESA/WorldCover/v200\>\"", "]"}], 
+       " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterDate", "[", 
+        RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+        "]"}]}], " ", "//", "\n", "  ", "GEEMosaic"}], " ", "//", "\n", "  ", 
+     RowBox[{"GEESelectBands", "[", 
+      RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Create", " ", "a", " ", "binary", " ", 
+     RowBox[{"mask", ":", " ", 
+      RowBox[{
+       RowBox[{"1", " ", "where", " ", "built"}], "-", "up"}]}]}], ",", " ", 
+    RowBox[{"0", " ", "elsewhere"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"builtUp", " ", "=", " ", 
+    RowBox[{"worldCover", " ", "//", " ", 
+     RowBox[{"GEEEquals", "[", "50", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Visualize", " ", "built"}], "-", 
+    RowBox[{"up", " ", "footprint", " ", "over", " ", "Sao", " ", "Paulo"}]}],
+    " ", "*)"}]}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Entity", "[", 
+    RowBox[{"\"\<City\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<SaoPaulo\>\"", ",", " ", "\"\<SaoPaulo\>\"", ",", 
+       " ", "\"\<Brazil\>\""}], "}"}]}], "]"}], ",", "\n", "  ", "builtUp", ",",
+    "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"50", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#e0e0e0\>\"", ",", " ", "\"\<#d7191c\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]}], "Input",ExpressionUUID->"68cf688c-9b0a-5e44-\
+9e0c-e0f64d69335e"],
+
+Cell[TextData[StyleBox["Compute built-up area percentage for a city:",
+ FontWeight->Bold]], "Text",ExpressionUUID->"5a452dc7-2bab-724c-bb0b-\
+03578989f96c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"cityBBox", " ", "=", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"-", "46.8"}], ",", " ", 
+     RowBox[{"-", "23.7"}], ",", " ", 
+     RowBox[{"-", "46.4"}], ",", " ", 
+     RowBox[{"-", "23.4"}]}], "}"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"cityGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "cityBBox", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"builtUpArea", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"builtUp", " ", "//", "\n", "  ", 
+      RowBox[{"GEEMultiply", "[", 
+       RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}], " ", "//", "\n", "  ", 
+     RowBox[{"GEEReduceRegion", "[", 
+      RowBox[{"cityGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+      "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"totalArea", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"GEEPixelArea", "[", "]"}], " ", "//", "\n", "  ", 
+      RowBox[{"GEEClip", "[", "cityGeom", "]"}]}], " ", "//", "\n", "  ", 
+     RowBox[{"GEEReduceRegion", "[", 
+      RowBox[{"cityGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+      "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"builtUpM2", " ", "=", " ", 
+   RowBox[{"First", " ", "@", " ", 
+    RowBox[{"Values", " ", "@", " ", 
+     RowBox[{"GEECompute", "[", "builtUpArea", "]"}]}]}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"totalM2", " ", "=", " ", 
+    RowBox[{"First", " ", "@", " ", 
+     RowBox[{"Values", " ", "@", " ", 
+      RowBox[{"GEECompute", "[", "totalArea", "]"}]}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"builtUpPct", " ", "=", " ", 
+    RowBox[{"100.0", " ", "*", " ", 
+     RowBox[{"builtUpM2", " ", "/", " ", "totalM2"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"StringForm", "[", 
+  RowBox[{"\"\<Built-up area: ``% of the ```` km\[ThinSpace]2 region\>\"", ",",
+    "\n", "  ", 
+   RowBox[{"Round", "[", 
+    RowBox[{"builtUpPct", ",", " ", "0.1"}], "]"}], ",", "\n", "  ", 
+   RowBox[{"Round", "[", 
+    RowBox[{
+     RowBox[{"totalM2", " ", "/", " ", 
+      RowBox[{"10", "^", "6"}]}], ",", " ", "1"}], "]"}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"afa0d998-0c82-f84d-96d0-f881c751a9c3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Global Human Settlement Layer (GHSL)", "Section",ExpressionUUID->"2fd9018d-24e8-e747-9f8e-530a1e7901a9"],
+
+Cell["\<\
+The JRC Global Human Settlement Layer provides built-up surface area \
+estimates at multiple epochs (1975, 1990, 2000, 2015, 2020), enabling \
+historical analysis of urban expansion.\
+\>", "Text",ExpressionUUID->"5381850c-60c6-6d4a-b386-1a4d630e4b57"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"epochs", " ", "=", " ", 
+    RowBox[{"{", 
+     RowBox[{"1975", ",", " ", "1990", ",", " ", "2000", ",", " ", "2015"}], 
+     "}"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"lagosBox", " ", "=", " ", 
+   RowBox[{"{", 
+    RowBox[{"3.1", ",", " ", "6.3", ",", " ", "3.7", ",", " ", "6.7"}], 
+    "}"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"lagosGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "lagosBox", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"builtUpByEpoch", " ", "=", " ", 
+    RowBox[{"Association", " ", "@", " ", 
+     RowBox[{"Map", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Function", "[", 
+        RowBox[{"year", ",", "\n", "    ", 
+         RowBox[{"Module", "[", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"img", ",", " ", "result"}], "}"}], ",", "\n", "      ", 
+           RowBox[{
+            RowBox[{"img", " ", "=", " ", 
+             RowBox[{
+              RowBox[{
+               RowBox[{
+                RowBox[{
+                "GEECollection", "[", "\"\<JRC/GHSL/P2023A/GHS_BUILT_S\>\"", 
+                 "]"}], " ", "//", "\n", "        ", 
+                RowBox[{"GEEFilterDate", "[", "\n", "          ", 
+                 RowBox[{
+                  RowBox[{"DateString", "[", 
+                   RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{"year", ",", " ", "1", ",", " ", "1"}], "}"}], ",",
+                     " ", "\"\<ISODate\>\""}], "]"}], ",", "\n", "          ", 
+                  RowBox[{"DateString", "[", 
+                   RowBox[{
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"year", " ", "+", " ", "1"}], ",", " ", "1", ",", 
+                    " ", "1"}], "}"}], ",", " ", "\"\<ISODate\>\""}], "]"}]}],
+                  "]"}]}], " ", "//", "\n", "        ", "GEEMosaic"}], " ", "//",
+               "\n", "        ", 
+              RowBox[{"GEESelectBands", "[", 
+               RowBox[{"{", "\"\<built_surface_nres\>\"", "}"}], "]"}]}]}], ";",
+             "\n", "      ", 
+            RowBox[{"result", " ", "=", " ", 
+             RowBox[{"GEECompute", "[", "\n", "        ", 
+              RowBox[{"img", " ", "//", " ", 
+               RowBox[{"GEEReduceRegion", "[", 
+                RowBox[{
+                "lagosGeom", ",", " ", "\"\<sum\>\"", ",", " ", "100"}], 
+                "]"}]}], "\n", "      ", "]"}]}], ";", "\n", "      ", 
+            RowBox[{"year", " ", "->", " ", 
+             RowBox[{
+              RowBox[{"First", "[", 
+               RowBox[{"Values", "[", "result", "]"}], "]"}], " ", "/", " ", 
+              RowBox[{"10", "^", "6"}]}]}]}]}], "  ", 
+          RowBox[{"(*", " ", 
+           RowBox[{"m2", " ", "to", " ", "km2"}], " ", "*)"}], "\n", "    ", 
+          "]"}]}], "\n", "  ", "]"}], ",", "\n", "  ", "epochs"}], "\n", 
+      "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"ListLinePlot", "[", "\n", "  ", 
+  RowBox[{"builtUpByEpoch", ",", "\n", "  ", 
+   RowBox[{"PlotMarkers", " ", "->", " ", "Automatic"}], ",", "\n", "  ", 
+   RowBox[{"AxesLabel", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Year\>\"", ",", 
+      " ", "\"\<Built-Up Area (km\[ThinSpace]2)\>\""}], "}"}]}], ",", "\n", 
+   "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", " ", "\"\<Lagos: Built-Up Surface Expansion\>\""}],
+    ",", "\n", "  ", 
+   RowBox[{"PlotStyle", " ", "->", " ", 
+    RowBox[{"Directive", "[", 
+     RowBox[{"Thick", ",", " ", 
+      RowBox[{"RGBColor", "[", 
+       RowBox[{"0.8", ",", " ", "0.2", ",", " ", "0.2"}], "]"}]}], "]"}]}], ",",
+    "\n", "  ", 
+   RowBox[{"Filling", " ", "->", " ", "Axis"}]}], "\n", "]"}]}], "Input",Expre\
+ssionUUID->"45196fc2-44c2-574b-bf22-f122926fe8d4"],
+
+Cell["\<\
+This plot reveals the exponential growth trajectory that characterizes many \
+cities in Sub-Saharan Africa.\
+\>", "Text",ExpressionUUID->"f950bed7-bb8a-d543-8d2f-06828f926cb9"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"805b3bf7-a7d6-dc48-874b-6fc886188637"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.4 Urban Sprawl and Change Detection", "Chapter",ExpressionUUID->"6c82f474-5ca7-da45-9164-a0e34639e189"],
+
+Cell["\<\
+Urbanization is not a static condition but an ongoing process. Change \
+detection techniques compare imagery from different time periods to identify \
+where land use transitions have occurred.\
+\>", "Text",ExpressionUUID->"4226685e-a950-5a4e-a352-a9ae4a4c4e70"],
+
+Cell[CellGroupData[{
+
+Cell["Land Cover Change Between Two Periods", "Section",ExpressionUUID->"a35ca6c4-aff9-f84b-aa4c-9400e5fcb2ae"],
+
+Cell["\<\
+Compare ESA WorldCover products from 2020 and 2021 to find pixels that \
+transitioned from vegetation (classes 10, 20, 30) to built-up (class 50).\
+\>", "Text",ExpressionUUID->"328ec3a8-7f10-084b-9803-5d0715ed301b"],
+
+Cell[TextData[{
+ StyleBox["Caveat:",
+  FontWeight->Bold],
+ " Differences between WorldCover v100 and v200 may reflect classifier \
+improvements rather than actual land cover change. For robust change \
+detection, use a consistent product across years (e.g., MODIS MCD12Q1) or \
+apply the same classifier to multi-temporal imagery."
+}], "Text",
+ CellFrame->{{True, False}, {
+   False, False}},ExpressionUUID->"684ab1fa-cffd-174b-af82-ce240055a2a1"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"lc2020", " ", "=", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"GEECollection", "[", "\"\<ESA/WorldCover/v100\>\"", "]"}], " ",
+       "//", "\n", "  ", 
+      RowBox[{"GEEFilterDate", "[", 
+       RowBox[{"\"\<2020-01-01\>\"", ",", " ", "\"\<2021-01-01\>\""}], 
+       "]"}]}], " ", "//", "\n", "  ", "GEEMosaic"}], " ", "//", "\n", "  ", 
+    RowBox[{"GEESelectBands", "[", 
+     RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"lc2021", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"GEECollection", "[", "\"\<ESA/WorldCover/v200\>\"", "]"}], 
+       " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterDate", "[", 
+        RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+        "]"}]}], " ", "//", "\n", "  ", "GEEMosaic"}], " ", "//", "\n", "  ", 
+     RowBox[{"GEESelectBands", "[", 
+      RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Classes", " ", "<", " ", "40"}], ":", " ", 
+     RowBox[{"tree", " ", "cover"}]}], ",", " ", "shrubland", ",", " ", 
+    "grassland", " ", "\[LongDash]", " ", 
+    RowBox[{"cropland", " ", 
+     RowBox[{"(", "40", ")"}], " ", "excluded"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"veg2020", " ", "=", " ", 
+    RowBox[{"lc2020", " ", "//", " ", 
+     RowBox[{"GEELessThan", "[", "40", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Built", "-", 
+    RowBox[{"up", " ", "in", " ", "2021"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"built2021", " ", "=", " ", 
+    RowBox[{"lc2021", " ", "//", " ", 
+     RowBox[{"GEEEquals", "[", "50", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Pixels", " ", "that", " ", "changed", " ", "from", " ", "vegetation", " ",
+      "to", " ", "built"}], "-", "up"}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"vegToBuilt", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"veg2020", " ", "//", " ", 
+      RowBox[{"GEEAnd", "[", "built2021", "]"}]}], " ", "//", " ", 
+     "GEESelfMask"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"30.05", ",", " ", "31.25"}], "}"}], "]"}], ",", "   ", 
+   RowBox[{"(*", " ", "Cairo", " ", "*)"}], "\n", "  ", "vegToBuilt", ",", 
+   "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"50", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", "\"\<#ff0000\>\"", "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"6f1f147a-5802-584c-964f-df68c9bd1149"],
+
+Cell["\<\
+Red pixels indicate locations where agricultural or natural vegetation was \
+replaced by built-up surface. In rapidly urbanizing regions like the Nile \
+Delta fringe, this pattern is clearly visible.\
+\>", "Text",ExpressionUUID->"3f424e2c-edc4-5941-bbb2-513f878e54cf"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["NDVI Loss as Urbanization Proxy", "Section",ExpressionUUID->"7e8e8f91-12fc-8246-ba48-693c8aa5d2ff"],
+
+Cell["\<\
+Normalized Difference Vegetation Index (NDVI) decline between two dates \
+serves as a reliable proxy for land conversion. Areas experiencing \
+significant NDVI loss are likely undergoing urbanization or deforestation. \
+For the fundamentals of NDVI computation and interpretation, see Section \
+5.1.1.\
+\>", "Text",ExpressionUUID->"b1071b91-0690-5c4b-8d19-55bd35eb29f1"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"makeNDVI", " ", "=", " ", 
+    RowBox[{"Function", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"startDate", ",", " ", "endDate"}], "}"}], ",", "\n", "  ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+           "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}],
+            " ", "//", "\n", "    ", 
+           RowBox[{"GEEFilterDate", "[", 
+            RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+          "\n", "    ", 
+          RowBox[{"GEEFilterBounds", "[", 
+           RowBox[{"{", 
+            RowBox[{
+            "116.1", ",", " ", "39.7", ",", " ", "116.7", ",", " ", "40.1"}], 
+            "}"}], "]"}]}], " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterProperty", "[", 
+          
+          RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+           " ", "\"\<LessThan\>\"", ",", " ", "10"}], "]"}]}], " ", "//", 
+        "\n", "    ", "GEEMedian"}], " ", "//", "\n", "    ", 
+       RowBox[{"GEENormalizedDifference", "[", 
+        RowBox[{"{", 
+         RowBox[{"\"\<B8\>\"", ",", " ", "\"\<B4\>\""}], "}"}], "]"}]}]}], 
+     "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"ndvi2019", " ", "=", " ", 
+   RowBox[{"makeNDVI", "[", 
+    RowBox[{"\"\<2019-06-01\>\"", ",", " ", "\"\<2019-09-01\>\""}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ndvi2024", " ", "=", " ", 
+    RowBox[{"makeNDVI", "[", 
+     RowBox[{"\"\<2024-06-01\>\"", ",", " ", "\"\<2024-09-01\>\""}], "]"}]}], 
+   ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Negative", " ", "difference"}], " ", "=", " ", 
+    RowBox[{"vegetation", " ", "loss"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ndviChange", " ", "=", " ", 
+    RowBox[{"ndvi2024", " ", "//", " ", 
+     RowBox[{"GEESubtract", "[", "ndvi2019", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Threshold", ":", " ", 
+    RowBox[{
+    "significant", " ", "loss", " ", "where", " ", "NDVI", " ", "dropped", " ",
+      "by", " ", "more", " ", "than", " ", "0.2"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"significantLoss", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"ndviChange", " ", "//", " ", 
+      RowBox[{"GEELessThan", "[", 
+       RowBox[{"-", "0.2"}], "]"}]}], " ", "//", " ", "GEESelfMask"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"39.9", ",", " ", "116.4"}], "}"}], "]"}], ",", "   ", 
+   RowBox[{"(*", " ", "Beijing", " ", "*)"}], "\n", "  ", "significantLoss", ",",
+    "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"40", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", "\"\<#e31a1c\>\"", "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"a9be1936-03c1-a04c-ac9c-1abcb4ed92b1"],
+
+Cell["\<\
+Note: A decrease of 0.2 or more in NDVI is a commonly used threshold in the \
+literature, though the optimal value depends on the land cover context and \
+the time span between observations.\
+\>", "Text",ExpressionUUID->"cb9ce95e-e65a-8a48-9e73-4a44777455b7"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Visualizing Change with a Continuous Map", "Section",ExpressionUUID->"f4159779-7669-9e4c-9a33-cad309bccfc6"],
+
+Cell["\<\
+Rather than a binary threshold, displaying the full range of NDVI change \
+reveals both areas of vegetation loss and gain.\
+\>", "Text",ExpressionUUID->"b5cd9f70-b3f1-7141-a8ad-6e55aa73316c"],
+
+Cell[BoxData[
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"39.9", ",", " ", "116.4"}], "}"}], "]"}], ",", "\n", "  ", 
+   "ndviChange", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"40", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", 
+       RowBox[{"-", "0.4"}]}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "0.4"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#d73027\>\"", ",", " ", "\"\<#fc8d59\>\"", ",", 
+         " ", "\"\<#fee08b\>\"", ",", "\n", "      ", "\"\<#d9ef8b\>\"", ",", 
+         " ", "\"\<#91cf60\>\"", ",", " ", "\"\<#1a9850\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]], "Input",ExpressionUUID->"435c0b3e-57c5-a243-\
+909d-cf3526d7fcbc"],
+
+Cell["\<\
+Red tones indicate vegetation loss (potential urbanization), while green \
+tones indicate vegetation gain (reforestation or agricultural expansion).\
+\>", "Text",ExpressionUUID->"6fb9326a-8990-4e4c-9b15-b0f7d7b8b838"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"222f2959-6c21-6a4e-85ac-3e7fddb5ddb0"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.5 Population and Demographics", "Chapter",ExpressionUUID->"858dd6db-66e6-7c49-8262-cea85ac46fb2"],
+
+Cell["\<\
+Gridded population datasets disaggregate census counts into continuous raster \
+surfaces, enabling population estimates for arbitrary regions without relying \
+on administrative boundary alignment.\
+\>", "Text",ExpressionUUID->"5dcda558-b9e1-694a-a55f-7ed0789b5d73"],
+
+Cell[CellGroupData[{
+
+Cell["WorldPop Population Density", "Section",ExpressionUUID->"533f89d3-eb13-f84d-aff4-f2b3ab8d472e"],
+
+Cell["\<\
+WorldPop provides 100 m resolution population count grids. Because population \
+density varies by orders of magnitude, logarithmic scaling is essential for \
+meaningful visualization.\
+\>", "Text",ExpressionUUID->"7470bc9f-6163-6b4b-a47c-bf595e015559"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"pop", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"GEECollection", "[", "\"\<WorldPop/GP/100m/pop\>\"", "]"}], 
+        " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2020-01-01\>\"", ",", " ", "\"\<2021-01-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterBounds", "[", 
+        RowBox[{"{", 
+         RowBox[{"28.8", ",", " ", 
+          RowBox[{"-", "2.0"}], ",", " ", "30.2", ",", " ", 
+          RowBox[{"-", "1.0"}]}], "}"}], "]"}]}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<population\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+     "  ", "GEEMosaic"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"popLog", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"pop", " ", "//", "\n", "  ", 
+      RowBox[{"GEEAdd", "[", "1", "]"}]}], " ", "//", "     ", 
+     RowBox[{"(*", " ", 
+      RowBox[{"avoid", " ", "log", 
+       RowBox[{"(", "0", ")"}]}], " ", "*)"}], "\n", "  ", "GEELog10"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"-", "1.95"}], ",", " ", "29.87"}], "}"}], "]"}], ",", "   ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Kigali", ",", " ", "Rwanda"}], " ", "*)"}], "\n", "  ", "popLog",
+    ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"30", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "3"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#ffffcc\>\"", ",", " ", "\"\<#c2e699\>\"", ",", 
+         " ", "\"\<#78c679\>\"", ",", "\n", "      ", "\"\<#238443\>\"", ",", 
+         " ", "\"\<#004529\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"90efe6b4-93bd-af4e-a7ac-321bfa75fcb3"],
+
+Cell["\<\
+On this log10 scale, a value of 1 corresponds to 10 people per pixel, 2 to \
+100, and 3 to 1000. The concentric density gradient from Kigali's center to \
+its rural outskirts is immediately apparent.\
+\>", "Text",ExpressionUUID->"42bc3f2b-8597-c54d-b402-b7624e0b10e4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Estimate Population Within a Custom Polygon", "Section",ExpressionUUID->"b3d42f88-886f-5e44-854c-cf385460ebcb"],
+
+Cell["\<\
+Define an arbitrary region of interest and compute the total population by \
+summing all pixels within it.\
+\>", "Text",ExpressionUUID->"5bc75933-7da9-104f-a389-c8011fc99cfe"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Define", " ", "a", " ", "polygon", " ", "around", " ", "central", " ", 
+    "Nairobi"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"nairobiPoly", " ", "=", " ", 
+     RowBox[{"GEEPolygon", "[", 
+      RowBox[{"{", "\n", "  ", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"36.75", ",", " ", 
+          RowBox[{"-", "1.35"}]}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"36.90", ",", " ", 
+          RowBox[{"-", "1.35"}]}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"36.90", ",", " ", 
+          RowBox[{"-", "1.22"}]}], "}"}], ",", "\n", "  ", 
+        RowBox[{"{", 
+         RowBox[{"36.75", ",", " ", 
+          RowBox[{"-", "1.22"}]}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"36.75", ",", " ", 
+          RowBox[{"-", "1.35"}]}], "}"}]}], "\n", "}"}], "]"}]}], ";"}], "\n",
+    "\n", 
+   RowBox[{
+    RowBox[{"pop", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"GEECollection", "[", "\"\<WorldPop/GP/100m/pop\>\"", "]"}], 
+         " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2020-01-01\>\"", ",", " ", "\"\<2021-01-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "  ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", "\"\<population\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+       "  ", "GEEMosaic"}], " ", "//", "\n", "  ", 
+      RowBox[{"GEEClip", "[", "nairobiPoly", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"totalPop", " ", "=", " ", 
+     RowBox[{"First", " ", "@", " ", 
+      RowBox[{"Values", " ", "@", " ", 
+       RowBox[{"GEECompute", "[", "\n", "  ", 
+        RowBox[{"pop", " ", "//", " ", 
+         RowBox[{"GEEReduceRegion", "[", 
+          RowBox[{"nairobiPoly", ",", " ", "\"\<sum\>\"", ",", " ", "100"}], 
+          "]"}]}], "\n", "]"}]}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"StringForm", "[", 
+    RowBox[{"\"\<Estimated population within polygon: `` people\>\"", ",", 
+     "\n", "  ", 
+     RowBox[{"Round", "[", "totalPop", "]"}]}], "\n", "]"}]}]}]], "Input",Expr\
+essionUUID->"0477234b-b277-cf44-a177-49a34ce192ad"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Wolfram Integration: Cross-Referencing with Entity Data", "Section",ExpressionUUID->"212f82ce-a78f-ef4c-a9d1-17dd67a9d1a2"],
+
+Cell[TextData[{
+ "Wolfram Language's built-in ",
+ Cell["Entity", "InlineCode",ExpressionUUID->
+  "f00d6544-541b-934c-a526-ae6dc4d58ec8"],
+ " framework provides census-derived population figures. Comparing these with \
+satellite-derived estimates helps validate gridded products and identify \
+discrepancies."
+}], "Text",ExpressionUUID->"17f931b9-0022-014c-b01e-50c687cb8715"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"citiesWL", " ", "=", " ", 
+    RowBox[{"{", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Entity", "[", 
+       RowBox[{"\"\<City\>\"", ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Nairobi\>\"", ",", " ", "\"\<Nairobi\>\"", ",", 
+          " ", "\"\<Kenya\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+      RowBox[{"Entity", "[", 
+       RowBox[{"\"\<City\>\"", ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Lagos\>\"", ",", " ", "\"\<Lagos\>\"", ",", 
+          " ", "\"\<Nigeria\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+      RowBox[{"Entity", "[", 
+       RowBox[{"\"\<City\>\"", ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Kinshasa\>\"", ",", " ", "\"\<Kinshasa\>\"", ",", 
+          " ", "\"\<DemocraticRepublicOfTheCongo\>\""}], "}"}]}], "]"}], ",", 
+      "\n", "  ", 
+      RowBox[{"Entity", "[", 
+       RowBox[{"\"\<City\>\"", ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<AddisAbaba\>\"", ",", " ", "\"\<AddisAbaba\>\"", ",", 
+          " ", "\"\<Ethiopia\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+      RowBox[{"Entity", "[", 
+       RowBox[{"\"\<City\>\"", ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Dar Es Salaam\>\"", ",", " ", "\"\<DarEsSalaam\>\"", ",",
+           " ", "\"\<Tanzania\>\""}], "}"}]}], "]"}]}], "\n", "}"}]}], ";"}], 
+  "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"censusPop", " ", "=", " ", 
+    RowBox[{"Map", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"#", " ", "->", " ", 
+        RowBox[{"#", "[", "\"\<Population\>\"", "]"}]}], " ", "&"}], ",", 
+      "\n", "  ", "citiesWL"}], "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"Dataset", "[", "censusPop", "]"}]}], "Input",ExpressionUUID->\
+"6890fe83-d3f3-bd47-85a7-1438230b2bad"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["GeoBubbleChart for Multi-City Visualization", "Section",ExpressionUUID->"fb26624b-9bc1-e04e-aede-df3b06b1ddf9"],
+
+Cell[TextData[{
+ Cell["GeoBubbleChart", "InlineCode",ExpressionUUID->
+  "d1111ec7-c12c-bf46-9949-b9656d9388a9"],
+ " provides an intuitive way to display population or any scalar quantity at \
+geographic locations, with bubble size proportional to the value."
+}], "Text",ExpressionUUID->"3685a0a7-8e80-5a4b-b900-ce2850683d94"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"cityData", " ", "=", " ", 
+    RowBox[{"{", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "1.29"}], ",", " ", "36.82"}], "}"}], "]"}], "  ", "->",
+        " ", 
+       RowBox[{"4.4", " ", "*", " ", 
+        RowBox[{"10", "^", "6"}]}]}], ",", "   ", 
+      RowBox[{"(*", " ", "Nairobi", " ", "*)"}], "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"6.52", ",", " ", "3.38"}], "}"}], "]"}], "    ", "->", " ", 
+       RowBox[{"15.4", " ", "*", " ", 
+        RowBox[{"10", "^", "6"}]}]}], ",", "   ", 
+      RowBox[{"(*", " ", "Lagos", " ", "*)"}], "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "4.32"}], ",", " ", "15.31"}], "}"}], "]"}], "  ", "->",
+        " ", 
+       RowBox[{"17.1", " ", "*", " ", 
+        RowBox[{"10", "^", "6"}]}]}], ",", "   ", 
+      RowBox[{"(*", " ", "Kinshasa", " ", "*)"}], "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"9.02", ",", " ", "38.75"}], "}"}], "]"}], "   ", "->", " ", 
+       RowBox[{"5.4", " ", "*", " ", 
+        RowBox[{"10", "^", "6"}]}]}], ",", "    ", 
+      RowBox[{"(*", " ", 
+       RowBox[{"Addis", " ", "Ababa"}], " ", "*)"}], "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "6.79"}], ",", " ", "39.28"}], "}"}], "]"}], "  ", "->",
+        " ", 
+       RowBox[{"7.4", " ", "*", " ", 
+        RowBox[{"10", "^", "6"}]}]}]}], "     ", 
+     RowBox[{"(*", " ", 
+      RowBox[{"Dar", " ", "es", " ", "Salaam"}], " ", "*)"}], "\n", "}"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{"GeoBubbleChart", "[", 
+  RowBox[{"cityData", ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", 
+    " ", "\"\<Major African Cities by Population\>\""}], ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", "\"\<Africa\>\""}], ",", "\n", "  ", 
+   RowBox[{"BubbleSizes", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"0.02", ",", " ", "0.08"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"ChartStyle", " ", "->", " ", "\"\<DarkRainbow\>\""}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"947c8956-1ade-2f43-91b9-f5e7ffde9943"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"734b625d-1485-7045-9efd-3abd0c3098c7"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.6 Air Quality and Pollution", "Chapter",ExpressionUUID->"d16745e2-3a18-d94c-af51-7b78f729966e"],
+
+Cell["\<\
+Urban pollution is both a consequence of dense economic activity and a major \
+public health concern. Satellite instruments now provide daily global maps of \
+key pollutants, enabling analysis that was impossible with ground station \
+networks alone.\
+\>", "Text",ExpressionUUID->"55d00f82-e426-7546-9c2b-2e62d8a3f929"],
+
+Cell[CellGroupData[{
+
+Cell["Sentinel-5P TROPOMI: Nitrogen Dioxide", "Section",ExpressionUUID->"d09cb707-78a9-c849-a83f-111d51f3d3c4"],
+
+Cell["\<\
+The TROPOspheric Monitoring Instrument (TROPOMI) on Sentinel-5P measures \
+tropospheric NO2 column density, a primary indicator of combustion-related \
+air pollution from vehicles, power plants, and industry.\
+\>", "Text",ExpressionUUID->"e97a2138-ad97-474f-82bc-26326fec3eef"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"no2", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+        "GEECollection", "[", "\"\<COPERNICUS/S5P/OFFL/L3_NO2\>\"", "]"}], 
+        " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-04-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterBounds", "[", 
+        RowBox[{"{", 
+         RowBox[{
+         "112.5", ",", " ", "22.0", ",", " ", "114.5", ",", " ", "23.5"}], 
+         "}"}], "]"}]}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<tropospheric_NO2_column_number_density\>\"", "}"}], 
+       "]"}]}], " ", "//", "\n", "  ", "GEEMean"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"23.0", ",", " ", "113.3"}], "}"}], "]"}], ",", "   ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Pearl", " ", "River", " ", "Delta"}], " ", "*)"}], "\n", "  ", 
+   "no2", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"100", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", 
+   "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", "\n", "    ", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "0.0002"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#ffffb2\>\"", ",", " ", "\"\<#fecc5c\>\"", ",", 
+         " ", "\"\<#fd8d3c\>\"", ",", "\n", "      ", "\"\<#f03b20\>\"", ",", 
+         " ", "\"\<#bd0026\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"a3ab7e23-ab46-654c-97c5-9fa34c2ed838"],
+
+Cell["\<\
+The Pearl River Delta -- encompassing Guangzhou, Shenzhen, Dongguan, and Hong \
+Kong -- is one of the world's most industrialized regions. The NO2 map \
+reveals pollution hotspots centered on industrial zones and major highway \
+corridors.\
+\>", "Text",ExpressionUUID->"0d47a45d-493e-5547-8c83-4c16b2a97c06"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Aerosol Optical Depth from MODIS", "Section",ExpressionUUID->"2af1a46a-f7ce-324d-9dfc-50f1a87cc569"],
+
+Cell[TextData[{
+ "Aerosol Optical Depth (AOD) measures the extinction of sunlight by \
+atmospheric particulates. MODIS provides daily AOD at 1 km resolution through \
+the ",
+ Cell["MODIS/061/MCD19A2_GRANULES", "InlineCode",ExpressionUUID->
+  "6c9ba904-bb0b-0345-8382-2924da83f7f9"],
+ " product."
+}], "Text",ExpressionUUID->"e95f64fe-d6f0-404d-bc9e-dbf30911d4c7"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"aod", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<MODIS/061/MCD19A2_GRANULES\>\"", "]"}], 
+         " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-04-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{
+          "76.8", ",", " ", "28.3", ",", " ", "77.5", ",", " ", "28.9"}], 
+          "}"}], "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<Optical_Depth_047\>\"", "}"}], "]"}]}], " ", "//", 
+      "\n", "  ", "GEEMean"}], " ", "//", "\n", "  ", 
+     RowBox[{"GEEMultiply", "[", "0.001", "]"}]}]}], ";"}], "   ", 
+  RowBox[{"(*", " ", 
+   RowBox[{"scale", " ", "factor"}], " ", "*)"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"Entity", "[", 
+    RowBox[{"\"\<City\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<NewDelhi\>\"", ",", " ", "\"\<Delhi\>\"", ",", 
+       " ", "\"\<India\>\""}], "}"}]}], "]"}], ",", "\n", "  ", "aod", ",", 
+   "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"40", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"512", ",", " ", "512"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1.5"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#00ff00\>\"", ",", " ", "\"\<#ffff00\>\"", ",", 
+         " ", "\"\<#ff0000\>\"", ",", " ", "\"\<#800000\>\""}], "}"}]}]}], 
+     "|>"}]}]}], "\n", "]"}]}], "Input",ExpressionUUID->"dc517cee-f0ef-6445-\
+acd6-dcde454428b4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Correlating Nightlights with NO2 Pollution", "Section",ExpressionUUID->"dfefc96b-f55c-074a-a065-6669ba71ee87"],
+
+Cell["\<\
+A scientifically interesting question: does nighttime light intensity predict \
+NO2 pollution? Extracting both quantities at the same set of locations \
+enables a scatter plot and regression analysis.\
+\>", "Text",ExpressionUUID->"94574f3e-834e-5144-9fbc-98272ee59698"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Define", " ", "sample", " ", "points", " ", "across", " ", "a", " ", 
+    "metropolitan", " ", "region"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"samplePoints", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"Table", "[", "\n", "  ", 
+       RowBox[{
+        RowBox[{"GeoPosition", "[", 
+         RowBox[{"{", 
+          RowBox[{"lat", ",", " ", "lon"}], "}"}], "]"}], ",", "\n", "  ", 
+        RowBox[{"{", 
+         RowBox[{
+         "lat", ",", " ", "40.5", ",", " ", "41.0", ",", " ", "0.05"}], "}"}],
+         ",", "\n", "  ", 
+        RowBox[{"{", 
+         RowBox[{"lon", ",", " ", 
+          RowBox[{"-", "74.2"}], ",", " ", 
+          RowBox[{"-", "73.7"}], ",", " ", "0.05"}], "}"}]}], "\n", "]"}], 
+      " ", "//", " ", "Flatten"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Build", " ", "VIIRS", " ", "composite"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"viirs", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"", 
+          "]"}], " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "74.3"}], ",", " ", "40.4", ",", " ", 
+           RowBox[{"-", "73.6"}], ",", " ", "41.1"}], "}"}], "]"}]}], " ", "//",
+        "\n", "  ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ",
+       "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Build", " ", "NO2", " ", "composite"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"no2", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S5P/OFFL/L3_NO2\>\"", "]"}], 
+         " ", "//", "\n", "  ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "74.3"}], ",", " ", "40.4", ",", " ", 
+           RowBox[{"-", "73.6"}], ",", " ", "41.1"}], "}"}], "]"}]}], " ", "//",
+        "\n", "  ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<tropospheric_NO2_column_number_density\>\"", "}"}], 
+        "]"}]}], " ", "//", "\n", "  ", "GEEMean"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Sample", " ", "both", " ", "datasets", " ", "at", " ", "the", " ", 
+     "same", " ", "points"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"lightSamples", " ", "=", " ", 
+     RowBox[{"GEEGetSamples", "[", 
+      RowBox[{"samplePoints", ",", " ", "viirs"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"no2Samples", " ", "=", " ", 
+     RowBox[{"GEEGetSamples", "[", 
+      RowBox[{"samplePoints", ",", " ", "no2"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Extract", " ", "numeric", " ", "values"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"lightVals", " ", "=", " ", 
+     RowBox[{"Map", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"First", " ", "@", " ", 
+         RowBox[{"Values", " ", "@", " ", 
+          RowBox[{"#", "[", "\"\<Values\>\"", "]"}]}]}], " ", "&"}], ",", " ",
+        "lightSamples"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"no2Vals", " ", "=", " ", 
+     RowBox[{"Map", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"First", " ", "@", " ", 
+         RowBox[{"Values", " ", "@", " ", 
+          RowBox[{"#", "[", "\"\<Values\>\"", "]"}]}]}], " ", "&"}], ",", " ",
+        "no2Samples"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"pairs", " ", "=", " ", 
+     RowBox[{"Select", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Transpose", "[", 
+        RowBox[{"{", 
+         RowBox[{"lightVals", ",", " ", "no2Vals"}], "}"}], "]"}], ",", "\n", 
+       "  ", 
+       RowBox[{"AllTrue", "[", "NumericQ", "]"}]}], "   ", 
+      RowBox[{"(*", " ", 
+       RowBox[{
+        RowBox[{"remove", " ", "any", " ", "missing"}], "-", 
+        RowBox[{"data", " ", "points"}]}], " ", "*)"}], "\n", "]"}]}], ";"}], 
+   "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Scatter", " ", "plot", " ", "with", " ", "linear", " ", "fit"}], 
+    " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"fit", " ", "=", " ", 
+     RowBox[{"LinearModelFit", "[", 
+      RowBox[{"pairs", ",", " ", "x", ",", " ", "x"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"Show", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"ListPlot", "[", 
+      RowBox[{"pairs", ",", "\n", "    ", 
+       RowBox[{"AxesLabel", " ", "->", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Nightlight Radiance (nW/cm2/sr)\>\"", ",", "\n", 
+          "      ", "\"\<NO2 Column Density (mol/m2)\>\""}], "}"}]}], ",", 
+       "\n", "    ", 
+       RowBox[{
+       "PlotLabel", " ", "->", 
+        " ", "\"\<Nightlight vs NO2: New York Metro\>\""}], ",", "\n", "    ", 
+       RowBox[{"PlotStyle", " ", "->", " ", 
+        RowBox[{"PointSize", "[", "0.015", "]"}]}]}], "]"}], ",", "\n", "  ", 
+     RowBox[{"Plot", "[", 
+      RowBox[{
+       RowBox[{"fit", "[", "x", "]"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"x", ",", " ", 
+         RowBox[{"Min", "[", 
+          RowBox[{"pairs", "[", 
+           RowBox[{"[", 
+            RowBox[{"All", ",", " ", "1"}], "]"}], "]"}], "]"}], ",", " ", 
+         RowBox[{"Max", "[", 
+          RowBox[{"pairs", "[", 
+           RowBox[{"[", 
+            RowBox[{"All", ",", " ", "1"}], "]"}], "]"}], "]"}]}], "}"}], ",",
+        "\n", "    ", 
+       RowBox[{"PlotStyle", " ", "->", " ", 
+        RowBox[{"{", 
+         RowBox[{"Red", ",", " ", "Thick"}], "}"}]}]}], "]"}]}], "\n", "]"}], 
+   "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Report", " ", "R"}], "-", "squared"}], " ", "*)"}], "\n", 
+   RowBox[{"fit", "[", "\"\<RSquared\>\"", "]"}]}]}]], "Input",ExpressionUUID->\
+"f502abb8-e5c4-9d4b-8007-979c8c76c2f0"],
+
+Cell["\<\
+A positive correlation is generally expected, though the strength depends on \
+the mix of residential versus industrial lighting in the study area.\
+\>", "Text",ExpressionUUID->"97bbaeb5-4676-9646-8a06-5c5bc55aa5f1"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"edcb2084-dd13-c840-9873-f5bb9834c527"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.7 Infrastructure and Transportation", "Chapter",ExpressionUUID->"c4f13cf0-f458-0c44-8ad4-6b0b2184b2a6"],
+
+Cell["\<\
+Urban infrastructure -- roads, buildings, and utilities -- shapes the spatial \
+structure of cities. While dedicated vector datasets (e.g., OpenStreetMap) \
+provide the most precise infrastructure maps, satellite imagery offers \
+complementary information through texture and spectral analysis.\
+\>", "Text",ExpressionUUID->"91d81d8f-1bf1-af46-91d8-e6dca0f896e2"],
+
+Cell[CellGroupData[{
+
+Cell["Texture Analysis with NAIP Imagery", "Section",ExpressionUUID->"1bcbf10b-b239-ca46-947f-0773a9cba1e7"],
+
+Cell[TextData[{
+ "The National Agriculture Imagery Program (NAIP) provides 1 m resolution \
+aerial imagery for the continental United States. The ",
+ Cell["GEEEntropy", "InlineCode",ExpressionUUID->
+  "6c8e894b-a413-0d42-9b37-666f2d481650"],
+ " function computes local Shannon entropy within a neighborhood, \
+highlighting areas of high spatial complexity such as road networks, building \
+edges, and industrial facilities."
+}], "Text",ExpressionUUID->"e78873bf-d6f5-e64d-ba80-4a2f740a0458"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"naip", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"GEECollection", "[", "\"\<USDA/NAIP/DOQQ\>\"", "]"}], " ", "//",
+         "\n", "  ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterBounds", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "122.45"}], ",", " ", "37.75", ",", " ", 
+          RowBox[{"-", "122.38"}], ",", " ", "37.80"}], "}"}], "]"}]}], " ", "//",
+       "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<R\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+     "GEEMosaic"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"entropy", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"naip", " ", "//", " ", "GEEToInt"}], " ", "//", " ", 
+     RowBox[{"GEEEntropy", "[", "30", "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GEEImage", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"GeoPosition", "[", 
+    RowBox[{"{", 
+     RowBox[{"37.775", ",", " ", 
+      RowBox[{"-", "122.415"}]}], "}"}], "]"}], ",", "\n", "  ", "entropy", ",",
+    "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"Quantity", "[", 
+     RowBox[{"5", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", "  ", 
+   RowBox[{"RasterSize", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"1024", ",", " ", "1024"}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "2"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "5"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", 
+        RowBox[{"\"\<#f7f7f7\>\"", ",", " ", "\"\<#969696\>\"", ",", 
+         " ", "\"\<#252525\>\""}], "}"}]}]}], "|>"}]}]}], "\n", 
+  "]"}]}], "Input",ExpressionUUID->"375ae223-7bb0-2742-8502-861eb9aeb206"],
+
+Cell["\<\
+High-entropy pixels (dark) correspond to complex texture: building clusters, \
+freeway interchanges, and commercial districts. Low-entropy regions (light) \
+correspond to uniform surfaces: water, parks, and open fields.\
+\>", "Text",ExpressionUUID->"e41d2227-d0ef-6244-8db3-e13dec2c1a56"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Querying Feature Collections", "Section",ExpressionUUID->"29205c43-e86f-474f-b1d4-4560ad89d997"],
+
+Cell[TextData[{
+ "GEE hosts vector datasets as FeatureCollections. The ",
+ Cell["GEEComputeFeatures", "InlineCode",ExpressionUUID->
+  "24eb6ae1-e07d-9f48-9a93-f6472139ab7e"],
+ " function queries these tables with spatial and attribute filters."
+}], "Text",ExpressionUUID->"9fa7fddd-c73c-a149-b4a8-5a8e30ca5376"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Query", " ", "US", " ", "state", " ", "boundaries", " ", "for", " ", 
+    "California"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"features", " ", "=", " ", 
+     RowBox[{"GEEComputeFeatures", "[", "\n", "  ", 
+      RowBox[{"\"\<TIGER/2018/States\>\"", ",", "\n", 
+       "  ", "\"\<NAME = 'California'\>\"", ",", "\n", "  ", 
+       RowBox[{"\"\<MaxFeatures\>\"", " ", "->", " ", "1"}]}], "\n", "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Extract", " ", "the", " ", "geometry", " ", "for", " ", "further", " ", 
+     "analysis"}], " ", "*)"}], "\n", 
+   RowBox[{"caGeometry", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"features", "[", 
+      RowBox[{"[", "1", "]"}], "]"}], "[", "\"\<geometry\>\"", 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"3c87feda-4ea3-654f-ac3d-\
+08851409ee7f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Wolfram Integration: GeoPath and GeoDistance", "Section",ExpressionUUID->"df0748b4-adab-a141-bfbd-0f59352f1915"],
+
+Cell[TextData[{
+ "For transportation analysis, Wolfram Language's ",
+ Cell["GeoPath", "InlineCode",ExpressionUUID->
+  "db3aaf57-858f-8643-bc34-b064672f275d"],
+ " and ",
+ Cell["GeoDistance", "InlineCode",ExpressionUUID->
+  "8f926aa8-203c-ac4e-877e-b89eedf94616"],
+ " provide geodesic routing and distance calculations that complement \
+satellite-derived infrastructure maps."
+}], "Text",ExpressionUUID->"f86bb1b5-bc85-484a-b844-3aadc1bd8fa4"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Great", "-", 
+    RowBox[{
+    "circle", " ", "path", " ", "and", " ", "distance", " ", "between", " ", 
+     "two", " ", "urban", " ", "centers"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"path", " ", "=", " ", 
+     RowBox[{"GeoPath", "[", 
+      RowBox[{"{", "\n", "  ", 
+       RowBox[{
+        RowBox[{"Entity", "[", 
+         RowBox[{"\"\<City\>\"", ",", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<LosAngeles\>\"", ",", " ", "\"\<California\>\"", ",", 
+            " ", "\"\<UnitedStates\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+        RowBox[{"Entity", "[", 
+         RowBox[{"\"\<City\>\"", ",", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<SanFrancisco\>\"", ",", " ", "\"\<California\>\"", ",",
+             " ", "\"\<UnitedStates\>\""}], "}"}]}], "]"}]}], "\n", "}"}], 
+      "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"dist", " ", "=", " ", 
+     RowBox[{"GeoDistance", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Entity", "[", 
+        RowBox[{"\"\<City\>\"", ",", " ", 
+         RowBox[{"{", 
+          
+          RowBox[{"\"\<LosAngeles\>\"", ",", " ", "\"\<California\>\"", ",", 
+           " ", "\"\<UnitedStates\>\""}], "}"}]}], "]"}], ",", "\n", "  ", 
+       RowBox[{"Entity", "[", 
+        RowBox[{"\"\<City\>\"", ",", " ", 
+         RowBox[{"{", 
+          
+          RowBox[{"\"\<SanFrancisco\>\"", ",", " ", "\"\<California\>\"", ",",
+            " ", "\"\<UnitedStates\>\""}], "}"}]}], "]"}]}], "\n", "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"GeoGraphics", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"Thick", ",", " ", "Red", ",", " ", "path"}], "}"}], ",", "\n", 
+     "  ", 
+     RowBox[{"GeoRange", " ", "->", " ", "\"\<California\>\""}], ",", "\n", 
+     "  ", 
+     RowBox[{"GeoBackground", " ", "->", " ", "\"\<StreetMap\>\""}]}], "\n", 
+    "]"}]}]}]], "Input",ExpressionUUID->"b813eb9f-4bae-ef41-b56c-\
+26cb71f59aa8"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"9b35d89c-8b43-ba48-8859-41ea97d01b21"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7.8 Multi-City Comparative Analysis", "Chapter",ExpressionUUID->"4d3341e7-7d1a-c147-851c-bb67bc7a7e0f"],
+
+Cell["\<\
+The workflows introduced in this chapter converge in a multi-city comparative \
+analysis. By extracting several urban indicators for a consistent set of \
+cities, you can build a dashboard-style summary that reveals how cities \
+differ in their nightlight intensity, thermal signatures, built-up extent, \
+and vegetation cover.\
+\>", "Text",ExpressionUUID->"3daf57f2-ceeb-3c4b-8d1a-e0abbe63a1f0"],
+
+Cell[CellGroupData[{
+
+Cell["Define the Study Cities", "Section",ExpressionUUID->"a352f9c9-bd36-1d4c-b462-021e250e761a"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"studyCities", " ", "=", " ", 
+   RowBox[{"<|", "\n", "  ", 
+    RowBox[{
+     RowBox[{"\"\<Tokyo\>\"", "     ", "->", " ", 
+      RowBox[{"<|", 
+       RowBox[{
+        RowBox[{"\"\<bbox\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{
+          "139.55", ",", " ", "35.55", ",", " ", "139.95", ",", " ", 
+           "35.80"}], "}"}]}], ",", "\n", "                   ", 
+        RowBox[{"\"\<center\>\"", " ", "->", " ", 
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{"35.68", ",", " ", "139.75"}], "}"}], "]"}]}]}], "|>"}]}], 
+     ",", "\n", "  ", 
+     RowBox[{"\"\<New York\>\"", "  ", "->", " ", 
+      RowBox[{"<|", 
+       RowBox[{
+        RowBox[{"\"\<bbox\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "74.05"}], ",", " ", "40.65", ",", " ", 
+           RowBox[{"-", "73.75"}], ",", " ", "40.85"}], "}"}]}], ",", "\n", 
+        "                   ", 
+        RowBox[{"\"\<center\>\"", " ", "->", " ", 
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{"40.75", ",", " ", 
+            RowBox[{"-", "73.90"}]}], "}"}], "]"}]}]}], "|>"}]}], ",", "\n", 
+     "  ", 
+     RowBox[{"\"\<Sao Paulo\>\"", " ", "->", " ", 
+      RowBox[{"<|", 
+       RowBox[{
+        RowBox[{"\"\<bbox\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "46.75"}], ",", " ", 
+           RowBox[{"-", "23.65"}], ",", " ", 
+           RowBox[{"-", "46.45"}], ",", " ", 
+           RowBox[{"-", "23.45"}]}], "}"}]}], ",", "\n", 
+        "                   ", 
+        RowBox[{"\"\<center\>\"", " ", "->", " ", 
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"-", "23.55"}], ",", " ", 
+            RowBox[{"-", "46.60"}]}], "}"}], "]"}]}]}], "|>"}]}], ",", "\n", 
+     "  ", 
+     RowBox[{"\"\<Cairo\>\"", "     ", "->", " ", 
+      RowBox[{"<|", 
+       RowBox[{
+        RowBox[{"\"\<bbox\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{
+          "31.15", ",", " ", "29.95", ",", " ", "31.45", ",", " ", "30.15"}], 
+          "}"}]}], ",", "\n", "                   ", 
+        RowBox[{"\"\<center\>\"", " ", "->", " ", 
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{"30.05", ",", " ", "31.30"}], "}"}], "]"}]}]}], "|>"}]}], ",",
+      "\n", "  ", 
+     RowBox[{"\"\<Mumbai\>\"", "    ", "->", " ", 
+      RowBox[{"<|", 
+       RowBox[{
+        RowBox[{"\"\<bbox\>\"", " ", "->", " ", 
+         RowBox[{"{", 
+          RowBox[{
+          "72.80", ",", " ", "18.90", ",", " ", "73.05", ",", " ", "19.15"}], 
+          "}"}]}], ",", "\n", "                   ", 
+        RowBox[{"\"\<center\>\"", " ", "->", " ", 
+         RowBox[{"GeoPosition", "[", 
+          RowBox[{"{", 
+           RowBox[{"19.05", ",", " ", "72.90"}], "}"}], "]"}]}]}], "|>"}]}]}],
+     "\n", "|>"}]}], ";"}]], "Input",ExpressionUUID->"3dca3e42-39e0-e140-ad6b-\
+01317dae3928"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Extract Indicators", "Section",ExpressionUUID->"29eaa048-3869-f743-a379-f6ac6dac348e"],
+
+Cell["Build a reusable extraction function for each indicator.", "Text",ExpressionUUID->"66254ad1-6561-ab43-acfd-fa95a72de147"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"1.", " ", "Mean", " ", "nightlight", " ", "radiance"}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"extractRadiance", "[", "bbox_", "]"}], " ", ":=", " ", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"img", ",", " ", "geom"}], "}"}], ",", "\n", "  ", 
+      RowBox[{
+       RowBox[{"img", " ", "=", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG\>\"",
+              "]"}], " ", "//", "\n", "    ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-07-01\>\""}], 
+             "]"}]}], " ", "//", "\n", "    ", 
+           RowBox[{"GEEFilterBounds", "[", "bbox", "]"}]}], " ", "//", "\n", 
+          "    ", 
+          RowBox[{"GEESelectBands", "[", 
+           RowBox[{"{", "\"\<avg_rad\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+         "    ", "GEEMedian"}]}], ";", "\n", "  ", 
+       RowBox[{"geom", " ", "=", " ", 
+        RowBox[{"GEEGeometry", "[", "bbox", "]"}]}], ";", "\n", "  ", 
+       RowBox[{"First", " ", "@", " ", 
+        RowBox[{"Values", " ", "@", " ", 
+         RowBox[{"GEECompute", "[", 
+          RowBox[{"img", " ", "//", " ", 
+           RowBox[{"GEEReduceRegion", "[", 
+            RowBox[{"geom", ",", " ", "\"\<mean\>\"", ",", " ", "500"}], 
+            "]"}]}], "]"}]}]}]}]}], "\n", "]"}]}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "2.", " ", "Mean", " ", "land", " ", "surface", " ", "temperature", " ", 
+     RowBox[{"(", "Celsius", ")"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"extractLST", "[", "bbox_", "]"}], " ", ":=", " ", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"img", ",", " ", "geom"}], "}"}], ",", "\n", "  ", 
+      RowBox[{
+       RowBox[{"img", " ", "=", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{
+              RowBox[{
+              "GEECollection", "[", "\"\<MODIS/061/MOD11A2\>\"", "]"}], " ", "//",
+               "\n", "    ", 
+              RowBox[{"GEEFilterDate", "[", 
+               RowBox[{"\"\<2024-06-01\>\"", ",", " ", "\"\<2024-09-01\>\""}],
+                "]"}]}], " ", "//", "\n", "    ", 
+             RowBox[{"GEEFilterBounds", "[", "bbox", "]"}]}], " ", "//", "\n",
+             "    ", 
+            RowBox[{"GEESelectBands", "[", 
+             RowBox[{"{", "\"\<LST_Day_1km\>\"", "}"}], "]"}]}], " ", "//", 
+           "\n", "    ", "GEEMedian"}], " ", "//", "\n", "    ", 
+          RowBox[{"GEEMultiply", "[", "0.02", "]"}]}], " ", "//", "\n", 
+         "    ", 
+         RowBox[{"GEEAdd", "[", 
+          RowBox[{"-", "273.15"}], "]"}]}]}], ";", "\n", "  ", 
+       RowBox[{"geom", " ", "=", " ", 
+        RowBox[{"GEEGeometry", "[", "bbox", "]"}]}], ";", "\n", "  ", 
+       RowBox[{"First", " ", "@", " ", 
+        RowBox[{"Values", " ", "@", " ", 
+         RowBox[{"GEECompute", "[", 
+          RowBox[{"img", " ", "//", " ", 
+           RowBox[{"GEEReduceRegion", "[", 
+            RowBox[{"geom", ",", " ", "\"\<mean\>\"", ",", " ", "1000"}], 
+            "]"}]}], "]"}]}]}]}]}], "\n", "]"}]}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"3.", " ", "Mean", " ", "NDBI"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"extractNDBI", "[", "bbox_", "]"}], " ", ":=", " ", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"img", ",", " ", "geom"}], "}"}], ",", "\n", "  ", 
+      RowBox[{
+       RowBox[{"img", " ", "=", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{
+             "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", 
+              "]"}], " ", "//", "\n", "    ", 
+             RowBox[{"GEEFilterDate", "[", 
+              RowBox[{"\"\<2024-03-01\>\"", ",", " ", "\"\<2024-06-01\>\""}], 
+              "]"}]}], " ", "//", "\n", "    ", 
+            RowBox[{"GEEFilterBounds", "[", "bbox", "]"}]}], " ", "//", "\n", 
+           "    ", 
+           RowBox[{"GEEFilterProperty", "[", 
+            
+            RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+             " ", "\"\<LessThan\>\"", ",", " ", "15"}], "]"}]}], " ", "//", 
+          "\n", "    ", "GEEMedian"}], " ", "//", "\n", "    ", 
+         RowBox[{"GEENormalizedDifference", "[", 
+          RowBox[{"{", 
+           RowBox[{"\"\<B11\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+       ";", "\n", "  ", 
+       RowBox[{"geom", " ", "=", " ", 
+        RowBox[{"GEEGeometry", "[", "bbox", "]"}]}], ";", "\n", "  ", 
+       RowBox[{"First", " ", "@", " ", 
+        RowBox[{"Values", " ", "@", " ", 
+         RowBox[{"GEECompute", "[", 
+          RowBox[{"img", " ", "//", " ", 
+           RowBox[{"GEEReduceRegion", "[", 
+            RowBox[{"geom", ",", " ", "\"\<mean\>\"", ",", " ", "20"}], 
+            "]"}]}], "]"}]}]}]}]}], "\n", "]"}]}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"4.", " ", "Built"}], "-", 
+     RowBox[{
+     "up", " ", "area", " ", "percentage", " ", "from", " ", "ESA", " ", 
+      "WorldCover"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"extractBuiltUpPct", "[", "bbox_", "]"}], " ", ":=", " ", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+       "builtUp", ",", " ", "geom", ",", " ", "builtArea", ",", " ", 
+        "totalArea"}], "}"}], ",", "\n", "  ", 
+      RowBox[{
+       RowBox[{"builtUp", " ", "=", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<ESA/WorldCover/v200\>\"", "]"}], " ", "//",
+             "\n", "    ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+             "]"}]}], " ", "//", "\n", "    ", "GEEMosaic"}], " ", "//", "\n",
+           "    ", 
+          RowBox[{"GEESelectBands", "[", 
+           RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+         "    ", 
+         RowBox[{"GEEEquals", "[", "50", "]"}]}]}], ";", "\n", "  ", 
+       RowBox[{"geom", " ", "=", " ", 
+        RowBox[{"GEEGeometry", "[", "bbox", "]"}]}], ";", "\n", "  ", 
+       RowBox[{"builtArea", " ", "=", " ", 
+        RowBox[{"First", " ", "@", " ", 
+         RowBox[{"Values", " ", "@", " ", 
+          RowBox[{"GEECompute", "[", "\n", "    ", 
+           RowBox[{
+            RowBox[{"builtUp", " ", "//", " ", 
+             RowBox[{"GEEMultiply", "[", 
+              RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}], " ", "//", "\n", 
+            "      ", 
+            RowBox[{"GEEReduceRegion", "[", 
+             RowBox[{"geom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+             "]"}]}], "\n", "  ", "]"}]}]}]}], ";", "\n", "  ", 
+       RowBox[{"totalArea", " ", "=", " ", 
+        RowBox[{"First", " ", "@", " ", 
+         RowBox[{"Values", " ", "@", " ", 
+          RowBox[{"GEECompute", "[", "\n", "    ", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"GEEPixelArea", "[", "]"}], " ", "//", " ", 
+             RowBox[{"GEEClip", "[", "geom", "]"}]}], " ", "//", "\n", 
+            "      ", 
+            RowBox[{"GEEReduceRegion", "[", 
+             RowBox[{"geom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+             "]"}]}], "\n", "  ", "]"}]}]}]}], ";", "\n", "  ", 
+       RowBox[{"100.0", " ", "*", " ", 
+        RowBox[{"builtArea", " ", "/", " ", "totalArea"}]}]}]}], "\n", 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"73372971-e9f8-8947-98f0-\
+1795387eb637"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Build the Comparative Dataset", "Section",ExpressionUUID->"325b072b-cc52-dd49-bed8-8124a30a7d77"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"dashboard", " ", "=", " ", 
+    RowBox[{"Association", " ", "@", " ", 
+     RowBox[{"KeyValueMap", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Function", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"city", ",", " ", "info"}], "}"}], ",", "\n", "    ", 
+         RowBox[{"city", " ", "->", " ", 
+          RowBox[{"<|", "\n", "      ", 
+           RowBox[{
+            RowBox[{"\"\<Nightlight (nW/cm2/sr)\>\"", " ", "->", " ", 
+             RowBox[{"Round", "[", 
+              RowBox[{
+               RowBox[{"extractRadiance", "[", 
+                RowBox[{"info", "[", "\"\<bbox\>\"", "]"}], "]"}], ",", " ", 
+               "0.1"}], "]"}]}], ",", "\n", "      ", 
+            RowBox[{"\"\<LST (C)\>\"", "                ", "->", " ", 
+             RowBox[{"Round", "[", 
+              RowBox[{
+               RowBox[{"extractLST", "[", 
+                RowBox[{"info", "[", "\"\<bbox\>\"", "]"}], "]"}], ",", " ", 
+               "0.1"}], "]"}]}], ",", "\n", "      ", 
+            RowBox[{"\"\<Mean NDBI\>\"", "              ", "->", " ", 
+             RowBox[{"Round", "[", 
+              RowBox[{
+               RowBox[{"extractNDBI", "[", 
+                RowBox[{"info", "[", "\"\<bbox\>\"", "]"}], "]"}], ",", " ", 
+               "0.01"}], "]"}]}], ",", "\n", "      ", 
+            RowBox[{"\"\<Built-Up %\>\"", "             ", "->", " ", 
+             RowBox[{"Round", "[", 
+              RowBox[{
+               RowBox[{"extractBuiltUpPct", "[", 
+                RowBox[{"info", "[", "\"\<bbox\>\"", "]"}], "]"}], ",", " ", 
+               "0.1"}], "]"}]}]}], "\n", "    ", "|>"}]}]}], "\n", "  ", 
+        "]"}], ",", "\n", "  ", "studyCities"}], "\n", "]"}]}]}], ";"}], 
+  "\n"}], "\n", 
+ RowBox[{"Dataset", "[", "dashboard", "]"}]}], "Input",ExpressionUUID->\
+"bdff427c-5a8d-6b40-93e8-fa2df601c722"],
+
+Cell["\<\
+This produces a five-row table with four columns, providing an at-a-glance \
+comparison of urban intensity across continents.\
+\>", "Text",ExpressionUUID->"fe42b657-00f0-3545-ba81-ea558380fcda"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Comparative Bar Charts", "Section",ExpressionUUID->"75d4c5bf-161f-404b-b542-441dbead6206"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"indicators", " ", "=", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Nightlight (nW/cm2/sr)\>\"", ",", " ", "\"\<LST (C)\>\"", ",",
+       "\n", "  ", "\"\<Mean NDBI\>\"", ",", " ", "\"\<Built-Up %\>\""}], 
+     "}"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"charts", " ", "=", " ", 
+    RowBox[{"Map", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Function", "[", 
+       RowBox[{"ind", ",", "\n", "    ", 
+        RowBox[{"BarChart", "[", "\n", "      ", 
+         RowBox[{
+          RowBox[{"Map", "[", 
+           RowBox[{
+            RowBox[{
+             RowBox[{
+              RowBox[{"dashboard", "[", "#", "]"}], "[", "ind", "]"}], " ", 
+             "&"}], ",", " ", 
+            RowBox[{"Keys", "[", "studyCities", "]"}]}], "]"}], ",", "\n", 
+          "      ", 
+          RowBox[{"ChartLabels", " ", "->", " ", 
+           RowBox[{"Keys", "[", "studyCities", "]"}]}], ",", "\n", "      ", 
+          RowBox[{"PlotLabel", " ", "->", " ", "ind"}], ",", "\n", "      ", 
+          RowBox[{"ChartStyle", " ", "->", " ", "\"\<Pastel\>\""}]}], "\n", 
+         "    ", "]"}]}], "\n", "  ", "]"}], ",", "\n", "  ", "indicators"}], 
+     "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GraphicsGrid", "[", 
+  RowBox[{
+   RowBox[{"Partition", "[", 
+    RowBox[{"charts", ",", " ", "2"}], "]"}], ",", " ", 
+   RowBox[{"ImageSize", " ", "->", " ", "800"}]}], "]"}]}], "Input",Expression\
+UUID->"c2ac8813-dfcb-a343-a950-59d1970b3b9c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["City Location Map", "Section",ExpressionUUID->"4d18b4bb-ed19-684a-93fd-cac56551e49d"],
+
+Cell[TextData[{
+ "Add geographic context with a ",
+ Cell["GeoGraphics", "InlineCode",ExpressionUUID->
+  "5d5d3cb1-2f1d-914f-9f3e-ac69bc0b6491"],
+ " display showing all five study cities."
+}], "Text",ExpressionUUID->"a6f6bfd5-4b26-a347-b2ea-ad08b39c60cc"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"markers", " ", "=", " ", 
+    RowBox[{"KeyValueMap", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Function", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"city", ",", " ", "info"}], "}"}], ",", "\n", "    ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"PointSize", "[", "0.02", "]"}], ",", " ", "Red", ",", "\n",
+           "     ", 
+          RowBox[{"GeoMarker", "[", 
+           RowBox[{
+            RowBox[{"info", "[", "\"\<center\>\"", "]"}], ",", " ", 
+            RowBox[{"\"\<Label\>\"", " ", "->", " ", "city"}]}], "]"}]}], 
+         "}"}]}], "\n", "  ", "]"}], ",", "\n", "  ", "studyCities"}], "\n", 
+     "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"GeoGraphics", "[", 
+  RowBox[{"markers", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", "\"\<World\>\""}], ",", "\n", "  ", 
+   RowBox[{"GeoProjection", " ", "->", " ", "\"\<Robinson\>\""}], ",", "\n", 
+   "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "700"}]}], "\n", "]"}]}], "Input",Expr\
+essionUUID->"13117fe3-6627-1749-8e7c-3c5dd045c668"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"a2c5f89e-c882-8e40-bbec-843e91ff9516"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Summary", "Chapter",ExpressionUUID->"182767ce-bc1c-ea48-a3cc-5eb63f8729b8"],
+
+Cell["\<\
+This chapter demonstrated how to combine Google Earth Engine's global \
+satellite archive with Wolfram Language's analytical and visualization \
+capabilities to study urban environments. The key techniques covered were:\
+\>", "Text",ExpressionUUID->"a37ef8e2-a9d7-b646-a5de-c6b67e32db2e"],
+
+Cell[TextData[{
+ StyleBox["Nighttime lights",
+  FontWeight->Bold],
+ " (VIIRS, DMSP-OLS) as proxies for economic activity, with ",
+ Cell["GEELog10", "InlineCode",ExpressionUUID->
+  "e0536f16-86bd-c948-b0f6-3f8487eaee9b"],
+ " for dynamic range compression and ",
+ Cell["GeoRegionValuePlot", "InlineCode",ExpressionUUID->
+  "c0807f66-d363-8549-8e73-66ae31c1ca44"],
+ " for choropleth mapping."
+}], "Item",ExpressionUUID->"49f30279-3987-7c45-a0ca-dbefbe5b2a57"],
+
+Cell[TextData[{
+ StyleBox["Urban heat islands",
+  FontWeight->Bold],
+ " measured via Landsat and MODIS thermal bands, quantified as the \
+temperature differential between urban and rural reference areas using ",
+ Cell["GEEReduceRegion", "InlineCode",ExpressionUUID->
+  "e3fad0a3-e802-1249-8d29-e6db9a5999a3"],
+ "."
+}], "Item",ExpressionUUID->"068db5ab-862a-3240-b265-f8ebbe708d67"],
+
+Cell[TextData[{
+ StyleBox["Built-up area mapping",
+  FontWeight->Bold],
+ " through NDBI, ESA WorldCover classification, and the GHSL time series, \
+with ",
+ Cell["GEEEquals", "InlineCode",ExpressionUUID->
+  "80107305-13ca-924e-ada3-83ddab31c42c"],
+ ", ",
+ Cell["GEEPixelArea", "InlineCode",ExpressionUUID->
+  "ecb11d92-14a8-fb4a-a2b0-dc84742fd890"],
+ ", and ",
+ Cell["GEEReduceRegion", "InlineCode",ExpressionUUID->
+  "bd1e7cdd-de7e-3046-9e66-e9ef15afecd9"],
+ " for area computation."
+}], "Item",ExpressionUUID->"eb93c613-f88b-af4f-9fe3-8def60277649"],
+
+Cell[TextData[{
+ StyleBox["Change detection",
+  FontWeight->Bold],
+ " using multi-temporal land cover comparison and NDVI differencing to \
+identify urbanization fronts."
+}], "Item",ExpressionUUID->"2574cea5-d918-7f44-b74e-e50a3ebfa54e"],
+
+Cell[TextData[{
+ StyleBox["Population estimation",
+  FontWeight->Bold],
+ " with WorldPop gridded data, validated against Wolfram's ",
+ Cell["Entity", "InlineCode",ExpressionUUID->
+  "cb209d44-d587-564c-9811-9eb6ce75d45e"],
+ " framework and visualized with ",
+ Cell["GeoBubbleChart", "InlineCode",ExpressionUUID->
+  "7329796c-cb87-7848-9ae5-f89a9f9fb42c"],
+ "."
+}], "Item",ExpressionUUID->"a3f7e1ef-3b31-1540-ac10-38f12604e5a2"],
+
+Cell[TextData[{
+ StyleBox["Air quality monitoring",
+  FontWeight->Bold],
+ " via Sentinel-5P NO2 and MODIS AOD, including correlation analysis with \
+nightlight intensity using ",
+ Cell["GEEGetSamples", "InlineCode",ExpressionUUID->
+  "bb2dc264-65f0-f341-8a96-ca33bc3d8173"],
+ " and ",
+ Cell["LinearModelFit", "InlineCode",ExpressionUUID->
+  "dc54d541-9491-3747-8df8-bba1731845cf"],
+ "."
+}], "Item",ExpressionUUID->"cb88e8ad-69ad-5f46-8325-5fc53a7c85aa"],
+
+Cell[TextData[{
+ StyleBox["Infrastructure analysis",
+  FontWeight->Bold],
+ " through texture-based feature extraction with ",
+ Cell["GEEEntropy", "InlineCode",ExpressionUUID->
+  "a99d479e-9918-9f4c-96ba-db77fad57bfc"],
+ " and vector queries via ",
+ Cell["GEEComputeFeatures", "InlineCode",ExpressionUUID->
+  "ef84f176-5b17-3647-814c-0260ad1e9ec9"],
+ "."
+}], "Item",ExpressionUUID->"e0c29971-4ca3-0d4f-b5d8-8d971eee5d5b"],
+
+Cell[TextData[{
+ StyleBox["Multi-city dashboards",
+  FontWeight->Bold],
+ " that synthesize multiple indicators into a single comparative ",
+ Cell["Dataset", "InlineCode",ExpressionUUID->
+  "4717ca18-5201-1c49-8a77-f3a871c6172c"],
+ " with ",
+ Cell["BarChart", "InlineCode",ExpressionUUID->
+  "da44d51a-cd9b-f94a-9e89-7fc6df361a0f"],
+ " visualizations."
+}], "Item",ExpressionUUID->"8dd3fd96-9079-114c-a39e-1f1a5e5f3a52"],
+
+Cell["\<\
+These workflows are building blocks. A natural next step is to add temporal \
+depth -- repeating the extraction for multiple years to construct time series \
+of urban indicators -- or to scale the analysis to dozens or hundreds of \
+cities for global comparative studies.\
+\>", "Text",ExpressionUUID->"9d87e346-ee7e-0b41-a946-e0bcec5d0b29"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"088fed85-c7ad-9d4f-8458-e977205a4a07"],
+
+Cell[TextData[{
+ StyleBox["Next: ",
+  FontSlant->Italic],
+ StyleBox[ButtonBox["Chapter 8: Advanced Techniques and Wolfram Language \
+Integration",
+  BaseStyle->"Hyperlink",
+  ButtonData->{
+    URL["chapter-08-advanced-techniques.md"], None},
+  ButtonNote->"chapter-08-advanced-techniques.md"],
+  FontSlant->Italic]
+}], "Text",ExpressionUUID->"2d9e39c5-bf43-264a-8fdf-0d3512881567"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 654},
+WindowMargins->{{993, Automatic}, {Automatic, 171.75}},
+FrontEndVersion->"14.3 for Microsoft Windows (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"a408a659-0890-4d44-9021-5c2afc6ee803"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 112, 0, 157, "Title",ExpressionUUID->"5c8e95fa-67ef-e94f-9145-a2af8eb44863"],
+Cell[691, 24, 825, 11, 252, "Text",ExpressionUUID->"b9043b68-17e9-f14e-befb-8ea1905d5c27"],
+Cell[1519, 37, 313, 7, 55, "Text",ExpressionUUID->"fd609d81-1643-ea40-947b-d34a2dac74b4"],
+Cell[1835, 46, 104, 2, 42, "Text",ExpressionUUID->"25650ee8-ded9-3948-a7de-2f5261731a34"],
+Cell[CellGroupData[{
+Cell[1964, 52, 94, 0, 67, "Chapter",ExpressionUUID->"cff4917e-5cc3-0f4b-a5b5-4730a92abf4d"],
+Cell[2061, 54, 380, 5, 121, "Text",ExpressionUUID->"f745e8e7-afd9-f042-add9-8125b214e35c"],
+Cell[CellGroupData[{
+Cell[2466, 63, 104, 0, 66, "Section",ExpressionUUID->"906c0056-1b5e-e146-a302-acc77d3be43d"],
+Cell[2573, 65, 513, 9, 70, "Text",ExpressionUUID->"0db81222-1e31-1d47-849c-0371131886e6"],
+Cell[3089, 76, 158, 2, 70, "Text",ExpressionUUID->"785301cf-259f-344f-aadd-6c8999567e46"],
+Cell[3250, 80, 1980, 47, 70, "Input",ExpressionUUID->"4c60d0cc-5832-6740-afa9-73906e7a35b4"],
+Cell[5233, 129, 358, 5, 70, "Text",ExpressionUUID->"5480e5f7-9fa5-0741-a6f2-7d739ef29229"],
+Cell[5594, 136, 163, 2, 70, "Text",ExpressionUUID->"a29cd7e8-63b5-b34e-88bf-91bb9342741a"],
+Cell[5760, 140, 412, 9, 70, "Text",ExpressionUUID->"6c1da732-09d0-1846-9021-c88749cbb3b4"],
+Cell[6175, 151, 3271, 81, 70, "Input",ExpressionUUID->"c66d3f97-547d-e64d-966b-b4edf5e28ac6"],
+Cell[9449, 234, 350, 5, 70, "Text",ExpressionUUID->"0eaeece8-7210-d44d-8f74-4b89d8501844"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9836, 244, 118, 0, 70, "Section",ExpressionUUID->"c339b3c5-4f1c-6841-8189-9ecea6a82755"],
+Cell[9957, 246, 437, 7, 70, "Text",ExpressionUUID->"f5168e74-127f-fb41-8f80-e92139519509"],
+Cell[10397, 255, 169, 3, 70, "Text",ExpressionUUID->"c1e957d2-b633-bb4e-a51d-355f8d8e4f42"],
+Cell[10569, 260, 198, 3, 70, "Text",ExpressionUUID->"dca1100c-3e56-4346-8058-cf9ff49d1db6"],
+Cell[10770, 265, 3572, 87, 70, "Input",ExpressionUUID->"bd48fef8-c387-0349-8187-b096501bf304"],
+Cell[14345, 354, 210, 3, 70, "Text",ExpressionUUID->"282ae9ad-899e-364f-934c-4d3020fc19ad"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[14592, 362, 113, 0, 70, "Section",ExpressionUUID->"1a8ebebb-734e-eb48-a162-6f8ce421c615"],
+Cell[14708, 364, 246, 4, 70, "Text",ExpressionUUID->"6eb222d4-ef0d-3342-9b75-c0749218f7fc"],
+Cell[14957, 370, 3609, 87, 70, "Input",ExpressionUUID->"f9520f1b-2fb5-8549-93cb-1d15f3a37442"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[18603, 462, 116, 0, 70, "Section",ExpressionUUID->"132cfbf4-d7a5-0c40-9874-2018bae70753"],
+Cell[18722, 464, 292, 4, 70, "Text",ExpressionUUID->"d793033d-4044-d648-8bf7-0a23b09834f5"],
+Cell[19017, 470, 2222, 53, 70, "Input",ExpressionUUID->"027719cb-e05c-a94d-83bf-773ed6e2a8b9"],
+Cell[21242, 525, 374, 7, 70, "Text",ExpressionUUID->"8ba6a044-25a0-964c-b836-df710f9d7352"],
+Cell[21619, 534, 104, 2, 70, "Text",ExpressionUUID->"51be24fe-7eef-be4c-888b-c6d259d49e1e"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[21772, 542, 102, 0, 70, "Chapter",ExpressionUUID->"da198a57-f9b9-b24b-a897-8d7a22f0f10e"],
+Cell[21877, 544, 353, 5, 70, "Text",ExpressionUUID->"b537b340-153f-d042-95a9-3e207ed15066"],
+Cell[CellGroupData[{
+Cell[22255, 553, 103, 0, 70, "Section",ExpressionUUID->"1c78fd0f-7f14-8a42-b801-0e02d44e24ee"],
+Cell[22361, 555, 497, 8, 70, "Text",ExpressionUUID->"9e9bab36-de0a-914a-a2f1-a028af7bfe51"],
+Cell[22861, 565, 2803, 65, 70, "Input",ExpressionUUID->"c35d35b0-93bf-bf45-8f71-917c4c6096f9"],
+Cell[25667, 632, 309, 5, 70, "Text",ExpressionUUID->"2777d590-b941-2841-b168-c6ff509e4b22"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[26013, 642, 104, 0, 70, "Section",ExpressionUUID->"4d602989-4143-944f-a7c0-caaace97b311"],
+Cell[26120, 644, 451, 9, 70, "Text",ExpressionUUID->"4e2d3a4c-79e2-e348-a176-d94c464f3f8e"],
+Cell[26574, 655, 2418, 56, 70, "Input",ExpressionUUID->"9fcb6f67-e6b4-2241-a3bb-8b2099927fb7"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[29029, 716, 99, 0, 70, "Section",ExpressionUUID->"11cbee54-eb00-714b-b82e-a8ff661faefb"],
+Cell[29131, 718, 267, 4, 70, "Text",ExpressionUUID->"f6cf604c-9377-e449-90c7-e5fa0870c9f4"],
+Cell[29401, 724, 4139, 108, 70, "Input",ExpressionUUID->"52e5955f-6f66-cc46-bcaf-22c37c6ecba8"],
+Cell[33543, 834, 218, 3, 70, "Text",ExpressionUUID->"4aa41c50-9f34-6145-a454-b05975e37e75"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[33798, 842, 108, 0, 70, "Section",ExpressionUUID->"b1709b95-ea7b-154a-8da0-d0b5d2558328"],
+Cell[33909, 844, 252, 5, 70, "Text",ExpressionUUID->"61b60396-903c-5c40-a59b-a3ccde24a2c6"],
+Cell[34164, 851, 2216, 52, 70, "Input",ExpressionUUID->"bf5d62e8-b624-7442-8950-0eeca27c6952"],
+Cell[36383, 905, 104, 2, 70, "Text",ExpressionUUID->"a619cf43-ba5d-7d4a-bd07-bf0aeeeda219"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[36536, 913, 114, 0, 70, "Chapter",ExpressionUUID->"7a8efd7b-2a3c-1941-8e63-630152679a4a"],
+Cell[36653, 915, 296, 4, 70, "Text",ExpressionUUID->"6c6fed18-e8df-1648-bc43-1b36cbc2450f"],
+Cell[CellGroupData[{
+Cell[36974, 923, 117, 0, 70, "Section",ExpressionUUID->"fac8759b-ffe7-a142-b5c2-248369d7625e"],
+Cell[37094, 925, 313, 4, 70, "Text",ExpressionUUID->"40f0d91e-37a6-454a-ba1e-7b48db69d3ab"],
+Cell[37410, 931, 2134, 52, 70, "Input",ExpressionUUID->"0e2cfa98-b43b-a942-a930-c9b7893bdf51"],
+Cell[39547, 985, 331, 5, 70, "Text",ExpressionUUID->"797fbe6c-e453-2a4b-b4e9-13af8591e8f6"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[39915, 995, 103, 0, 70, "Section",ExpressionUUID->"e3f03d12-18bd-f941-aee7-1e8a5219531b"],
+Cell[40021, 997, 435, 7, 70, "Text",ExpressionUUID->"5c6187c7-5988-7949-9ba7-1e84da8a581c"],
+Cell[40459, 1006, 2198, 54, 70, "Input",ExpressionUUID->"68cf688c-9b0a-5e44-9e0c-e0f64d69335e"],
+Cell[42660, 1062, 156, 2, 70, "Text",ExpressionUUID->"5a452dc7-2bab-724c-bb0b-03578989f96c"],
+Cell[42819, 1066, 2190, 58, 70, "Input",ExpressionUUID->"afa0d998-0c82-f84d-96d0-f881c751a9c3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[45046, 1129, 110, 0, 70, "Section",ExpressionUUID->"2fd9018d-24e8-e747-9f8e-530a1e7901a9"],
+Cell[45159, 1131, 261, 4, 70, "Text",ExpressionUUID->"5381850c-60c6-6d4a-b386-1a4d630e4b57"],
+Cell[45423, 1137, 3769, 88, 70, "Input",ExpressionUUID->"45196fc2-44c2-574b-bf22-f122926fe8d4"],
+Cell[49195, 1227, 186, 3, 70, "Text",ExpressionUUID->"f950bed7-bb8a-d543-8d2f-06828f926cb9"],
+Cell[49384, 1232, 104, 2, 70, "Text",ExpressionUUID->"805b3bf7-a7d6-dc48-874b-6fc886188637"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[49537, 1240, 111, 0, 70, "Chapter",ExpressionUUID->"6c82f474-5ca7-da45-9164-a0e34639e189"],
+Cell[49651, 1242, 271, 4, 70, "Text",ExpressionUUID->"4226685e-a950-5a4e-a352-a9ae4a4c4e70"],
+Cell[CellGroupData[{
+Cell[49947, 1250, 111, 0, 70, "Section",ExpressionUUID->"a35ca6c4-aff9-f84b-aa4c-9400e5fcb2ae"],
+Cell[50061, 1252, 225, 3, 70, "Text",ExpressionUUID->"328ec3a8-7f10-084b-9803-5d0715ed301b"],
+Cell[50289, 1257, 447, 9, 70, "Text",ExpressionUUID->"684ab1fa-cffd-174b-af82-ce240055a2a1"],
+Cell[50739, 1268, 3146, 79, 70, "Input",ExpressionUUID->"6f1f147a-5802-584c-964f-df68c9bd1149"],
+Cell[53888, 1349, 278, 4, 70, "Text",ExpressionUUID->"3f424e2c-edc4-5941-bbb2-513f878e54cf"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[54203, 1358, 105, 0, 70, "Section",ExpressionUUID->"7e8e8f91-12fc-8246-ba48-693c8aa5d2ff"],
+Cell[54311, 1360, 380, 6, 70, "Text",ExpressionUUID->"b1071b91-0690-5c4b-8d19-55bd35eb29f1"],
+Cell[54694, 1368, 3385, 86, 70, "Input",ExpressionUUID->"a9be1936-03c1-a04c-ac9c-1abcb4ed92b1"],
+Cell[58082, 1456, 269, 4, 70, "Text",ExpressionUUID->"cb9ce95e-e65a-8a48-9e73-4a44777455b7"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[58388, 1465, 114, 0, 70, "Section",ExpressionUUID->"f4159779-7669-9e4c-9a33-cad309bccfc6"],
+Cell[58505, 1467, 201, 3, 70, "Text",ExpressionUUID->"b5cd9f70-b3f1-7141-a8ad-6e55aa73316c"],
+Cell[58709, 1472, 1137, 25, 70, "Input",ExpressionUUID->"435c0b3e-57c5-a243-909d-cf3526d7fcbc"],
+Cell[59849, 1499, 227, 3, 70, "Text",ExpressionUUID->"6fb9326a-8990-4e4c-9b15-b0f7d7b8b838"],
+Cell[60079, 1504, 104, 2, 70, "Text",ExpressionUUID->"222f2959-6c21-6a4e-85ac-3e7fddb5ddb0"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[60232, 1512, 105, 0, 70, "Chapter",ExpressionUUID->"858dd6db-66e6-7c49-8262-cea85ac46fb2"],
+Cell[60340, 1514, 276, 4, 70, "Text",ExpressionUUID->"5dcda558-b9e1-694a-a55f-7ed0789b5d73"],
+Cell[CellGroupData[{
+Cell[60641, 1522, 101, 0, 70, "Section",ExpressionUUID->"533f89d3-eb13-f84d-aff4-f2b3ab8d472e"],
+Cell[60745, 1524, 262, 4, 70, "Text",ExpressionUUID->"7470bc9f-6163-6b4b-a47c-bf595e015559"],
+Cell[61010, 1530, 2300, 56, 70, "Input",ExpressionUUID->"90efe6b4-93bd-af4e-a7ac-321bfa75fcb3"],
+Cell[63313, 1588, 278, 4, 70, "Text",ExpressionUUID->"42bc3f2b-8597-c54d-b402-b7624e0b10e4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[63628, 1597, 117, 0, 70, "Section",ExpressionUUID->"b3d42f88-886f-5e44-854c-cf385460ebcb"],
+Cell[63748, 1599, 185, 3, 70, "Text",ExpressionUUID->"5bc75933-7da9-104f-a389-c8011fc99cfe"],
+Cell[63936, 1604, 2198, 56, 70, "Input",ExpressionUUID->"0477234b-b277-cf44-a177-49a34ce192ad"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[66171, 1665, 129, 0, 70, "Section",ExpressionUUID->"212f82ce-a78f-ef4c-a9d1-17dd67a9d1a2"],
+Cell[66303, 1667, 375, 7, 70, "Text",ExpressionUUID->"17f931b9-0022-014c-b01e-50c687cb8715"],
+Cell[66681, 1676, 1780, 43, 70, "Input",ExpressionUUID->"6890fe83-d3f3-bd47-85a7-1438230b2bad"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[68498, 1724, 117, 0, 70, "Section",ExpressionUUID->"fb26624b-9bc1-e04e-aede-df3b06b1ddf9"],
+Cell[68618, 1726, 325, 5, 70, "Text",ExpressionUUID->"3685a0a7-8e80-5a4b-b900-ce2850683d94"],
+Cell[68946, 1733, 2373, 60, 70, "Input",ExpressionUUID->"947c8956-1ade-2f43-91b9-f5e7ffde9943"],
+Cell[71322, 1795, 104, 2, 70, "Text",ExpressionUUID->"734b625d-1485-7045-9efd-3abd0c3098c7"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[71475, 1803, 103, 0, 70, "Chapter",ExpressionUUID->"d16745e2-3a18-d94c-af51-7b78f729966e"],
+Cell[71581, 1805, 329, 5, 70, "Text",ExpressionUUID->"55d00f82-e426-7546-9c2b-2e62d8a3f929"],
+Cell[CellGroupData[{
+Cell[71935, 1814, 111, 0, 70, "Section",ExpressionUUID->"d09cb707-78a9-c849-a83f-111d51f3d3c4"],
+Cell[72049, 1816, 287, 4, 70, "Text",ExpressionUUID->"e97a2138-ad97-474f-82bc-26326fec3eef"],
+Cell[72339, 1822, 1980, 47, 70, "Input",ExpressionUUID->"a3ab7e23-ab46-654c-97c5-9fa34c2ed838"],
+Cell[74322, 1871, 318, 5, 70, "Text",ExpressionUUID->"0d47a45d-493e-5547-8c83-4c16b2a97c06"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[74677, 1881, 106, 0, 70, "Section",ExpressionUUID->"2af1a46a-f7ce-324d-9dfc-50f1a87cc569"],
+Cell[74786, 1883, 362, 7, 70, "Text",ExpressionUUID->"e95f64fe-d6f0-404d-bc9e-dbf30911d4c7"],
+Cell[75151, 1892, 2070, 50, 70, "Input",ExpressionUUID->"dc517cee-f0ef-6445-acd6-dcde454428b4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[77258, 1947, 116, 0, 70, "Section",ExpressionUUID->"dfefc96b-f55c-074a-a065-6669ba71ee87"],
+Cell[77377, 1949, 279, 4, 70, "Text",ExpressionUUID->"94574f3e-834e-5144-9fbc-98272ee59698"],
+Cell[77659, 1955, 6237, 159, 70, "Input",ExpressionUUID->"f502abb8-e5c4-9d4b-8007-979c8c76c2f0"],
+Cell[83899, 2116, 226, 3, 70, "Text",ExpressionUUID->"97bbaeb5-4676-9646-8a06-5c5bc55aa5f1"],
+Cell[84128, 2121, 104, 2, 70, "Text",ExpressionUUID->"edcb2084-dd13-c840-9873-f5bb9834c527"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[84281, 2129, 111, 0, 70, "Chapter",ExpressionUUID->"c4f13cf0-f458-0c44-8ad4-6b0b2184b2a6"],
+Cell[84395, 2131, 373, 5, 70, "Text",ExpressionUUID->"91d81d8f-1bf1-af46-91d8-e6dca0f896e2"],
+Cell[CellGroupData[{
+Cell[84793, 2140, 108, 0, 70, "Section",ExpressionUUID->"1bcbf10b-b239-ca46-947f-0773a9cba1e7"],
+Cell[84904, 2142, 491, 8, 70, "Text",ExpressionUUID->"e78873bf-d6f5-e64d-ba80-4a2f740a0458"],
+Cell[85398, 2152, 2008, 50, 70, "Input",ExpressionUUID->"375ae223-7bb0-2742-8502-861eb9aeb206"],
+Cell[87409, 2204, 298, 4, 70, "Text",ExpressionUUID->"e41d2227-d0ef-6244-8db3-e13dec2c1a56"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[87744, 2213, 102, 0, 70, "Section",ExpressionUUID->"29205c43-e86f-474f-b1d4-4560ad89d997"],
+Cell[87849, 2215, 311, 5, 70, "Text",ExpressionUUID->"9fa7fddd-c73c-a149-b4a8-5a8e30ca5376"],
+Cell[88163, 2222, 894, 23, 70, "Input",ExpressionUUID->"3c87feda-4ea3-654f-ac3d-08851409ee7f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[89094, 2250, 118, 0, 70, "Section",ExpressionUUID->"df0748b4-adab-a141-bfbd-0f59352f1915"],
+Cell[89215, 2252, 441, 9, 70, "Text",ExpressionUUID->"f86bb1b5-bc85-484a-b844-3aadc1bd8fa4"],
+Cell[89659, 2263, 1999, 52, 70, "Input",ExpressionUUID->"b813eb9f-4bae-ef41-b56c-26cb71f59aa8"],
+Cell[91661, 2317, 104, 2, 70, "Text",ExpressionUUID->"9b35d89c-8b43-ba48-8859-41ea97d01b21"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[91814, 2325, 109, 0, 70, "Chapter",ExpressionUUID->"4d3341e7-7d1a-c147-851c-bb67bc7a7e0f"],
+Cell[91926, 2327, 406, 6, 70, "Text",ExpressionUUID->"3daf57f2-ceeb-3c4b-8d1a-e0abbe63a1f0"],
+Cell[CellGroupData[{
+Cell[92357, 2337, 97, 0, 70, "Section",ExpressionUUID->"a352f9c9-bd36-1d4c-b462-021e250e761a"],
+Cell[92457, 2339, 3034, 77, 70, "Input",ExpressionUUID->"3dca3e42-39e0-e140-ad6b-01317dae3928"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[95528, 2421, 92, 0, 70, "Section",ExpressionUUID->"29eaa048-3869-f743-a379-f6ac6dac348e"],
+Cell[95623, 2423, 127, 0, 70, "Text",ExpressionUUID->"66254ad1-6561-ab43-acfd-fa95a72de147"],
+Cell[95753, 2425, 7680, 181, 70, "Input",ExpressionUUID->"73372971-e9f8-8947-98f0-1795387eb637"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[103470, 2611, 103, 0, 70, "Section",ExpressionUUID->"325b072b-cc52-dd49-bed8-8124a30a7d77"],
+Cell[103576, 2613, 1889, 41, 70, "Input",ExpressionUUID->"bdff427c-5a8d-6b40-93e8-fa2df601c722"],
+Cell[105468, 2656, 204, 3, 70, "Text",ExpressionUUID->"fe42b657-00f0-3545-ba81-ea558380fcda"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[105709, 2664, 96, 0, 70, "Section",ExpressionUUID->"75d4c5bf-161f-404b-b542-441dbead6206"],
+Cell[105808, 2666, 1495, 36, 70, "Input",ExpressionUUID->"c2ac8813-dfcb-a343-a950-59d1970b3b9c"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[107340, 2707, 91, 0, 70, "Section",ExpressionUUID->"4d18b4bb-ed19-684a-93fd-cac56551e49d"],
+Cell[107434, 2709, 254, 5, 70, "Text",ExpressionUUID->"a6f6bfd5-4b26-a347-b2ea-ad08b39c60cc"],
+Cell[107691, 2716, 1094, 26, 70, "Input",ExpressionUUID->"13117fe3-6627-1749-8e7c-3c5dd045c668"],
+Cell[108788, 2744, 104, 2, 70, "Text",ExpressionUUID->"a2c5f89e-c882-8e40-bbec-843e91ff9516"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[108941, 2752, 81, 0, 70, "Chapter",ExpressionUUID->"182767ce-bc1c-ea48-a3cc-5eb63f8729b8"],
+Cell[109025, 2754, 298, 4, 70, "Text",ExpressionUUID->"a37ef8e2-a9d7-b646-a5de-c6b67e32db2e"],
+Cell[109326, 2760, 456, 10, 70, "Item",ExpressionUUID->"49f30279-3987-7c45-a0ca-dbefbe5b2a57"],
+Cell[109785, 2772, 381, 8, 70, "Item",ExpressionUUID->"068db5ab-862a-3240-b265-f8ebbe708d67"],
+Cell[110169, 2782, 551, 14, 70, "Item",ExpressionUUID->"eb93c613-f88b-af4f-9fe3-8def60277649"],
+Cell[110723, 2798, 237, 5, 70, "Item",ExpressionUUID->"2574cea5-d918-7f44-b74e-e50a3ebfa54e"],
+Cell[110963, 2805, 427, 10, 70, "Item",ExpressionUUID->"a3f7e1ef-3b31-1540-ac10-38f12604e5a2"],
+Cell[111393, 2817, 453, 11, 70, "Item",ExpressionUUID->"cb88e8ad-69ad-5f46-8325-5fc53a7c85aa"],
+Cell[111849, 2830, 420, 10, 70, "Item",ExpressionUUID->"e0c29971-4ca3-0d4f-b5d8-8d971eee5d5b"],
+Cell[112272, 2842, 418, 10, 70, "Item",ExpressionUUID->"8dd3fd96-9079-114c-a39e-1f1a5e5f3a52"],
+Cell[112693, 2854, 350, 5, 70, "Text",ExpressionUUID->"9d87e346-ee7e-0b41-a946-e0bcec5d0b29"],
+Cell[113046, 2861, 104, 2, 70, "Text",ExpressionUUID->"088fed85-c7ad-9d4f-8458-e977205a4a07"],
+Cell[113153, 2865, 381, 10, 70, "Text",ExpressionUUID->"2d9e39c5-bf43-264a-8fdf-0d3512881567"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

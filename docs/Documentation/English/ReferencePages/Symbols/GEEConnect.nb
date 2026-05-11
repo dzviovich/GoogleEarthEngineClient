@@ -1,0 +1,535 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     19391,        527]
+NotebookOptionsPosition[     13689,        401]
+NotebookOutlinePosition[     14477,        427]
+CellTagsIndexPosition[     14398,        422]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["GEEConnect", "ObjectName",
+ CellID->135673584,ExpressionUUID->"602986f0-22b7-c447-beef-98d3c66b10d6"],
+
+Cell["\<\
+Authenticate with Google Earth Engine using a service account key file.\
+\>", "ExampleText",
+ CellChangeTimes->{3.984324061287752*^9},
+ CellID->341384349,ExpressionUUID->"edc78599-d51a-3948-8e6a-6dccb43f672d"],
+
+Cell[TextData[{
+ Cell["   ", "ModInfo",ExpressionUUID->"5fe84f70-5331-cd43-810e-610844f242bc"],
+ Cell[BoxData[
+  RowBox[{
+   ButtonBox["GEEConnect",
+    BaseStyle->"Link",
+    ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEConnect"], "[", 
+   StyleBox["keyFile", "TI"], "]"}]], "InlineFormula",ExpressionUUID->
+  "c9037d3d-2730-e54a-acd4-5430ceaaa44a"],
+ "\[LineSeparator]Authenticate with Google Earth Engine using a service \
+account JSON key file and store the connection in $GEEConnection.\n",
+ Cell["   ", "ModInfo",ExpressionUUID->"0ff73411-802e-b747-b81d-32395f6fb7a2"],
+ Cell[BoxData[
+  RowBox[{
+   ButtonBox["GEEConnect",
+    BaseStyle->"Link",
+    ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEConnect"], "[", 
+   RowBox[{
+    StyleBox["keyFile", "TI"], ",", 
+    StyleBox["opts", "TI"]}], "]"}]], "InlineFormula",ExpressionUUID->
+  "fc565907-ca50-ed41-b3dc-64064d969cd6"],
+ "\[LineSeparator]Authenticate with Google Earth Engine using a service \
+account JSON key file and store the connection in $GEEConnection."
+}], "Usage",
+ CellChangeTimes->{{3.9841663940107784`*^9, 3.984166394535904*^9}, {
+  3.9842614325078945`*^9, 3.9842614640676956`*^9}},
+ CellID->357121079,ExpressionUUID->"bdbc5f2b-d1c3-d142-b928-f06ab231934a"],
+
+Cell[TextData[{
+ "- ",
+ StyleBox["keyFile",
+  FontSlant->"Italic"],
+ " must be a path to a valid service account JSON key file containing \
+\"client_email\", \"private_key\", and \"project_id\" fields.\n- On success, \
+stores the connection in ",
+ StyleBox["$GEEConnection",
+  FontWeight->"Bold"],
+ " and returns a status Association with keys \"Project\", \"Status\", and \
+\"Expiry\".\n- The access token is automatically refreshed when it expires \
+(1-hour lifetime).\n- All other ",
+ StyleBox["GEE*",
+  FontWeight->"Bold"],
+ " functions require ",
+ StyleBox["GEEConnect",
+  FontWeight->"Bold"],
+ " to be called first.\n- JWT signing requires Wolfram Language 14.0+ (",
+ StyleBox["GenerateDigitalSignature",
+  FontWeight->"Bold"],
+ ")."
+}], "Notes",
+ CellChangeTimes->{{3.984261623341139*^9, 3.9842616234285088`*^9}},
+ CellID->83631907,ExpressionUUID->"6b821680-c2aa-814e-9c77-6802d27aba13"],
+
+Cell["The following options can be given: ", "Notes",
+ CellID->95653413,ExpressionUUID->"9c0169d8-a546-1647-bf55-74e8d6ed4130"],
+
+Cell[BoxData[GridBox[{
+   {Cell["   ", "ModInfo",ExpressionUUID->
+     "138b3be4-b492-5d41-a85d-454346bff695"], "\"\<Project\>\"", 
+    ButtonBox["Automatic",
+     BaseStyle->"Link"], Cell[
+    "GCP project ID; auto-detected from key file when Automatic", "TableText",
+     ExpressionUUID->"b155aa6d-c191-4c4b-b396-0c967166db07"]}
+  }]], "3ColumnTableMod",
+ CellChangeTimes->{{3.984261492191494*^9, 3.984261492191494*^9}},
+ CellID->466117390,ExpressionUUID->"847233ea-fe13-ad4a-ac8e-58777b53586b"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "See Also",
+ Cell[BoxData[
+  TemplateBox[{"SeeAlso", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell[
+       "Insert links to any related reference (function) pages.", 
+        "MoreInfoText"], BaseStyle -> "IFrameBox"]], "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "3a9b42d1-7606-9e48-a658-2d011c22939f"]
+}], "SeeAlsoSection",
+ CellID->288808888,ExpressionUUID->"bfdd2dc2-feaa-ff41-888d-386d15664296"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  ButtonBox["$GEEConnection",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/$GEEConnection"]], 
+  "InlineSeeAlsoFunction",
+  TaggingRules->{"PageType" -> "Function"},ExpressionUUID->
+  "e9f8c58d-0425-564a-81b7-1f4f64863ca5"],
+ StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+ Cell[BoxData[
+  ButtonBox["GEEGetAssetInfo",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEGetAssetInfo"]], 
+  "InlineSeeAlsoFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"e3c036a6-c6bb-4359-8a33-ea97cb0e11bb",ExpressionUUID->
+  "8568edde-d632-9a43-9d79-095781022186"],
+ StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+ Cell[BoxData[
+  ButtonBox["GEEImage",
+   BaseStyle->"Link",
+   ButtonData->"paclet:GoogleEarthEngineClient/ref/GEEImage"]], 
+  "InlineSeeAlsoFunction",
+  TaggingRules->{"PageType" -> "Function"},
+  CellTags->"e3c036a6-c6bb-4359-8a33-ea97cb0e11bb",ExpressionUUID->
+  "b6949066-dcdb-8e44-add1-2628d7339d09"]
+}], "SeeAlso",
+ CellChangeTimes->{{3.9842620758056164`*^9, 3.984262081470772*^9}, {
+  3.98426216929319*^9, 3.9842621692941895`*^9}, {3.984262199640257*^9, 
+  3.984262277689211*^9}},
+ CellID->828603987,ExpressionUUID->"0c171638-bad9-6942-bd9f-15211b919902"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "Tech Notes",
+ Cell[BoxData[
+  TemplateBox[{"TechNotes", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell["Insert links to related tech notes.", "MoreInfoText"], BaseStyle -> 
+       "IFrameBox"]], "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "27881c36-6fb4-3644-94e8-63db51250d63"]
+}], "TechNotesSection",
+ CellID->166642031,ExpressionUUID->"21bb6bcf-6a24-d048-b7cc-f60899767fd2"],
+
+Cell[TextData[ButtonBox["GEEExpressionBuilders",
+ BaseStyle->"Link",
+ ButtonData->
+  "paclet:GoogleEarthEngineClient/tutorial/GEEExpressionBuilders"]], \
+"Tutorials",
+ CellChangeTimes->{{3.9843491549558907`*^9, 3.9843491651560745`*^9}},
+ CellID->242873077,ExpressionUUID->"40bb58f8-8a4a-6d44-8b4e-7031ad021a6f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Related Guides", "MoreAboutSection",
+ CellID->263300450,ExpressionUUID->"e036bea3-0923-d142-95b6-b4fefdce8bcb"],
+
+Cell[TextData[ButtonBox["GoogleEarthEngineClient",
+ BaseStyle->"Link",
+ ButtonData->
+  "paclet:GoogleEarthEngineClient/guide/GoogleEarthEngineClient"]], \
+"MoreAbout",
+ CellChangeTimes->{{3.9842622912803917`*^9, 3.98426230193519*^9}},
+ CellID->43822471,ExpressionUUID->"6d69534b-56cd-cd41-a95d-eac0db41e74d"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "Related Links",
+ Cell[BoxData[
+  TemplateBox[{"RelatedLinks", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell[
+       "Insert links to any related page, including web pages.", 
+        "MoreInfoText"], BaseStyle -> "IFrameBox"]], "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "b7e4c93e-8672-d84c-a3c0-ab03aa33c4ed"]
+}], "RelatedLinksSection",
+ CellID->124302677,ExpressionUUID->"dc2a3d16-8092-0749-a704-46104d149b32"],
+
+Cell["XXXX", "RelatedLinks",
+ CellID->361852875,ExpressionUUID->"006ab0b1-4cc6-e645-9eea-5e00a317fede"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "Examples Initialization",
+ Cell[BoxData[
+  TemplateBox[{"ExamplesInitialization", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell[
+       "Input that is to be evaluated before any examples are run, e.g. \
+Needs[\[Ellipsis]].", "MoreInfoText"], BaseStyle -> "IFrameBox"]], 
+     "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "a26e4410-77ce-b344-9e56-28f5791a4422"]
+}], "ExamplesInitializationSection",
+ CellID->167616163,ExpressionUUID->"100449e4-ec0f-6e43-bbdc-bcdd0116c956"],
+
+Cell[BoxData[
+ RowBox[{"Needs", "[", "\"\<GoogleEarthEngineClient\>\"", 
+  "]"}]], "ExampleInitialization",
+ CellID->368274326,ExpressionUUID->"1aaa6b16-42d5-b945-9c3f-bdc1a92d5dd1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ InterpretationBox[GridBox[{
+    {
+     StyleBox[
+      RowBox[{"Basic", " ", "Examples"}], "PrimaryExamplesSection"], 
+     ButtonBox[
+      RowBox[{
+       RowBox[{"More", " ", "Examples"}], " ", "\[RightTriangle]"}],
+      BaseStyle->"ExtendedExamplesLink",
+      ButtonData:>"ExtendedExamples"]}
+   }],
+  $Line = 0; Null]], "PrimaryExamplesSection",
+ CellID->237006143,ExpressionUUID->"051f5d19-b113-7342-a9a9-e2da71381151"],
+
+Cell["Authenticate with a service account key file:", "ExampleText",
+ CellChangeTimes->{3.984261720791376*^9},
+ CellID->11907158,ExpressionUUID->"ca1fcd56-23bf-2a42-b0a1-14b10ab0e149"],
+
+Cell[BoxData[
+ RowBox[{"conn", "=", 
+  RowBox[{
+  "GEEConnect", "[", "\"\</path/to/service-account-key.json\>\"", 
+   "]"}]}]], "Input",
+ CellChangeTimes->{3.984261740298027*^9},
+ CellID->161090674,ExpressionUUID->"db8b224b-f241-ab48-83ff-7febf860f6f1"],
+
+Cell["Specify an explicit project ID:", "ExampleText",
+ CellChangeTimes->{3.984261755310364*^9},
+ CellID->567454094,ExpressionUUID->"63514426-fffd-6f42-b282-279dea5b3366"],
+
+Cell[BoxData[
+ RowBox[{"conn", "=", 
+  RowBox[{"GEEConnect", "[", 
+   RowBox[{"\"\<key.json\>\"", ",", 
+    RowBox[{"\"\<Project\>\"", "->", "\"\<my-other-project\>\""}]}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.9842617689543896`*^9, 3.9842617768649807`*^9}},
+ CellID->161309707,ExpressionUUID->"62be905c-5d0f-c140-8946-1b35d3da067e"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "More Examples",
+ Cell[BoxData[
+  TemplateBox[{"MoreExamples", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell["Extended examples in standardized sections.", "MoreInfoText"], 
+       BaseStyle -> "IFrameBox"]], "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "7666964d-f0ba-9045-96d9-77e1c063f236"]
+}], "ExtendedExamplesSection",
+ CellTags->"ExtendedExamples",
+ CellID->718106542,ExpressionUUID->"9ac1dd57-b181-f949-bf68-ef4ba4e05443"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ InterpretationBox[Cell[
+  "Possible Issues", "ExampleSection",ExpressionUUID->
+   "b60722f4-d686-8841-9ecb-0120a0d4c6d4"],
+  $Line = 0; Null]], "ExampleSection",
+ CellID->210064817,ExpressionUUID->"aeb5b0e6-5bc1-f94a-be69-1c29c3349b2e"],
+
+Cell["\<\
+The service account must have the \"Earth Engine Resource Viewer\" IAM role \
+and the Earth Engine API must be enabled in the GCP project.\
+\>", "ExampleText",
+ CellChangeTimes->{3.9842618144908543`*^9},
+ CellID->157423145,ExpressionUUID->"73d57546-a68a-1b45-8e2d-0d05befd8a1e"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Metadata", "MetadataSection",
+ CellID->3458569,ExpressionUUID->"b320a144-fbf3-1b40-8fa7-ba7a78b05fe2"],
+
+Cell[TextData[{
+ "New in: ",
+ Cell["14.3", "HistoryData",
+  CellTags->"New",ExpressionUUID->"06af5240-6923-3843-8b49-e0821dd13758"],
+ " | Modified in: ",
+ Cell[" ", "HistoryData",
+  CellTags->"Modified",ExpressionUUID->"92f07e78-fc3b-d148-8b5b-7e792a7fa404"],
+ " | Obsolete in: ",
+ Cell[" ", "HistoryData",
+  CellTags->"Obsolete",ExpressionUUID->"30573c55-3401-2d40-b81f-7486853bb4a0"]
+}], "History",
+ CellChangeTimes->{{3.864923683926749*^9, 3.864923685610183*^9}, {
+  3.984261989418049*^9, 3.984261992072607*^9}, {3.9843491728009415`*^9, 
+  3.9843491734734764`*^9}},
+ CellID->332627011,ExpressionUUID->"85620624-3648-3f49-b87c-3ef2937149d9"],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "Categorization",
+ Cell[BoxData[
+  TemplateBox[{"Metadata", 
+    Cell[
+     BoxData[
+      FrameBox[
+       Cell[
+       "Metadata such as page URI, context, and type of documentation page.", 
+        "MoreInfoText"], BaseStyle -> "IFrameBox"]], "MoreInfoTextOuter"]},
+   "MoreInfoOpenerButtonTemplate"]],ExpressionUUID->
+  "9aa0958d-3a9d-2549-bc76-226ecc6d8369"]
+}], "CategorizationSection",
+ CellID->32129655,ExpressionUUID->"2de451e3-99a0-4f4e-9f00-2a5abce5ce28"],
+
+Cell["Symbol", "Categorization",
+ CellLabel->"Entity Type",
+ CellID->140695695,ExpressionUUID->"8074fe8b-0ff1-174a-b04e-bb56d07d446d"],
+
+Cell["GoogleEarthEngineClient", "Categorization",
+ CellLabel->"Paclet Name",
+ CellID->603751558,ExpressionUUID->"582b5864-b7ee-6844-90d9-c836d0d9fd88"],
+
+Cell["GoogleEarthEngineClient", "Categorization",
+ CellChangeTimes->{3.9842616341640987`*^9},
+ CellLabel->"Context",
+ CellID->57752435,ExpressionUUID->"1e2ff2ca-e9cc-4c49-af92-4af06236e459"],
+
+Cell["GoogleEarthEngineClient/ref/GEEConnect", "Categorization",
+ CellLabel->"URI",
+ CellID->186820514,ExpressionUUID->"546c38f6-47d3-4a4a-8ead-e685744cd815"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Keywords", "KeywordsSection",
+ CellID->74622067,ExpressionUUID->"3b60ce8a-a2db-1b47-9fe6-e588c3be22a0"],
+
+Cell["\<\
+google earth engine, authentication, service account, connect, oauth, jwt\
+\>", "Keywords",
+ CellChangeTimes->{3.9842620502623005`*^9},
+ CellID->300127788,ExpressionUUID->"8fe162af-a662-2047-8344-2d625278ff14"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Syntax Templates", "TemplatesSection",
+ CellID->213954773,ExpressionUUID->"64e2ce11-d070-e04b-9bd5-d9843bb2f461"],
+
+Cell[BoxData[""], "Template",
+ CellLabel->"Additional Function Template",
+ CellID->306515682,ExpressionUUID->"e7f13d2a-71e1-d848-a839-07543d58beb0"],
+
+Cell[BoxData[""], "Template",
+ CellLabel->"Arguments Pattern",
+ CellID->165482862,ExpressionUUID->"11ca6c1a-2745-3c4e-b524-0666fe4f5b3d"],
+
+Cell[BoxData[""], "Template",
+ CellLabel->"Local Variables",
+ CellID->77658314,ExpressionUUID->"564db3ea-4c29-7546-9203-f11a0e01307d"],
+
+Cell[BoxData[""], "Template",
+ CellLabel->"Color Equal Signs",
+ CellID->353366832,ExpressionUUID->"ed70b702-4328-624f-b689-c7dd5e72b2f8"]
+}, Closed]]
+}, Open  ]]
+},
+WindowSize->{2568, 997.5},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+TaggingRules-><|"Paclet" -> "GoogleEarthEngineClient"|>,
+CellContext->"Global`",
+FrontEndVersion->"14.3 for Microsoft Windows (64-bit) (July 8, 2025)",
+StyleDefinitions->FrontEnd`FileName[{"Wolfram"}, "FunctionPageStylesExt.nb", 
+  CharacterEncoding -> "UTF-8"],
+ExpressionUUID->"736fc63f-4bfe-a94f-b97a-22e7553174a8"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{
+ "ExtendedExamples"->{
+  Cell[9558, 277, 487, 13, 56, "ExtendedExamplesSection",ExpressionUUID->"9ac1dd57-b181-f949-bf68-ef4ba4e05443",
+   CellTags->"ExtendedExamples",
+   CellID->718106542]}
+ }
+*)
+(*CellTagsIndex
+CellTagsIndex->{
+ {"ExtendedExamples", 14205, 415}
+ }
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 107, 1, 72, "ObjectName",ExpressionUUID->"602986f0-22b7-c447-beef-98d3c66b10d6",
+ CellID->135673584],
+Cell[686, 25, 219, 4, 23, "ExampleText",ExpressionUUID->"edc78599-d51a-3948-8e6a-6dccb43f672d",
+ CellID->341384349],
+Cell[908, 31, 1242, 26, 152, "Usage",ExpressionUUID->"bdbc5f2b-d1c3-d142-b928-f06ab231934a",
+ CellID->357121079],
+Cell[2153, 59, 894, 23, 130, "Notes",ExpressionUUID->"6b821680-c2aa-814e-9c77-6802d27aba13",
+ CellID->83631907],
+Cell[3050, 84, 127, 1, 26, "Notes",ExpressionUUID->"9c0169d8-a546-1647-bf55-74e8d6ed4130",
+ CellID->95653413],
+Cell[3180, 87, 497, 9, 37, "3ColumnTableMod",ExpressionUUID->"847233ea-fe13-ad4a-ac8e-58777b53586b",
+ CellID->466117390]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3714, 101, 458, 13, 38, "SeeAlsoSection",ExpressionUUID->"bfdd2dc2-feaa-ff41-888d-386d15664296",
+ CellID->288808888],
+Cell[4175, 116, 1289, 30, 18, "SeeAlso",ExpressionUUID->"0c171638-bad9-6942-bd9f-15211b919902",
+ CellID->828603987]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5501, 151, 435, 12, 39, "TechNotesSection",ExpressionUUID->"21bb6bcf-6a24-d048-b7cc-f60899767fd2",
+ CellID->166642031],
+Cell[5939, 165, 311, 6, 17, "Tutorials",ExpressionUUID->"40bb58f8-8a4a-6d44-8b4e-7031ad021a6f",
+ CellID->242873077]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6287, 176, 117, 1, 37, "MoreAboutSection",ExpressionUUID->"e036bea3-0923-d142-95b6-b4fefdce8bcb",
+ CellID->263300450],
+Cell[6407, 179, 308, 6, 17, "MoreAbout",ExpressionUUID->"6d69534b-56cd-cd41-a95d-eac0db41e74d",
+ CellID->43822471]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6752, 190, 472, 13, 38, "RelatedLinksSection",ExpressionUUID->"dc2a3d16-8092-0749-a704-46104d149b32",
+ CellID->124302677],
+Cell[7227, 205, 103, 1, 17, "RelatedLinks",ExpressionUUID->"006ab0b1-4cc6-e645-9eea-5e00a317fede",
+ CellID->361852875]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7367, 211, 530, 14, 68, "ExamplesInitializationSection",ExpressionUUID->"100449e4-ec0f-6e43-bbdc-bcdd0116c956",
+ CellID->167616163],
+Cell[7900, 227, 182, 3, 45, "ExampleInitialization",ExpressionUUID->"1aaa6b16-42d5-b945-9c3f-bdc1a92d5dd1",
+ CellID->368274326]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8119, 235, 442, 12, 69, "PrimaryExamplesSection",ExpressionUUID->"051f5d19-b113-7342-a9a9-e2da71381151",
+ CellID->237006143],
+Cell[8564, 249, 184, 2, 23, "ExampleText",ExpressionUUID->"ca1fcd56-23bf-2a42-b0a1-14b10ab0e149",
+ CellID->11907158],
+Cell[8751, 253, 253, 6, 25, "Input",ExpressionUUID->"db8b224b-f241-ab48-83ff-7febf860f6f1",
+ CellID->161090674],
+Cell[9007, 261, 171, 2, 23, "ExampleText",ExpressionUUID->"63514426-fffd-6f42-b282-279dea5b3366",
+ CellID->567454094],
+Cell[9181, 265, 340, 7, 25, "Input",ExpressionUUID->"62be905c-5d0f-c140-8946-1b35d3da067e",
+ CellID->161309707]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9558, 277, 487, 13, 56, "ExtendedExamplesSection",ExpressionUUID->"9ac1dd57-b181-f949-bf68-ef4ba4e05443",
+ CellTags->"ExtendedExamples",
+ CellID->718106542],
+Cell[CellGroupData[{
+Cell[10070, 294, 251, 5, 32, "ExampleSection",ExpressionUUID->"aeb5b0e6-5bc1-f94a-be69-1c29c3349b2e",
+ CellID->210064817],
+Cell[10324, 301, 288, 5, 39, "ExampleText",ExpressionUUID->"73d57546-a68a-1b45-8e2d-0d05befd8a1e",
+ CellID->157423145]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[10661, 312, 108, 1, 71, "MetadataSection",ExpressionUUID->"b320a144-fbf3-1b40-8fa7-ba7a78b05fe2",
+ CellID->3458569],
+Cell[10772, 315, 643, 14, 25, "History",ExpressionUUID->"85620624-3648-3f49-b87c-3ef2937149d9",
+ CellID->332627011],
+Cell[CellGroupData[{
+Cell[11440, 333, 483, 13, 20, "CategorizationSection",ExpressionUUID->"2de451e3-99a0-4f4e-9f00-2a5abce5ce28",
+ CellID->32129655],
+Cell[11926, 348, 134, 2, 34, "Categorization",ExpressionUUID->"8074fe8b-0ff1-174a-b04e-bb56d07d446d",
+ CellID->140695695],
+Cell[12063, 352, 151, 2, 34, "Categorization",ExpressionUUID->"582b5864-b7ee-6844-90d9-c836d0d9fd88",
+ CellID->603751558],
+Cell[12217, 356, 190, 3, 34, "Categorization",ExpressionUUID->"1e2ff2ca-e9cc-4c49-af92-4af06236e459",
+ CellID->57752435],
+Cell[12410, 361, 158, 2, 34, "Categorization",ExpressionUUID->"546c38f6-47d3-4a4a-8ead-e685744cd815",
+ CellID->186820514]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12605, 368, 109, 1, 30, "KeywordsSection",ExpressionUUID->"3b60ce8a-a2db-1b47-9fe6-e588c3be22a0",
+ CellID->74622067],
+Cell[12717, 371, 220, 4, 20, "Keywords",ExpressionUUID->"8fe162af-a662-2047-8344-2d625278ff14",
+ CellID->300127788]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12974, 380, 119, 1, 30, "TemplatesSection",ExpressionUUID->"64e2ce11-d070-e04b-9bd5-d9843bb2f461",
+ CellID->213954773],
+Cell[13096, 383, 148, 2, 70, "Template",ExpressionUUID->"e7f13d2a-71e1-d848-a839-07543d58beb0",
+ CellID->306515682],
+Cell[13247, 387, 137, 2, 70, "Template",ExpressionUUID->"11ca6c1a-2745-3c4e-b524-0666fe4f5b3d",
+ CellID->165482862],
+Cell[13387, 391, 134, 2, 70, "Template",ExpressionUUID->"564db3ea-4c29-7546-9203-f11a0e01307d",
+ CellID->77658314],
+Cell[13524, 395, 137, 2, 70, "Template",ExpressionUUID->"ed70b702-4328-624f-b689-c7dd5e72b2f8",
+ CellID->353366832]
+}, Closed]]
+}, Open  ]]
+}
+]
+*)
+

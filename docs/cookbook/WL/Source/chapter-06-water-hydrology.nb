@@ -1,0 +1,4222 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[    173651,       4212]
+NotebookOptionsPosition[    157073,       3949]
+NotebookOutlinePosition[    157478,       3965]
+CellTagsIndexPosition[    157435,       3962]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Chapter 6: Water Resources and Hydrology", "Title",ExpressionUUID->"5ba8ec8f-5e58-6d46-bc21-38faf9f4d7d9"],
+
+Cell["\<\
+Water is the most dynamic surface feature visible from space. Lakes expand \
+and contract with the seasons, rivers flood and recede, glaciers retreat \
+decade over decade, and reservoirs respond to human management decisions in \
+near real time. Satellite remote sensing provides the only practical means of \
+monitoring these processes at regional to global scales, and Google Earth \
+Engine hosts the key datasets -- Sentinel-2 multispectral imagery, Sentinel-1 \
+SAR, MODIS snow products, CHIRPS rainfall, and the JRC Global Surface Water \
+dataset -- that make this monitoring possible.\
+\>", "Text",ExpressionUUID->"7e4a3c90-5b98-ba4c-9682-8f906c59faee"],
+
+Cell[TextData[{
+ "This chapter walks through the full spectrum of hydrological analysis: \
+detecting water bodies with spectral indices, tracking reservoir storage over \
+time, and mapping floods with radar. It also covers snow and ice monitoring, \
+precipitation analysis, and water quality estimation from optical imagery. \
+Every example uses the ",
+ Cell["GoogleEarthEngineClient", "InlineCode",ExpressionUUID->
+  "565edb02-e78a-4f48-9759-568308f078d8"],
+ " paclet to build server-side processing pipelines and then brings the \
+results into Wolfram Language for analysis, visualization, and modeling."
+}], "Text",ExpressionUUID->"fb4ece1d-2053-144f-8723-dd7241bd6bbb"],
+
+Cell[TextData[{
+ StyleBox["Prerequisite:",
+  FontWeight->Bold],
+ " Authenticate per Section 1.3 and load the paclet with ",
+ Cell["Needs[\"GoogleEarthEngineClient`\"]", "InlineCode",ExpressionUUID->
+  "16770144-48ed-024f-8bac-3405e7039855"],
+ "."
+}], "Text",ExpressionUUID->"a5a42c20-2ff2-104d-97c1-7a2f64b56522"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"47176136-0e5b-024d-9735-595e89019583"],
+
+Cell[CellGroupData[{
+
+Cell["6.1 Water Body Detection", "Chapter",ExpressionUUID->"7b9b42c2-7cee-e848-9d8b-ee4a516e52cb"],
+
+Cell[CellGroupData[{
+
+Cell["The Physics of Water in Satellite Imagery", "Section",ExpressionUUID->"8094d843-a6fa-fe4f-89e6-9f8dcf5f0b05"],
+
+Cell["\<\
+Water has a distinctive spectral signature: it reflects moderately in the \
+visible green wavelengths and absorbs strongly in the near-infrared (NIR) and \
+short-wave infrared (SWIR). This contrast is the foundation of every \
+water-detection index used in remote sensing.\
+\>", "Text",ExpressionUUID->"e9d6b9c0-1501-c249-bd95-291103ff26af"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["NDWI -- Normalized Difference Water Index", "Section",ExpressionUUID->"840b035f-03cd-294c-8778-06fbd2ece109"],
+
+Cell["\<\
+The NDWI exploits the contrast between green reflectance (Sentinel-2 Band 3) \
+and NIR absorption (Band 8). Water pixels yield positive NDWI values; \
+vegetation and soil yield negative values. Note that the same index applied \
+to vegetation canopy water content is covered in Section 5.1.3; here the \
+focus is on surface water detection.\
+\>", "Text",ExpressionUUID->"70de5398-5907-ae4e-ab51-656161aec133"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Define", " ", "a", " ", "region", " ", "of", " ", 
+     RowBox[{"interest", ":", " ", 
+      RowBox[{"Lake", " ", "Balaton"}]}]}], ",", " ", "Hungary"}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"bbox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"17.6", ",", " ", "46.7", ",", " ", "18.2", ",", " ", "47.0"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Build", " ", "a", " ", "cloud"}], "-", 
+     RowBox[{"filtered", " ", "Sentinel"}], "-", 
+     RowBox[{
+     "2", " ", "composite", " ", "for", " ", "summer", " ", "2024"}]}], " ", 
+    "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"s2Composite", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-06-01\>\"", ",", " ", "\"\<2024-09-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "bbox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "10"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Compute", " ", 
+     RowBox[{"NDWI", ":", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"Green", " ", "-", " ", "NIR"}], ")"}], " ", "/", " ", 
+       RowBox[{"(", 
+        RowBox[{"Green", " ", "+", " ", "NIR"}], ")"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ndwi", " ", "=", " ", 
+     RowBox[{"s2Composite", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Visualize", ":", " ", "blue"}], " ", "=", " ", 
+      RowBox[{"water", " ", 
+       RowBox[{"(", "positive", ")"}]}]}], ",", " ", 
+     RowBox[{"brown", " ", "=", " ", 
+      RowBox[{"land", " ", 
+       RowBox[{"(", "negative", ")"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{"ndwiImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"bbox", ",", " ", "ndwi", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", 
+          RowBox[{"-", "0.5"}]}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "0.5"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#8B4513\>\"", ",", " ", "\"\<#FFFFFF\>\"", ",", 
+            " ", "\"\<#0000FF\>\""}], "}"}]}]}], "|>"}]}]}], 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"866c4531-620e-ae47-9e4f-\
+39bf0ba9b73d"],
+
+Cell["\<\
+To extract only water pixels, threshold at zero and apply a self-mask. Pixels \
+where NDWI <= 0 are masked out, leaving only water.\
+\>", "Text",ExpressionUUID->"f839c915-2511-d347-8923-87dc7af45494"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"waterMask", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"ndwi", " ", "//", "\n", "  ", 
+      RowBox[{"GEEGreaterThan", "[", "0", "]"}]}], " ", "//", "\n", "  ", 
+     "GEESelfMask"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"waterImage", " ", "=", " ", 
+  RowBox[{"GEEComputePixels", "[", 
+   RowBox[{"bbox", ",", " ", "waterMask", ",", "\n", "  ", 
+    RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+     RowBox[{"<|", 
+      RowBox[{
+       RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+       RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+       RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+        RowBox[{"{", "\"\<#0000FF\>\"", "}"}]}]}], "|>"}]}]}], 
+   "]"}]}]}], "Input",ExpressionUUID->"55e1db0a-2219-f945-acd5-5423221adb3c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["MNDWI -- Modified NDWI for Urban Areas", "Section",ExpressionUUID->"dcf8d4a4-bf19-7944-b309-bfbf541d23cb"],
+
+Cell["\<\
+In urban areas, built-up surfaces (concrete, asphalt) can produce false \
+positives with standard NDWI because they also reflect in the NIR. The \
+Modified NDWI substitutes SWIR (Band 11) for NIR, which better separates \
+water from built-up surfaces because SWIR reflectance is higher for dry \
+built-up materials and lower for water.\
+\>", "Text",ExpressionUUID->"6c6b2904-edf0-754d-8622-8cc2d6eb7d00"],
+
+Cell["\<\
+Bangkok's dense mix of canals and buildings provides an ideal test case for \
+MNDWI's ability to separate water from built-up surfaces.\
+\>", "Text",ExpressionUUID->"18317470-d448-1b47-9dfd-ed34b834258b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Region", ":", " ", "Bangkok"}], ",", " ", 
+    RowBox[{
+     RowBox[{"Thailand", " ", "--"}], " ", "urban", " ", "waterways", " ", 
+     "mixed", " ", "with", " ", "buildings"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"bkkBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{
+      "100.45", ",", " ", "13.65", ",", " ", "100.65", ",", " ", "13.85"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"s2Bangkok", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-04-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "bkkBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "15"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Standard", " ", "NDWI"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ndwiBangkok", " ", "=", " ", 
+     RowBox[{"s2Bangkok", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Modified", " ", 
+     RowBox[{"NDWI", ":", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"Green", " ", "-", " ", "SWIR"}], ")"}], " ", "/", " ", 
+       RowBox[{"(", 
+        RowBox[{"Green", " ", "+", " ", "SWIR"}], ")"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"mndwiBangkok", " ", "=", " ", 
+     RowBox[{"s2Bangkok", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B11\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Compare", " ", "side", " ", "by", " ", "side"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ndwiImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"bkkBox", ",", " ", "ndwiBangkok", ",", "\n", "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", 
+           RowBox[{"-", "0.5"}]}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "0.5"}], ",", "\n", "    ", 
+          RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+           RowBox[{"{", 
+            
+            RowBox[{"\"\<#8B4513\>\"", ",", " ", "\"\<#FFFFFF\>\"", ",", 
+             " ", "\"\<#0000FF\>\""}], "}"}]}]}], "|>"}]}]}], "]"}]}], ";"}], 
+   "\n", "\n", 
+   RowBox[{
+    RowBox[{"mndwiImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"bkkBox", ",", " ", "mndwiBangkok", ",", "\n", "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", 
+           RowBox[{"-", "0.5"}]}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "0.5"}], ",", "\n", "    ", 
+          RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+           RowBox[{"{", 
+            
+            RowBox[{"\"\<#8B4513\>\"", ",", " ", "\"\<#FFFFFF\>\"", ",", 
+             " ", "\"\<#0000FF\>\""}], "}"}]}]}], "|>"}]}]}], "]"}]}], ";"}], 
+   "\n", "\n", 
+   RowBox[{"GraphicsRow", "[", 
+    RowBox[{"{", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Labeled", "[", 
+       RowBox[{
+        RowBox[{"Image", "[", 
+         RowBox[{"ndwiImg", ",", " ", 
+          RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+        " ", "\"\<NDWI\>\"", ",", " ", "Top"}], "]"}], ",", "\n", "  ", 
+      RowBox[{"Labeled", "[", 
+       RowBox[{
+        RowBox[{"Image", "[", 
+         RowBox[{"mndwiImg", ",", " ", 
+          RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+        " ", "\"\<MNDWI\>\"", ",", " ", "Top"}], "]"}]}], "\n", "}"}], 
+    "]"}]}]}]], "Input",ExpressionUUID->"95abe7d9-6827-5343-8b97-\
+9acb966038fe"],
+
+Cell["\<\
+In the output, the MNDWI image will show cleaner water boundaries along the \
+Chao Phraya River, with fewer false positives from adjacent buildings.\
+\>", "Text",ExpressionUUID->"1b49e1d9-4a05-6040-88cb-7ec39d8d6ff2"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["JRC Global Surface Water -- 38 Years of Water History", "Section",ExpressionUUID->"5768e52e-b2f7-7945-b92b-be45e844a705"],
+
+Cell[TextData[{
+ "The JRC Global Surface Water dataset provides a pre-computed, pixel-level \
+history of surface water occurrence from 1984 to present at 30-meter \
+resolution. The ",
+ Cell["occurrence", "InlineCode",ExpressionUUID->
+  "049926f1-4241-a840-b00d-873d798d8b2e"],
+ " band encodes the percentage of time each pixel was classified as water, \
+making it straightforward to separate permanent water bodies from seasonal or \
+ephemeral ones."
+}], "Text",ExpressionUUID->"f7fa153c-ed9f-a947-8eba-c045814025e8"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"JRC", " ", "Global", " ", "Surface", " ", "Water"}], " ", "*)"}], 
+  "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"jrcWater", " ", "=", " ", 
+     RowBox[{
+     "GEELoadImage", "[", "\"\<JRC/GSW1_4/GlobalSurfaceWater\>\"", "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Lake", " ", "Chad", " ", 
+     RowBox[{"region", " ", "--"}], " ", "dramatic", " ", "shrinkage", " ", 
+     "over", " ", "decades"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"chadBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"13.5", ",", " ", "12.5", ",", " ", "15.5", ",", " ", "14.0"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Occurrence", " ", 
+     RowBox[{"band", ":", " ", 
+      RowBox[{"0", "-", 
+       RowBox[{"100", " ", 
+        RowBox[{"(", 
+         RowBox[{
+         "%", " ", "of", " ", "time", " ", "pixel", " ", "was", " ", 
+          "water"}], ")"}]}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"occurrence", " ", "=", " ", 
+     RowBox[{"jrcWater", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<occurrence\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"occurrenceImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"chadBox", ",", " ", "occurrence", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "100"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#FFFFFF\>\"", ",", " ", "\"\<#ADD8E6\>\"", ",", 
+            " ", "\"\<#0000FF\>\"", ",", " ", "\"\<#00008B\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"08be6988-f420-4e47-\
+87c8-ebb3ec899c40"],
+
+Cell["\<\
+Classify water into permanence categories using threshold logic.\
+\>", "Text",ExpressionUUID->"a89c7e2d-0821-df44-93c1-a6ce2d4a8244"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Permanent", " ", 
+    RowBox[{"water", ":", " ", 
+     RowBox[{"present", " ", ">", " ", 
+      RowBox[{"80", "%", " ", "of", " ", "the", " ", "time"}]}]}]}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"permanentWater", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"occurrence", " ", "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "80", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Seasonal", " ", 
+     RowBox[{"water", ":", " ", 
+      RowBox[{
+       RowBox[{"present", " ", "20"}], "-", 
+       RowBox[{"80", "%", " ", "of", " ", "the", " ", "time"}]}]}]}], " ", 
+    "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"seasonalWater", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"occurrence", " ", "//", "\n", "  ", 
+        RowBox[{"GEEGreaterThan", "[", "20", "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEAnd", "[", 
+        RowBox[{"occurrence", " ", "//", " ", 
+         RowBox[{"GEELessThan", "[", "80", "]"}]}], "]"}]}], " ", "//", "\n", 
+      "  ", "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Seasonality", " ", 
+     RowBox[{"band", ":", " ", 
+      RowBox[{
+      "number", " ", "of", " ", "months", " ", "water", " ", "is", " ", 
+       "present", " ", "per", " ", "year"}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"seasonality", " ", "=", " ", 
+     RowBox[{"jrcWater", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<seasonality\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"seasonalityImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"chadBox", ",", " ", "seasonality", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "12"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#FFFFFF\>\"", ",", " ", "\"\<#87CEEB\>\"", ",", 
+            " ", "\"\<#4169E1\>\"", ",", " ", "\"\<#00008B\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"fac40e85-70e6-3e40-\
+8b38-2f901f021ba4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Extracting Water Statistics at a Point", "Section",ExpressionUUID->"f487d4e4-909b-3e41-a6b4-935796065891"],
+
+Cell[TextData[{
+ "Use ",
+ Cell["GEEIdentify", "InlineCode",ExpressionUUID->
+  "f532dfec-87a6-d74f-b98e-27cca7d85aad"],
+ " to query the JRC dataset at a specific location and retrieve the \
+occurrence value directly."
+}], "Text",ExpressionUUID->"930e695f-ac91-e047-9c0c-32541653b73b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Query", " ", "Lake", " ", "Chad", " ", "center"}], " ", "*)"}], 
+  "\n", 
+  RowBox[{
+   RowBox[{"GEEIdentify", "[", 
+    RowBox[{
+     RowBox[{"GeoPosition", "[", 
+      RowBox[{"{", 
+       RowBox[{"13.2", ",", " ", "14.1"}], "}"}], "]"}], ",", " ", 
+     "occurrence"}], "]"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Returns", ":", " ", 
+     RowBox[{"<|", 
+      RowBox[{
+       RowBox[{"\"\<Position\>\"", " ", "->", " ", "..."}], ",", " ", 
+       RowBox[{"\"\<Values\>\"", " ", "->", " ", 
+        RowBox[{"{", "42", "}"}]}], ",", " ", 
+       RowBox[{"\"\<Bands\>\"", " ", "->", " ", 
+        RowBox[{"{", "\"\<occurrence\>\"", "}"}]}], ",", " ", "..."}], 
+      "|>"}]}], " ", "*)"}], "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"42", "%", " ", "occurrence", " ", "indicates", " ", 
+     RowBox[{"seasonal", "/", "declining"}], " ", "water"}], " ", 
+    "*)"}]}]}]], "Input",ExpressionUUID->"ceac8083-d39a-2942-9878-\
+2569fdafb196"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"5c748a3b-5057-1845-af23-b81d5ef87829"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.2 Reservoir and Lake Monitoring", "Chapter",ExpressionUUID->"6aada422-f1aa-3f47-bb45-ca198aa34b4e"],
+
+Cell[CellGroupData[{
+
+Cell["Tracking Reservoir Surface Area Over Time", "Section",ExpressionUUID->"d9c2a107-04a3-3c47-be8b-43f1dffa5424"],
+
+Cell["\<\
+Reservoir surface area is a practical proxy for storage volume. By computing \
+monthly NDWI composites and counting water pixels, you can build a time \
+series of reservoir extent.\
+\>", "Text",ExpressionUUID->"bc999ae0-1e08-6048-991b-f44496df2976"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Target", ":", " ", 
+     RowBox[{"Lake", " ", "Mead"}]}], ",", " ", 
+    RowBox[{"Nevada", "/", "Arizona"}], ",", " ", "USA"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"meadBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "114.9"}], ",", " ", "35.9", ",", " ", 
+       RowBox[{"-", "114.3"}], ",", " ", "36.4"}], "}"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"meadGeom", " ", "=", " ", 
+     RowBox[{"GEEGeometry", "[", "meadBox", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Function", " ", "to", " ", "compute", " ", "water", " ", "area", " ", 
+     "for", " ", "a", " ", "single", " ", "month"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"reservoirAreaForMonth", "[", 
+     RowBox[{"year_Integer", ",", " ", "month_Integer"}], "]"}], " ", ":=", 
+    " ", 
+    RowBox[{"Module", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+       "startDate", ",", " ", "endDate", ",", " ", "composite", ",", " ", 
+        "waterMask", ",", " ", "areaImage", ",", " ", "stats"}], "}"}], ",", 
+      "\n", "\n", "  ", 
+      RowBox[{
+       RowBox[{"startDate", " ", "=", " ", 
+        RowBox[{"DateString", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+          " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "  ", 
+       RowBox[{"endDate", " ", "=", " ", 
+        RowBox[{"DateString", "[", 
+         RowBox[{
+          RowBox[{"DatePlus", "[", 
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+            " ", 
+            RowBox[{"{", 
+             RowBox[{"1", ",", " ", "\"\<Month\>\""}], "}"}]}], "]"}], ",", 
+          " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{
+         RowBox[{"Monthly", " ", "Sentinel"}], "-", 
+         RowBox[{"2", " ", "composite"}]}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"composite", " ", "=", "\n", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", 
+             "]"}], " ", "//", "\n", "      ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+           "\n", "      ", 
+           RowBox[{"GEEFilterBounds", "[", "meadBox", "]"}]}], " ", "//", 
+          "\n", "      ", 
+          RowBox[{"GEEFilterProperty", "[", 
+           
+           RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+            " ", "\"\<LessThan\>\"", ",", " ", "30"}], "]"}]}], " ", "//", 
+         "\n", "      ", "GEEMedian"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"NDWI", " ", "water", " ", "mask"}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"waterMask", " ", "=", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"composite", " ", "//", "\n", "    ", 
+           RowBox[{"GEENormalizedDifference", "[", 
+            RowBox[{"{", 
+             RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}], 
+          " ", "//", "\n", "    ", 
+          RowBox[{"GEEGreaterThan", "[", "0", "]"}]}], " ", "//", "\n", 
+         "    ", "GEESelfMask"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{
+         RowBox[{
+         "Multiply", " ", "water", " ", "mask", " ", "by", " ", "pixel", " ", 
+          "area"}], ",", " ", 
+         RowBox[{"then", " ", "sum"}]}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"areaImage", " ", "=", " ", 
+        RowBox[{"waterMask", " ", "//", " ", 
+         RowBox[{"GEEMultiply", "[", 
+          RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";", "\n", "\n", 
+       "  ", 
+       RowBox[{"stats", " ", "=", " ", 
+        RowBox[{"GEECompute", "[", "\n", "    ", 
+         RowBox[{"areaImage", " ", "//", " ", 
+          RowBox[{"GEEReduceRegion", "[", 
+           RowBox[{"meadGeom", ",", " ", "\"\<sum\>\"", ",", " ", "30"}], 
+           "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"Return", " ", "date", " ", "and", " ", "area", " ", "in", " ", 
+         RowBox[{"km", "^", "2."}], "\n", "     ", "The", " ", "band", " ", 
+         "is", " ", "named", " ", "\"\<nd\>\"", " ", "because", " ", 
+         "GEENormalizedDifference", " ", "outputs", "\n", "     ", "a", " ", 
+         "single", " ", "band", " ", "with", " ", "that", " ", "name", " ", 
+         "by", " ", 
+         RowBox[{"default", "."}]}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"DateObject", "[", 
+          RowBox[{"{", 
+           RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], "]"}], ",",
+          "\n", "   ", 
+         RowBox[{
+          RowBox[{"Lookup", "[", 
+           RowBox[{"stats", ",", " ", "\"\<nd\>\"", ",", " ", "0"}], "]"}], 
+          " ", "/", " ", "1.0*^6"}]}], "}"}]}]}], "\n", "]"}]}]}]}]], "Input",\
+ExpressionUUID->"c6ce7c2a-bd20-5743-b35a-b77051944aab"],
+
+Cell["Build a multi-year time series and visualize.", "Text",ExpressionUUID->"e3c61fd7-aa3a-dc42-88e1-662662cba78d"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Compute", " ", "monthly", " ", "areas", " ", "from", " ", "2020", " ", 
+    "through", " ", "2024"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"monthlyData", " ", "=", " ", 
+     RowBox[{"Flatten", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Table", "[", "\n", "    ", 
+         RowBox[{
+          RowBox[{"reservoirAreaForMonth", "[", 
+           RowBox[{"y", ",", " ", "m"}], "]"}], ",", "\n", "    ", 
+          RowBox[{"{", 
+           RowBox[{"y", ",", " ", "2020", ",", " ", "2024"}], "}"}], ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"m", ",", " ", "1", ",", " ", "12"}], "}"}]}], "\n", "  ", 
+         "]"}], " ", "//", " ", 
+        RowBox[{"DeleteCases", "[", 
+         RowBox[{"{", 
+          RowBox[{"_", ",", " ", 
+           RowBox[{"0", " ", "|", " ", "0."}]}], "}"}], "]"}]}], ",", "\n", 
+       "  ", "1"}], "\n", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Build", " ", "a", " ", "TimeSeries", " ", "and", " ", "plot"}], 
+    " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"areaSeries", " ", "=", " ", 
+     RowBox[{"TimeSeries", "[", "monthlyData", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"DateListPlot", "[", 
+    RowBox[{"areaSeries", ",", "\n", "  ", 
+     RowBox[{
+     "PlotLabel", " ", "->", 
+      " ", "\"\<Lake Mead Surface Area (2020-2024)\>\""}], ",", "\n", "  ", 
+     RowBox[{"FrameLabel", " ", "->", " ", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Date\>\"", ",", 
+        " ", "\"\<Surface Area (km\\[Superscript]2)\>\""}], "}"}]}], ",", 
+     "\n", "  ", 
+     RowBox[{"PlotStyle", " ", "->", " ", "Blue"}], ",", "\n", "  ", 
+     RowBox[{"Filling", " ", "->", " ", "Axis"}], ",", "\n", "  ", 
+     RowBox[{"FillingStyle", " ", "->", " ", 
+      RowBox[{"Directive", "[", 
+       RowBox[{
+        RowBox[{"Opacity", "[", "0.2", "]"}], ",", " ", "Blue"}], "]"}]}], ",",
+      "\n", "  ", 
+     RowBox[{"GridLines", " ", "->", " ", "Automatic"}], ",", "\n", "  ", 
+     RowBox[{"ImageSize", " ", "->", " ", "Large"}]}], "]"}]}]}]], "Input",Exp\
+ressionUUID->"2411e203-67a7-7d41-afa7-a138c84b1449"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Before/After Drought Comparison", "Section",ExpressionUUID->"f34dcc9f-43da-cc4e-8e76-b0197b958a5e"],
+
+Cell["\<\
+A direct visual comparison between wet and dry periods can be more compelling \
+than a time series chart. This example compares Lake Mead in a wet year \
+versus a drought year.\
+\>", "Text",ExpressionUUID->"da2f0a6e-9ea2-2045-97e0-1dc17a55f9c5"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Wet", " ", 
+    RowBox[{"period", ":", " ", 
+     RowBox[{"spring", " ", "2019"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"wetComposite", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2019-04-01\>\"", ",", " ", "\"\<2019-07-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "meadBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "20"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"wetWater", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"wetComposite", " ", "//", "\n", "  ", 
+        RowBox[{"GEENormalizedDifference", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}], " ",
+        "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "0", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Dry", " ", 
+     RowBox[{"period", ":", " ", 
+      RowBox[{"summer", " ", "2022", " ", 
+       RowBox[{"(", 
+        RowBox[{"historic", " ", "low"}], ")"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"dryComposite", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2022-06-01\>\"", ",", " ", "\"\<2022-09-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "meadBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "20"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"dryWater", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"dryComposite", " ", "//", "\n", "  ", 
+        RowBox[{"GEENormalizedDifference", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}], " ",
+        "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "0", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Render", " ", "both"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"visPar", " ", "=", " ", 
+     RowBox[{"<|", 
+      RowBox[{
+       RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+       RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", " ", 
+       RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+        RowBox[{"{", "\"\<#0000FF\>\"", "}"}]}]}], "|>"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"wetImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"meadBox", ",", " ", "wetWater", ",", " ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", "visPar"}]}], "]"}]}], 
+    ";"}], "\n", 
+   RowBox[{
+    RowBox[{"dryImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"meadBox", ",", " ", "dryWater", ",", " ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", "visPar"}]}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"GraphicsRow", "[", 
+    RowBox[{
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Labeled", "[", 
+        RowBox[{
+         RowBox[{"Image", "[", 
+          RowBox[{"wetImg", ",", " ", 
+           RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+         " ", "\"\<Spring 2019\>\"", ",", " ", "Top"}], "]"}], ",", "\n", 
+       "  ", 
+       RowBox[{"Labeled", "[", 
+        RowBox[{
+         RowBox[{"Image", "[", 
+          RowBox[{"dryImg", ",", " ", 
+           RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+         " ", "\"\<Summer 2022\>\"", ",", " ", "Top"}], "]"}]}], "\n", "}"}], 
+     ",", " ", 
+     RowBox[{"Spacings", " ", "->", " ", "20"}]}], "]"}]}]}]], "Input",Express\
+ionUUID->"9819bd5e-35d2-6140-9213-6d7b3d91e670"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Overlay on a Basemap with GEEGeoGraphics", "Section",ExpressionUUID->"a8d03131-709f-1640-8646-8f826a8eed62"],
+
+Cell[TextData[{
+ Cell["GEEGeoGraphics", "InlineCode",ExpressionUUID->
+  "d6e49a74-12b3-fb48-978e-ecf92bfc71f0"],
+ " renders GEE imagery as a background layer with geographic primitives drawn \
+on top, making it easy to annotate water features."
+}], "Text",ExpressionUUID->"a39bcd47-c1f8-8f4f-be85-de0c2f9e6785"],
+
+Cell[BoxData[
+ RowBox[{"GEEGeoGraphics", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"EdgeForm", "[", "Red", "]"}], ",", " ", 
+     RowBox[{"FaceForm", "[", "None", "]"}], ",", "\n", "   ", 
+     RowBox[{"Rectangle", " ", "@@", " ", 
+      RowBox[{"(", 
+       RowBox[{"GeoPosition", " ", "/@", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"35.9", ",", " ", 
+            RowBox[{"-", "114.9"}]}], "}"}], ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"36.4", ",", " ", 
+            RowBox[{"-", "114.3"}]}], "}"}]}], "}"}]}], ")"}]}]}], "}"}], ",",
+    "\n", "  ", "dryWater", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"35.85", ",", " ", "36.45"}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"-", "114.95"}], ",", " ", 
+        RowBox[{"-", "114.25"}]}], "}"}]}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", "\"\<#0066CC\>\"", "}"}]}]}], "|>"}]}], ",", "\n", "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "600"}]}], "]"}]], "Input",ExpressionU\
+UID->"6a5aea4f-524b-6b44-a9ef-d6e1c9442c0e"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"95d2a9e1-123d-dc41-84c4-9d62b8c577ad"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.3 Flood Mapping", "Chapter",ExpressionUUID->"ba632468-9f8e-c14e-bab9-15e0d8668c70"],
+
+Cell[CellGroupData[{
+
+Cell["SAR-Based Flood Detection", "Section",ExpressionUUID->"ab5f3b2f-2b52-2744-a754-dfc31a293d1e"],
+
+Cell["\<\
+Synthetic Aperture Radar (Sentinel-1) is the workhorse of flood mapping \
+because it operates at microwave wavelengths that penetrate clouds and work \
+day or night. For an introduction to Sentinel-1 SAR imagery and \
+dual-polarization composites, see Section 2.5 (Sentinel-1 SAR). Over calm \
+floodwater, the radar signal reflects away from the sensor (specular \
+reflection), producing a characteristic drop in backscatter. This drop -- \
+typically 3 dB or more in the VV polarization -- is the primary signal for \
+flood detection.\
+\>", "Text",ExpressionUUID->"6db4fd96-4d80-e242-8ba6-1f7334e1510d"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Example", ":", " ", 
+     RowBox[{"Emilia", "-", 
+      RowBox[{"Romagna", " ", "floods"}]}]}], ",", " ", "Italy", ",", " ", 
+    RowBox[{"May", " ", "2023"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"floodBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"11.8", ",", " ", "44.1", ",", " ", "12.4", ",", " ", "44.5"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Pre", "-", 
+     RowBox[{"flood", " ", 
+      RowBox[{"baseline", ":", " ", 
+       RowBox[{"January", " ", "2023"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"preSAR", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{"GEECollection", "[", "\"\<COPERNICUS/S1_GRD\>\"", "]"}], 
+          " ", "//", "\n", "    ", 
+          RowBox[{"GEEFilterDate", "[", 
+           RowBox[{"\"\<2023-01-01\>\"", ",", " ", "\"\<2023-02-01\>\""}], 
+           "]"}]}], " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterBounds", "[", "floodBox", "]"}]}], " ", "//", "\n",
+         "    ", 
+        RowBox[{"GEEFilterProperty", "[", 
+         RowBox[{"\"\<instrumentMode\>\"", ",", " ", "\"\<Equals\>\"", ",", 
+          " ", "\"\<IW\>\""}], "]"}]}], " ", "//", "\n", "    ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<VV\>\"", "}"}], "]"}]}], " ", "//", "\n", "    ", 
+      "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Post", "-", 
+     RowBox[{"flood", ":", " ", 
+      RowBox[{"May", " ", "2023"}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"postSAR", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{"GEECollection", "[", "\"\<COPERNICUS/S1_GRD\>\"", "]"}], 
+          " ", "//", "\n", "    ", 
+          RowBox[{"GEEFilterDate", "[", 
+           RowBox[{"\"\<2023-05-15\>\"", ",", " ", "\"\<2023-05-25\>\""}], 
+           "]"}]}], " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterBounds", "[", "floodBox", "]"}]}], " ", "//", "\n",
+         "    ", 
+        RowBox[{"GEEFilterProperty", "[", 
+         RowBox[{"\"\<instrumentMode\>\"", ",", " ", "\"\<Equals\>\"", ",", 
+          " ", "\"\<IW\>\""}], "]"}]}], " ", "//", "\n", "    ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<VV\>\"", "}"}], "]"}]}], " ", "//", "\n", "    ", 
+      "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"SAR", " ", "backscatter", " ", "change", " ", 
+     RowBox[{"(", "dB", ")"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"sarChange", " ", "=", " ", 
+     RowBox[{"GEESubtract", "[", 
+      RowBox[{"postSAR", ",", " ", "preSAR"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Visualize", " ", "the", " ", 
+       RowBox[{"change", ":", " ", "red"}]}], " ", "=", " ", 
+      RowBox[{"decrease", " ", 
+       RowBox[{"(", "flooding", ")"}]}]}], ",", " ", 
+     RowBox[{"blue", " ", "=", " ", "increase"}]}], " ", "*)"}], "\n", 
+   RowBox[{"changeImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"floodBox", ",", " ", "sarChange", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", 
+          RowBox[{"-", "10"}]}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "10"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#FF0000\>\"", ",", " ", "\"\<#FFFFFF\>\"", ",", 
+            " ", "\"\<#0000FF\>\""}], "}"}]}]}], "|>"}]}]}], 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"d153e114-a59c-5245-accb-\
+670605167b44"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Thresholding to Extract Flood Extent", "Section",ExpressionUUID->"d6debebb-a72f-504b-ae0a-5c20ee3043be"],
+
+Cell["\<\
+A backscatter decrease of 3 dB or more is a conservative threshold for \
+identifying flooded pixels. This threshold is physically motivated: specular \
+reflection from still water surfaces causes a sharp drop in received power.\
+\>", "Text",ExpressionUUID->"e82753fd-81c0-4646-a656-700b6a6bea26"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Identify", " ", "flooded", " ", 
+    RowBox[{"pixels", ":", " ", 
+     RowBox[{
+     "backscatter", " ", "dropped", " ", "by", " ", "more", " ", "than", " ", 
+      "3", " ", "dB"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"floodMask", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"sarChange", " ", "//", "\n", "  ", 
+       RowBox[{"GEELessThan", "[", 
+        RowBox[{"-", "3"}], "]"}]}], " ", "//", "\n", "  ", "GEESelfMask"}]}],
+     ";"}], "\n", "\n", 
+   RowBox[{"floodImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"floodBox", ",", " ", "floodMask", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", "\"\<#FF4444\>\"", "}"}]}]}], "|>"}]}]}], 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"9d269f8c-ce80-b946-b0f6-\
+a4438327f1ae"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Computing Flood Extent Area", "Section",ExpressionUUID->"a646630f-9f5f-a04a-96e8-d4492551da14"],
+
+Cell["\<\
+Multiply the binary flood mask by pixel area and sum over the region to get \
+the total flooded area in square meters, then convert to square kilometers.\
+\>", "Text",ExpressionUUID->"cd5bebb4-f1ca-3948-8890-4a707c51ddd4"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"floodGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "floodBox", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"floodAreaImage", " ", "=", " ", 
+    RowBox[{"floodMask", " ", "//", " ", 
+     RowBox[{"GEEMultiply", "[", 
+      RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"floodStats", " ", "=", " ", 
+    RowBox[{"GEECompute", "[", "\n", "  ", 
+     RowBox[{"floodAreaImage", " ", "//", " ", 
+      RowBox[{"GEEReduceRegion", "[", 
+       RowBox[{"floodGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+       "]"}]}], "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"floodAreaKm2", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"Lookup", "[", 
+      RowBox[{"floodStats", ",", " ", "\"\<VV\>\"", ",", " ", "0"}], "]"}], 
+     " ", "/", " ", "1.0*^6"}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Display", " ", "with", " ", "proper", " ", "units"}], " ", 
+   "*)"}]}], "\n", 
+ RowBox[{"Quantity", "[", 
+  RowBox[{"floodAreaKm2", ",", " ", 
+   RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}], "Input",ExpressionUUID\
+->"12d36c8b-5a0e-8f42-a30f-38ee6ddbb640"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Overlay Flood Extent on a Basemap", "Section",ExpressionUUID->"fe4ae537-cbcf-de47-9daa-ed2bc404a363"],
+
+Cell["\<\
+Combining flood detection results with Wolfram Language's built-in geographic \
+visualization creates publication-quality maps.\
+\>", "Text",ExpressionUUID->"69c07a60-78d5-de41-a5a5-59eef0812a9e"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Retrieve", " ", "flood", " ", "extent", " ", "as", " ", "a", " ", 
+     "geo"}], "-", 
+    RowBox[{"tagged", " ", "image"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"floodGeoImg", " ", "=", " ", 
+     RowBox[{"GEEImage", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"44.3", ",", " ", "12.1"}], "}"}], "]"}], ",", "\n", "  ", 
+       "floodMask", ",", "\n", "  ", 
+       RowBox[{"GeoRange", " ", "->", " ", 
+        RowBox[{"Quantity", "[", 
+         RowBox[{"30", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", 
+       "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+          RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+           RowBox[{"{", "\"\<#FF0000\>\"", "}"}]}]}], "|>"}]}]}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Overlay", " ", "on", " ", "GeoGraphics", " ", "basemap"}], " ", 
+    "*)"}], "\n", 
+   RowBox[{"Show", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"GeoGraphics", "[", "\n", "    ", 
+      RowBox[{
+       RowBox[{"GeoRange", " ", "->", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"44.1", ",", " ", "44.5"}], "}"}], ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"11.8", ",", " ", "12.4"}], "}"}]}], "}"}]}], ",", "\n", 
+       "    ", 
+       RowBox[{"GeoBackground", " ", "->", " ", "\"\<StreetMap\>\""}], ",", 
+       "\n", "    ", 
+       RowBox[{"ImageSize", " ", "->", " ", "600"}]}], "]"}], ",", "\n", "  ", 
+     RowBox[{"Graphics", "[", 
+      RowBox[{"Inset", "[", 
+       RowBox[{
+       "floodGeoImg", ",", " ", "Center", ",", " ", "Center", ",", " ", 
+        RowBox[{"Scaled", "[", "1", "]"}]}], "]"}], "]"}]}], "\n", 
+    "]"}]}]}]], "Input",ExpressionUUID->"8b28d849-79ca-974e-9cbe-\
+1a876dd51026"],
+
+Cell[TextData[{
+ "Alternatively, use ",
+ Cell["GEEGeoGraphics", "InlineCode",ExpressionUUID->
+  "26c46e1f-dd8b-0e4a-a1b8-c180cffb00b1"],
+ " to render the flood extent directly on a GEE-sourced background."
+}], "Text",ExpressionUUID->"5676443d-d851-4440-8644-c5e1c631e9e5"],
+
+Cell[BoxData[
+ RowBox[{"GEEGeoGraphics", "[", "\n", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"Opacity", "[", "0.5", "]"}], ",", " ", "Red", ",", "\n", "   ", 
+     RowBox[{"Text", "[", 
+      RowBox[{"\"\<Flood Extent\>\"", ",", " ", 
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"44.3", ",", " ", "12.1"}], "}"}], "]"}]}], "]"}]}], "}"}], ",",
+    "\n", "  ", "floodMask", ",", "\n", "  ", 
+   RowBox[{"GeoRange", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"44.1", ",", " ", "44.5"}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{"11.8", ",", " ", "12.4"}], "}"}]}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+    RowBox[{"<|", 
+     RowBox[{
+      RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+      RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+      RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+       RowBox[{"{", "\"\<#FF4444\>\"", "}"}]}]}], "|>"}]}], ",", "\n", "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "600"}]}], "]"}]], "Input",ExpressionU\
+UID->"c7ef06bd-432d-3f4f-b25f-b0470f6cf645"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"0945bc53-e199-b047-ae85-518b24524a2a"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.4 Snow and Ice", "Chapter",ExpressionUUID->"591e3f3d-39c9-f044-9374-9017fb2eb170"],
+
+Cell[CellGroupData[{
+
+Cell["MODIS Daily Snow Cover", "Section",ExpressionUUID->"c8fb67d9-1da1-ae4c-8c1b-4216e10d837b"],
+
+Cell[TextData[{
+ "The MODIS MOD10A1 product provides daily snow cover at 500-meter \
+resolution. The ",
+ Cell["NDSI_Snow_Cover", "InlineCode",ExpressionUUID->
+  "196c86bb-33a7-d043-8731-d400d319f130"],
+ " band uses the Normalized Difference Snow Index, which exploits the high \
+visible reflectance and low SWIR reflectance of snow. Values range from 0 to \
+100, with values above ~40 indicating snow-covered pixels."
+}], "Text",ExpressionUUID->"c5384d48-b983-cb48-a065-07b6426c8e52"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Snow", " ", "cover", " ", "over", " ", "the", " ", "European", " ", 
+     "Alps"}], ",", " ", 
+    RowBox[{"mid", "-", 
+     RowBox[{"winter", " ", "2024"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"alpsBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"6.0", ",", " ", "45.5", ",", " ", "13.0", ",", " ", "47.5"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"snowCover", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"GEECollection", "[", "\"\<MODIS/061/MOD10A1\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-15\>\"", ",", " ", "\"\<2024-01-25\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "alpsBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEESelectBands", "[", 
+        RowBox[{"{", "\"\<NDSI_Snow_Cover\>\"", "}"}], "]"}]}], " ", "//", 
+      "\n", "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"snowImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"alpsBox", ",", " ", "snowCover", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "100"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#000000\>\"", ",", " ", "\"\<#87CEEB\>\"", ",", 
+            " ", "\"\<#FFFFFF\>\""}], "}"}]}]}], "|>"}]}]}], 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"de01f0b7-e9d2-d04c-8caf-\
+5aa991bf6356"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Snow Cover Time Series -- Tracking Seasonal Snowpack", "Section",ExpressionUUID->"78bbb6f3-b16e-3649-8c92-32e3d004abc8"],
+
+Cell["\<\
+Monitoring the seasonal evolution of snow cover area is critical for water \
+resource forecasting. Mountain snowpack acts as a natural reservoir, and its \
+spring melt drives downstream water supply.\
+\>", "Text",ExpressionUUID->"a5756284-fd5b-194e-9a4e-480453eda639"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Compute", " ", "snow"}], "-", 
+    RowBox[{
+    "covered", " ", "area", " ", "for", " ", "a", " ", "given", " ", "date", " ",
+      "range"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{"snowAreaForPeriod", "[", 
+    RowBox[{
+    "startDate_String", ",", " ", "endDate_String", ",", " ", "region_", ",", 
+     "\n", "  ", "regionGeom_"}], "]"}], " ", ":=", " ", 
+   RowBox[{"Module", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+      "composite", ",", " ", "snowMask", ",", " ", "areaImage", ",", " ", 
+       "stats"}], "}"}], ",", "\n", "\n", "  ", 
+     RowBox[{
+      RowBox[{"composite", " ", "=", "\n", "    ", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"GEECollection", "[", "\"\<MODIS/061/MOD10A1\>\"", "]"}], 
+           " ", "//", "\n", "      ", 
+           RowBox[{"GEEFilterDate", "[", 
+            RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+          "\n", "      ", 
+          RowBox[{"GEEFilterBounds", "[", "region", "]"}]}], " ", "//", "\n", 
+         "      ", 
+         RowBox[{"GEESelectBands", "[", 
+          RowBox[{"{", "\"\<NDSI_Snow_Cover\>\"", "}"}], "]"}]}], " ", "//", 
+        "\n", "      ", "GEEMean"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"(*", " ", 
+       RowBox[{
+        RowBox[{"Snow", " ", "where", " ", "NDSI"}], " ", ">", " ", "40"}], 
+       " ", "*)"}], "\n", "  ", 
+      RowBox[{"snowMask", " ", "=", " ", 
+       RowBox[{
+        RowBox[{"composite", " ", "//", "\n", "    ", 
+         RowBox[{"GEEGreaterThan", "[", "40", "]"}]}], " ", "//", "\n", 
+        "    ", "GEESelfMask"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"areaImage", " ", "=", " ", 
+       RowBox[{"snowMask", " ", "//", " ", 
+        RowBox[{"GEEMultiply", "[", 
+         RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"stats", " ", "=", " ", 
+       RowBox[{"GEECompute", "[", "\n", "    ", 
+        RowBox[{"areaImage", " ", "//", " ", 
+         RowBox[{"GEEReduceRegion", "[", 
+          RowBox[{"regionGeom", ",", " ", "\"\<sum\>\"", ",", " ", "500"}], 
+          "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Lookup", "[", 
+        RowBox[{"stats", ",", " ", "\"\<NDSI_Snow_Cover\>\"", ",", " ", "0"}],
+         "]"}], " ", "/", " ", "1.0*^6"}]}]}], "\n", "]"}]}]}]], "Input",Expre\
+ssionUUID->"66af4f2a-954f-4a4e-9d42-bdea843d1e44"],
+
+Cell["\<\
+Build a monthly time series for one water year (October through September).\
+\>", "Text",ExpressionUUID->"eb595de5-8f8b-5746-bcbe-95e3e3cbecfb"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"alpsGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "alpsBox", "]"}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Water", " ", "year", " ", "2023"}], "-", "2024"}], " ", 
+   "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"months", " ", "=", " ", 
+    RowBox[{"Flatten", "[", 
+     RowBox[{
+      RowBox[{"{", "\n", "  ", 
+       RowBox[{
+        RowBox[{"Table", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"2023", ",", " ", "m"}], "}"}], ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"m", ",", " ", "10", ",", " ", "12"}], "}"}]}], "]"}], ",",
+         "\n", "  ", 
+        RowBox[{"Table", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"2024", ",", " ", "m"}], "}"}], ",", " ", 
+          RowBox[{"{", 
+           RowBox[{"m", ",", " ", "1", ",", " ", "9"}], "}"}]}], "]"}]}], 
+       "\n", "}"}], ",", " ", "1"}], "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"snowData", " ", "=", " ", 
+    RowBox[{"Table", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Module", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"start", ",", " ", "end", ",", " ", "area"}], "}"}], ",", 
+        "\n", "    ", 
+        RowBox[{
+         RowBox[{"start", " ", "=", " ", 
+          RowBox[{"DateString", "[", 
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"yr", ",", " ", "mo", ",", " ", "1"}], "}"}], ",", 
+            " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "    ", 
+         RowBox[{"end", " ", "=", " ", 
+          RowBox[{"DateString", "[", 
+           RowBox[{
+            RowBox[{"DatePlus", "[", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"yr", ",", " ", "mo", ",", " ", "1"}], "}"}], ",", " ", 
+              RowBox[{"{", 
+               RowBox[{"1", ",", " ", "\"\<Month\>\""}], "}"}]}], "]"}], ",", 
+            " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "    ", 
+         RowBox[{"area", " ", "=", " ", 
+          RowBox[{"snowAreaForPeriod", "[", 
+           RowBox[{
+           "start", ",", " ", "end", ",", " ", "alpsBox", ",", " ", 
+            "alpsGeom"}], "]"}]}], ";", "\n", "    ", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"DateObject", "[", 
+            RowBox[{"{", 
+             RowBox[{"yr", ",", " ", "mo", ",", " ", "15"}], "}"}], "]"}], ",",
+            " ", "area"}], "}"}]}]}], "\n", "  ", "]"}], ",", "\n", "  ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"yr", ",", " ", "mo"}], "}"}], ",", " ", "months"}], "}"}]}],
+      "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"snowSeries", " ", "=", " ", 
+    RowBox[{"TimeSeries", "[", "snowData", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"DateListPlot", "[", 
+  RowBox[{"snowSeries", ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", 
+    " ", "\"\<Alps Snow Cover Area (Water Year 2023-2024)\>\""}], ",", "\n", 
+   "  ", 
+   RowBox[{"FrameLabel", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Date\>\"", ",", 
+      " ", "\"\<Snow Area (km\\[Superscript]2)\>\""}], "}"}]}], ",", "\n", 
+   "  ", 
+   RowBox[{"PlotStyle", " ", "->", " ", 
+    RowBox[{"Directive", "[", 
+     RowBox[{"Thick", ",", " ", 
+      RowBox[{"RGBColor", "[", 
+       RowBox[{"0.3", ",", " ", "0.5", ",", " ", "0.9"}], "]"}]}], "]"}]}], ",",
+    "\n", "  ", 
+   RowBox[{"Filling", " ", "->", " ", "Axis"}], ",", "\n", "  ", 
+   RowBox[{"FillingStyle", " ", "->", " ", 
+    RowBox[{"Directive", "[", 
+     RowBox[{
+      RowBox[{"Opacity", "[", "0.15", "]"}], ",", " ", "Blue"}], "]"}]}], ",",
+    "\n", "  ", 
+   RowBox[{"GridLines", " ", "->", " ", "Automatic"}], ",", "\n", "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "Large"}]}], "]"}]}], "Input",Expressi\
+onUUID->"d8f08e8d-88a7-8f47-8ba4-c6cec29aeee1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Glacier Extent Mapping with Sentinel-2", "Section",ExpressionUUID->"ab47377e-621a-7d41-8414-f69ae6a0b30d"],
+
+Cell["\<\
+The Normalized Difference Snow Index (NDSI) can also delineate glacier \
+boundaries. For glaciers, Sentinel-2 at 10/20-meter resolution provides \
+sharper boundaries than MODIS. The NDSI formula uses Green (B3) and SWIR \
+(B11), the same band combination as MNDWI but interpreted differently in the \
+context of cryospheric mapping.\
+\>", "Text",ExpressionUUID->"fe9539a9-d83a-3945-9f45-7486306f59f0"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Aletsch", " ", "Glacier"}], ",", " ", "Switzerland"}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"glacierBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{
+      "7.95", ",", " ", "46.38", ",", " ", "8.15", ",", " ", "46.52"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"s2Glacier", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-07-01\>\"", ",", " ", "\"\<2024-09-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "glacierBox", "]"}]}], " ", "//", 
+       "\n", "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "10"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"NDSI", " ", "for", " ", 
+     RowBox[{"snow", "/", "ice"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ndsi", " ", "=", " ", 
+     RowBox[{"s2Glacier", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B11\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Glacier", " ", 
+     RowBox[{"pixels", ":", " ", 
+      RowBox[{"NDSI", " ", ">", " ", "0.4"}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"glacierMask", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"ndsi", " ", "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "0.4", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"True", "-", 
+     RowBox[{"color", " ", "background"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"rgbImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"glacierBox", ",", "\n", "  ", 
+       RowBox[{"s2Glacier", " ", "//", " ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", 
+          
+          RowBox[{"\"\<B4\>\"", ",", " ", "\"\<B3\>\"", ",", 
+           " ", "\"\<B2\>\""}], "}"}], "]"}]}], ",", "\n", "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "3000"}]}], "|>"}]}]}], 
+      "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Glacier", " ", "mask", " ", "overlay"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"glacierImg", " ", "=", " ", 
+     RowBox[{"GEEComputePixels", "[", 
+      RowBox[{"glacierBox", ",", " ", "glacierMask", ",", "\n", "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+          RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+           RowBox[{"{", "\"\<#00FFFF\>\"", "}"}]}]}], "|>"}]}]}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"GraphicsRow", "[", 
+    RowBox[{"{", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Labeled", "[", 
+       RowBox[{
+        RowBox[{"Image", "[", 
+         RowBox[{"rgbImg", ",", " ", 
+          RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+        " ", "\"\<True Color\>\"", ",", " ", "Top"}], "]"}], ",", "\n", "  ", 
+      RowBox[{"Labeled", "[", 
+       RowBox[{
+        RowBox[{"Image", "[", 
+         RowBox[{"glacierImg", ",", " ", 
+          RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}], ",", 
+        " ", "\"\<Glacier Extent (NDSI > 0.4)\>\"", ",", " ", "Top"}], 
+       "]"}]}], "\n", "}"}], "]"}]}]}]], "Input",ExpressionUUID->"fcfa657e-\
+902d-294a-bdbd-99a2838b0509"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Multi-Year Glacier Retreat Analysis", "Section",ExpressionUUID->"978b41bc-9f01-5442-ab37-cc8bf1ab023e"],
+
+Cell["\<\
+Compare glacier extent across multiple years to quantify retreat.\
+\>", "Text",ExpressionUUID->"06137272-8046-9d4f-b4f2-e30c35bf855e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"glacierGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "glacierBox", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"glacierAreaForYear", "[", "year_Integer", "]"}], " ", ":=", " ", 
+   RowBox[{"Module", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+      "startDate", ",", " ", "endDate", ",", " ", "composite", ",", " ", 
+       "ndsiImg", ",", " ", "mask", ",", " ", "areaImg", ",", " ", "stats"}], 
+      "}"}], ",", "\n", "\n", "  ", 
+     RowBox[{
+      RowBox[{"startDate", " ", "=", " ", 
+       RowBox[{
+        RowBox[{"ToString", "[", "year", "]"}], " ", "<>", 
+        " ", "\"\<-07-01\>\""}]}], ";", "\n", "  ", 
+      RowBox[{"endDate", " ", "=", " ", 
+       RowBox[{
+        RowBox[{"ToString", "[", "year", "]"}], " ", "<>", 
+        " ", "\"\<-09-30\>\""}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"composite", " ", "=", "\n", "    ", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+           "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}],
+            " ", "//", "\n", "      ", 
+           RowBox[{"GEEFilterDate", "[", 
+            RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+          "\n", "      ", 
+          RowBox[{"GEEFilterBounds", "[", "glacierBox", "]"}]}], " ", "//", 
+         "\n", "      ", 
+         RowBox[{"GEEFilterProperty", "[", 
+          
+          RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+           " ", "\"\<LessThan\>\"", ",", " ", "15"}], "]"}]}], " ", "//", 
+        "\n", "      ", "GEEMedian"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"ndsiImg", " ", "=", " ", 
+       RowBox[{"composite", " ", "//", " ", 
+        RowBox[{"GEENormalizedDifference", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B11\>\""}], "}"}], "]"}]}]}], ";",
+       "\n", "  ", 
+      RowBox[{"mask", " ", "=", " ", 
+       RowBox[{
+        RowBox[{"ndsiImg", " ", "//", " ", 
+         RowBox[{"GEEGreaterThan", "[", "0.4", "]"}]}], " ", "//", " ", 
+        "GEESelfMask"}]}], ";", "\n", "  ", 
+      RowBox[{"areaImg", " ", "=", " ", 
+       RowBox[{"mask", " ", "//", " ", 
+        RowBox[{"GEEMultiply", "[", 
+         RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"stats", " ", "=", " ", 
+       RowBox[{"GEECompute", "[", "\n", "    ", 
+        RowBox[{"areaImg", " ", "//", " ", 
+         RowBox[{"GEEReduceRegion", "[", 
+          RowBox[{"glacierGeom", ",", " ", "\"\<sum\>\"", ",", " ", "20"}], 
+          "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Lookup", "[", 
+        RowBox[{"stats", ",", " ", "\"\<nd\>\"", ",", " ", "0"}], "]"}], " ", 
+       "/", " ", "1.0*^6"}]}]}], "\n", "]"}]}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Compute", " ", "glacier", " ", "area", " ", "for", " ", "each", " ", 
+    "summer", " ", "from", " ", "2017", " ", "to", " ", "2024"}], " ", 
+   "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{"years", " ", "=", " ", 
+   RowBox[{"Range", "[", 
+    RowBox[{"2017", ",", " ", "2024"}], "]"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"glacierAreas", " ", "=", " ", 
+    RowBox[{"AssociationThread", "[", 
+     RowBox[{"years", ",", " ", 
+      RowBox[{"glacierAreaForYear", " ", "/@", " ", "years"}]}], "]"}]}], 
+   ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Bar", " ", "chart", " ", "of", " ", "glacier", " ", "extent"}], 
+   " ", "*)"}]}], "\n", 
+ RowBox[{"BarChart", "[", 
+  RowBox[{
+   RowBox[{"Values", "[", "glacierAreas", "]"}], ",", "\n", "  ", 
+   RowBox[{"ChartLabels", " ", "->", " ", 
+    RowBox[{"Keys", "[", "glacierAreas", "]"}]}], ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", " ", "\"\<Aletsch Glacier Summer Extent\>\""}], ",",
+    "\n", "  ", 
+   RowBox[{"AxesLabel", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"None", ",", " ", "\"\<Area (km\\[Superscript]2)\>\""}], "}"}]}],
+    ",", "\n", "  ", 
+   RowBox[{"ChartStyle", " ", "->", " ", 
+    RowBox[{"RGBColor", "[", 
+     RowBox[{"0.3", ",", " ", "0.7", ",", " ", "0.9"}], "]"}]}], ",", "\n", 
+   "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "Large"}]}], "]"}]}], "Input",Expressi\
+onUUID->"130a67d8-d416-8046-9b36-2f8860bb6c15"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"122228d3-512e-8645-a44a-81efcca638b5"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.5 Precipitation and Runoff", "Chapter",ExpressionUUID->"ac980d18-d42a-9a4c-bd84-cf1a2c18876a"],
+
+Cell[CellGroupData[{
+
+Cell["CHIRPS Daily Rainfall", "Section",ExpressionUUID->"080b3cb3-c5ef-624c-8cc5-6a0406012373"],
+
+Cell["\<\
+CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data) \
+provides daily rainfall estimates at ~5.5 km resolution from 1981 to \
+near-present. It combines satellite infrared data with station observations, \
+making it one of the most widely used precipitation products for hydrological \
+modeling. For a broader treatment of CHIRPS including rainfall anomalies, \
+trend analysis, and comparison with GPM IMERG, see Section 3.2.\
+\>", "Text",ExpressionUUID->"dbc1c9a7-a958-4441-9a63-2595682c8718"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Define", " ", "a", " ", 
+     RowBox[{"watershed", ":", " ", 
+      RowBox[{"Tana", " ", "River", " ", "basin"}]}]}], ",", " ", "Kenya"}], 
+   " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"tanaCoords", " ", "=", " ", 
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"39.5", ",", " ", 
+         RowBox[{"-", "1.0"}]}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"40.5", ",", " ", 
+         RowBox[{"-", "1.0"}]}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"40.5", ",", " ", 
+         RowBox[{"-", "2.5"}]}], "}"}], ",", "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{"39.0", ",", " ", 
+         RowBox[{"-", "3.5"}]}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"38.0", ",", " ", 
+         RowBox[{"-", "2.0"}]}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"39.5", ",", " ", 
+         RowBox[{"-", "1.0"}]}], "}"}]}], "\n", "}"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"tanaPolygon", " ", "=", " ", 
+     RowBox[{"GEEPolygon", "[", "tanaCoords", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Monthly", " ", "rainfall", " ", "accumulation", " ", "for", " ", 
+     "January", " ", "2024"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"janRain", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}],
+          " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-02-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{"38.0", ",", " ", 
+           RowBox[{"-", "3.5"}], ",", " ", "40.5", ",", " ", 
+           RowBox[{"-", "1.0"}]}], "}"}], "]"}]}], " ", "//", "\n", "    ", 
+       "GEECollectionSum"}], " ", "//", "\n", "    ", 
+      RowBox[{"GEEClip", "[", "tanaPolygon", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"rainImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"38.0", ",", " ", 
+        RowBox[{"-", "3.5"}], ",", " ", "40.5", ",", " ", 
+        RowBox[{"-", "1.0"}]}], "}"}], ",", " ", "janRain", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "200"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#FFFFCC\>\"", ",", " ", "\"\<#41B6C4\>\"", ",", 
+            " ", "\"\<#0C2C84\>\""}], "}"}]}]}], "|>"}]}]}], 
+     "]"}]}]}]}]], "Input",ExpressionUUID->"a95988d5-07d8-fb43-b80b-\
+b53c482937cd"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Annual Rainfall Accumulation", "Section",ExpressionUUID->"895b98dd-7bff-5341-b80a-ab2341d57246"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Annual", " ", "rainfall", " ", "for", " ", "2023"}], " ", "*)"}], 
+  "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"annualRain", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}],
+          " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2023-01-01\>\"", ",", " ", "\"\<2024-01-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", 
+         RowBox[{"{", 
+          RowBox[{"38.0", ",", " ", 
+           RowBox[{"-", "3.5"}], ",", " ", "40.5", ",", " ", 
+           RowBox[{"-", "1.0"}]}], "}"}], "]"}]}], " ", "//", "\n", "    ", 
+       "GEECollectionSum"}], " ", "//", "\n", "    ", 
+      RowBox[{"GEEClip", "[", "tanaPolygon", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Mean", " ", "rainfall", " ", "over", " ", "the", " ", "watershed"}], " ",
+     "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"meanRainfall", " ", "=", " ", 
+     RowBox[{"GEECompute", "[", "\n", "  ", 
+      RowBox[{"annualRain", " ", "//", " ", 
+       RowBox[{"GEEReduceRegion", "[", 
+        RowBox[{"tanaPolygon", ",", " ", "\"\<mean\>\"", ",", " ", "5000"}], 
+        "]"}]}], "\n", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Result", " ", "in", " ", "mm"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"annualMeanMm", " ", "=", " ", 
+     RowBox[{"Lookup", "[", 
+      RowBox[{"meanRainfall", ",", " ", "\"\<precipitation\>\"", ",", " ", 
+       RowBox[{"Missing", "[", "]"}]}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Convert", " ", "to", " ", "total", " ", "volume", " ", "over", " ", 
+     "watershed"}], " ", "*)"}], "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"First", " ", "compute", " ", "watershed", " ", 
+     RowBox[{"area", " ", "--"}], " ", "GEECompute", " ", "returns", " ", 
+     "an", " ", "Association"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"watershedAreaM2", " ", "=", " ", 
+     RowBox[{"First", "[", 
+      RowBox[{"Values", "[", 
+       RowBox[{"GEECompute", "[", 
+        RowBox[{"GEEArea", "[", "tanaPolygon", "]"}], "]"}], "]"}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Rainfall", " ", "depth", " ", 
+      RowBox[{"(", "mm", ")"}]}], " ", "->", " ", 
+     RowBox[{"volume", " ", 
+      RowBox[{"(", 
+       RowBox[{"m", "^", "3"}], ")"}]}]}], " ", "*)"}], "\n", 
+   RowBox[{"totalVolumeM3", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Quantity", "[", 
+       RowBox[{"annualMeanMm", ",", " ", "\"\<Millimeters\>\""}], "]"}], " ", 
+      "*", "\n", "  ", 
+      RowBox[{"Quantity", "[", 
+       RowBox[{"watershedAreaM2", ",", " ", 
+        RowBox[{"\"\<Meters\>\"", "^", "2"}]}], "]"}]}], " ", "//", "\n", 
+     "  ", 
+     RowBox[{
+      RowBox[{"UnitConvert", "[", 
+       RowBox[{"#", ",", " ", 
+        RowBox[{"\"\<Meters\>\"", "^", "3"}]}], "]"}], " ", 
+      "&"}]}]}]}]}]], "Input",ExpressionUUID->"27e2dc74-ff45-4242-8d32-\
+6db6a7d969b6"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Monthly Rainfall Time Series", "Section",ExpressionUUID->"fe9dd4c7-9938-3742-af08-9b49da0aa7f5"],
+
+Cell["\<\
+Extract a multi-year monthly rainfall series for trend analysis.\
+\>", "Text",ExpressionUUID->"6fa4c93c-868a-9e43-ba6e-a69a639655c6"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"monthlyRainfall", "[", 
+    RowBox[{"year_Integer", ",", " ", "month_Integer"}], "]"}], " ", ":=", 
+   " ", 
+   RowBox[{"Module", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+      "startDate", ",", " ", "endDate", ",", " ", "monthlySum", ",", " ", 
+       "stats"}], "}"}], ",", "\n", "\n", "  ", 
+     RowBox[{
+      RowBox[{"startDate", " ", "=", " ", 
+       RowBox[{"DateString", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+         " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "  ", 
+      RowBox[{"endDate", " ", "=", " ", 
+       RowBox[{"DateString", "[", 
+        RowBox[{
+         RowBox[{"DatePlus", "[", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+           " ", 
+           RowBox[{"{", 
+            RowBox[{"1", ",", " ", "\"\<Month\>\""}], "}"}]}], "]"}], ",", 
+         " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"monthlySum", " ", "=", "\n", "    ", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+           "GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}], " ", 
+           "//", "\n", "      ", 
+           RowBox[{"GEEFilterDate", "[", 
+            RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+          "\n", "      ", 
+          RowBox[{"GEEFilterBounds", "[", 
+           RowBox[{"{", 
+            RowBox[{"38.0", ",", " ", 
+             RowBox[{"-", "3.5"}], ",", " ", "40.5", ",", " ", 
+             RowBox[{"-", "1.0"}]}], "}"}], "]"}]}], " ", "//", "\n", 
+         "      ", "GEECollectionSum"}], " ", "//", "\n", "      ", 
+        RowBox[{"GEEClip", "[", "tanaPolygon", "]"}]}]}], ";", "\n", "\n", 
+      "  ", 
+      RowBox[{"stats", " ", "=", " ", 
+       RowBox[{"GEECompute", "[", "\n", "    ", 
+        RowBox[{"monthlySum", " ", "//", " ", 
+         RowBox[{"GEEReduceRegion", "[", 
+          RowBox[{"tanaPolygon", ",", " ", "\"\<mean\>\"", ",", " ", "5000"}],
+           "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"DateObject", "[", 
+         RowBox[{"{", 
+          RowBox[{"year", ",", " ", "month", ",", " ", "15"}], "}"}], "]"}], ",",
+         "\n", "   ", 
+        RowBox[{"Lookup", "[", 
+         RowBox[{"stats", ",", " ", "\"\<precipitation\>\"", ",", " ", "0"}], 
+         "]"}]}], "}"}]}]}], "\n", "]"}]}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Build", " ", "5"}], "-", 
+    RowBox[{"year", " ", "series"}]}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rainData", " ", "=", " ", 
+    RowBox[{"Flatten", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{"monthlyRainfall", "[", 
+         RowBox[{"y", ",", " ", "m"}], "]"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"y", ",", " ", "2019", ",", " ", "2023"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"m", ",", " ", "1", ",", " ", "12"}], "}"}]}], "]"}], ",", 
+      "\n", "  ", "1"}], "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rainSeries", " ", "=", " ", 
+    RowBox[{"TimeSeries", "[", "rainData", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"DateListPlot", "[", 
+  RowBox[{"rainSeries", ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", 
+    " ", "\"\<Tana River Basin Monthly Rainfall (2019-2023)\>\""}], ",", "\n",
+    "  ", 
+   RowBox[{"FrameLabel", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Date\>\"", ",", " ", "\"\<Rainfall (mm)\>\""}], "}"}]}], ",",
+    "\n", "  ", 
+   RowBox[{"Filling", " ", "->", " ", "Axis"}], ",", "\n", "  ", 
+   RowBox[{"PlotStyle", " ", "->", " ", 
+    RowBox[{"Directive", "[", 
+     RowBox[{"Thick", ",", " ", 
+      RowBox[{"RGBColor", "[", 
+       RowBox[{"0.2", ",", " ", "0.4", ",", " ", "0.8"}], "]"}]}], "]"}]}], ",",
+    "\n", "  ", 
+   RowBox[{"FillingStyle", " ", "->", " ", 
+    RowBox[{"Directive", "[", 
+     RowBox[{
+      RowBox[{"Opacity", "[", "0.2", "]"}], ",", " ", "Blue"}], "]"}]}], ",", 
+   "\n", "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "Large"}]}], "]"}]}], "Input",Expressi\
+onUUID->"6a72ff31-42e1-5a44-9785-98ed3953db94"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Rainfall-Runoff Relationship", "Section",ExpressionUUID->"78137b86-8124-c249-a4d7-fb4eb4ee9e06"],
+
+Cell["\<\
+Compare satellite-derived rainfall with observed streamflow to build a simple \
+rainfall-runoff model. Streamflow data can be imported from a CSV file (e.g., \
+from a national hydrological service).\
+\>", "Text",ExpressionUUID->"1e8a3e11-f0cd-ac43-8a33-a03052151234"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Import", " ", "observed", " ", "monthly", " ", "streamflow", " ", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"m", "^", "3"}], "/", "s"}], ")"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"streamflowData", " ", "=", " ", 
+     RowBox[{"Import", "[", "\n", "  ", 
+      RowBox[{"\"\<data/tana_streamflow_monthly.csv\>\"", ",", 
+       " ", "\"\<Dataset\>\"", ",", "\n", "  ", 
+       RowBox[{"HeaderLines", " ", "->", " ", "1"}]}], "\n", "]"}]}], ";"}], 
+   "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Extract", " ", "matching", " ", "monthly", " ", "rainfall", " ", "from", 
+     " ", "our", " ", "series"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"rainfallValues", " ", "=", " ", 
+     RowBox[{"rainSeries", "[", "\"\<Values\>\"", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"streamflowValues", " ", "=", " ", 
+     RowBox[{"Normal", "[", 
+      RowBox[{"streamflowData", "[", 
+       RowBox[{"All", ",", " ", "\"\<Discharge_m3s\>\""}], "]"}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Ensure", " ", "same", " ", "length"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"nMonths", " ", "=", " ", 
+     RowBox[{"Min", "[", 
+      RowBox[{
+       RowBox[{"Length", "[", "rainfallValues", "]"}], ",", " ", 
+       RowBox[{"Length", "[", "streamflowValues", "]"}]}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"rain", " ", "=", " ", 
+     RowBox[{"rainfallValues", "[", 
+      RowBox[{"[", 
+       RowBox[{";;", "nMonths"}], "]"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"flow", " ", "=", " ", 
+     RowBox[{"streamflowValues", "[", 
+      RowBox[{"[", 
+       RowBox[{";;", "nMonths"}], "]"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Fit", " ", "a", " ", "linear", " ", 
+      RowBox[{"model", ":", " ", "Q"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"a", " ", "*", " ", "P"}], " ", "+", " ", "b"}]}], " ", "*)"}], 
+   "\n", 
+   RowBox[{
+    RowBox[{"model", " ", "=", " ", 
+     RowBox[{"LinearModelFit", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Transpose", "[", 
+        RowBox[{"{", 
+         RowBox[{"rain", ",", " ", "flow"}], "}"}], "]"}], ",", "\n", "  ", 
+       "x", ",", " ", "x"}], "\n", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Display", " ", "the", " ", "model"}], " ", "*)"}], "\n", 
+   RowBox[{"model", "[", "\"\<BestFit\>\"", "]"}], "\n", 
+   RowBox[{"model", "[", "\"\<RSquared\>\"", "]"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Scatter", " ", "plot", " ", "with", " ", "regression", " ", "line"}], 
+    " ", "*)"}], "\n", 
+   RowBox[{"Show", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"ListPlot", "[", 
+      RowBox[{
+       RowBox[{"Transpose", "[", 
+        RowBox[{"{", 
+         RowBox[{"rain", ",", " ", "flow"}], "}"}], "]"}], ",", "\n", "    ", 
+       RowBox[{"PlotStyle", " ", "->", " ", 
+        RowBox[{"PointSize", "[", "0.015", "]"}]}], ",", "\n", "    ", 
+       RowBox[{"AxesLabel", " ", "->", " ", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Monthly Rainfall (mm)\>\"", ",", 
+          " ", "\"\<Streamflow (m\\[Superscript]3/s)\>\""}], "}"}]}], ",", 
+       "\n", "    ", 
+       RowBox[{
+       "PlotLabel", " ", "->", 
+        " ", "\"\<Rainfall-Runoff Relationship\>\""}]}], "]"}], ",", "\n", 
+     "  ", 
+     RowBox[{"Plot", "[", 
+      RowBox[{
+       RowBox[{"model", "[", "x", "]"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"x", ",", " ", "0", ",", " ", 
+         RowBox[{"Max", "[", "rain", "]"}]}], "}"}], ",", "\n", "    ", 
+       RowBox[{"PlotStyle", " ", "->", " ", 
+        RowBox[{"Directive", "[", 
+         RowBox[{"Red", ",", " ", "Thick"}], "]"}]}]}], "]"}]}], "\n", 
+    "]"}]}]}]], "Input",ExpressionUUID->"d8035921-2f0c-3b49-b133-\
+4ace75bdfec5"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"7cf4e51c-e359-7948-bbe2-1d592bca2901"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.6 Water Quality Indicators", "Chapter",ExpressionUUID->"ad377bbb-5526-d749-b32b-b0aa27525b2b"],
+
+Cell[CellGroupData[{
+
+Cell["Turbidity Estimation from Sentinel-2", "Section",ExpressionUUID->"885d98ab-b243-9444-8d35-3bc4fe984e23"],
+
+Cell["\<\
+Turbidity -- the cloudiness of water caused by suspended sediments -- \
+correlates strongly with red-band reflectance. Clear water absorbs red light, \
+while sediment-laden water reflects it. The red band (B4) of Sentinel-2 \
+provides a simple but effective turbidity proxy at 10-meter resolution.\
+\>", "Text",ExpressionUUID->"e8a925a8-2f65-df42-91fe-2b17173544a0"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Target", ":", " ", 
+    RowBox[{
+    "Chesapeake", " ", "Bay", " ", "after", " ", "a", " ", "storm", " ", 
+     "event"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"bayBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "76.5"}], ",", " ", "37.0", ",", " ", 
+       RowBox[{"-", "75.8"}], ",", " ", "37.6"}], "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"s2Bay", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-09-01\>\"", ",", " ", "\"\<2024-10-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "bayBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "20"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Extract", " ", "red", " ", "band", " ", "as", " ", "turbidity", " ", 
+     "proxy"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"redBand", " ", "=", " ", 
+     RowBox[{"s2Bay", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<B4\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Mask", " ", "land", " ", "using", " ", "NDWI"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"waterMask", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"s2Bay", " ", "//", "\n", "  ", 
+       RowBox[{"GEENormalizedDifference", "[", 
+        RowBox[{"{", 
+         RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}], " ", 
+      "//", "\n", "  ", 
+      RowBox[{"GEEGreaterThan", "[", "0", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Apply", " ", "water", " ", "mask", " ", "to", " ", "red", " ", "band"}], 
+    " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"turbidity", " ", "=", " ", 
+     RowBox[{"redBand", " ", "//", " ", 
+      RowBox[{"GEEUpdateMask", "[", "waterMask", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"turbidityImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"bayBox", ",", " ", "turbidity", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "1500"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#0000FF\>\"", ",", " ", "\"\<#00FF00\>\"", ",", 
+            " ", "\"\<#FFFF00\>\"", ",", " ", "\"\<#FF0000\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"30947aa0-31c2-4d4a-\
+9fbe-798f2b603282"],
+
+Cell[TextData[{
+ StyleBox["Note:",
+  FontWeight->Bold],
+ " Red-band reflectance is a qualitative turbidity proxy. Quantitative \
+turbidity estimation requires site-specific calibration with in-situ NTU \
+measurements."
+}], "Text",
+ CellFrame->{{True, False}, {
+   False, False}},ExpressionUUID->"378c44de-6425-0d4b-b9c0-1bd3e627a2bd"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Chlorophyll-a and Algal Bloom Detection", "Section",ExpressionUUID->"1fb1e1ef-ac2d-ef48-a5c6-b9ffd5950950"],
+
+Cell["\<\
+Chlorophyll-a concentration correlates with the ratio of green to blue \
+reflectance. Elevated green-to-blue ratios indicate higher phytoplankton \
+density, which can signal harmful algal blooms in lakes and reservoirs.\
+\>", "Text",ExpressionUUID->"32d3fd63-0137-0444-8318-eed36dafb7b6"],
+
+Cell[TextData[{
+ StyleBox["Note:",
+  FontWeight->Bold],
+ " The green/blue ratio is a first-order approximation. Operational \
+chlorophyll-a algorithms (e.g., OC3 for open ocean, CI for \
+cyanobacteria-dominated systems) are more appropriate for quantitative work."
+}], "Text",
+ CellFrame->{{True, False}, {
+   False, False}},ExpressionUUID->"95e7b517-abb7-2a4a-871c-387f3edaa179"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Target", ":", " ", 
+    RowBox[{"Lake", " ", 
+     RowBox[{"Erie", " ", "--"}], " ", "prone", " ", "to", " ", "harmful", " ",
+      "algal", " ", "blooms"}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"erieBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "83.5"}], ",", " ", "41.3", ",", " ", 
+       RowBox[{"-", "82.5"}], ",", " ", "42.0"}], "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"s2Erie", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-07-01\>\"", ",", " ", "\"\<2024-09-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "erieBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "15"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Green", "/", "Blue"}], " ", "band", " ", "ratio", " ", "as", " ",
+       "chlorophyll"}], "-", 
+     RowBox[{"a", " ", "proxy"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"greenBand", " ", "=", " ", 
+     RowBox[{"s2Erie", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<B3\>\"", "}"}], "]"}]}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"blueBand", " ", "=", " ", 
+     RowBox[{"s2Erie", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<B2\>\"", "}"}], "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"chlRatio", " ", "=", " ", 
+     RowBox[{"GEEDivide", "[", 
+      RowBox[{"greenBand", ",", " ", "blueBand"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Mask", " ", "to", " ", "water", " ", "only"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"erieWaterMask", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"s2Erie", " ", "//", "\n", "  ", 
+       RowBox[{"GEENormalizedDifference", "[", 
+        RowBox[{"{", 
+         RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}], " ", 
+      "//", "\n", "  ", 
+      RowBox[{"GEEGreaterThan", "[", "0", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"chlWater", " ", "=", " ", 
+     RowBox[{"chlRatio", " ", "//", " ", 
+      RowBox[{"GEEUpdateMask", "[", "erieWaterMask", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"chlImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"erieBox", ",", " ", "chlWater", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0.8"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "2.5"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#0000FF\>\"", ",", " ", "\"\<#00FF00\>\"", ",", 
+            " ", "\"\<#FFFF00\>\"", ",", " ", "\"\<#FF0000\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"0ffbad8d-1cc1-8948-\
+944c-5caf04e030de"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Algal Bloom Area Estimation", "Section",ExpressionUUID->"d803eede-9d5f-394f-a82d-8046f6f96fdc"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Define", " ", "bloom", " ", 
+    RowBox[{"threshold", ":", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"green", "/", "blue"}], " ", "ratio"}], " ", ">", " ", 
+      "1.5"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"bloomMask", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"chlWater", " ", "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "1.5", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"bloomArea", " ", "=", " ", 
+     RowBox[{"bloomMask", " ", "//", " ", 
+      RowBox[{"GEEMultiply", "[", 
+       RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"erieGeom", " ", "=", " ", 
+     RowBox[{"GEEGeometry", "[", "erieBox", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"bloomStats", " ", "=", " ", 
+     RowBox[{"GEECompute", "[", "\n", "  ", 
+      RowBox[{"bloomArea", " ", "//", " ", 
+       RowBox[{"GEEReduceRegion", "[", 
+        RowBox[{"erieGeom", ",", " ", "\"\<sum\>\"", ",", " ", "20"}], 
+        "]"}]}], "\n", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"bloomAreaKm2", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"Lookup", "[", 
+       RowBox[{"bloomStats", ",", " ", "\"\<B3\>\"", ",", " ", "0"}], "]"}], 
+      " ", "/", " ", "1.0*^6"}]}], ";"}], "\n", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Estimated bloom area: \>\"", ",", " ", 
+     RowBox[{"Quantity", "[", 
+      RowBox[{"bloomAreaKm2", ",", " ", 
+       RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}], 
+    "]"}]}]}]], "Input",ExpressionUUID->"8f45f215-943d-ff4f-a5b4-\
+beaa353f1f66"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Color Analysis of Retrieved Water Imagery", "Section",ExpressionUUID->"213a8bbe-3940-4846-a9f2-eae7d7045f47"],
+
+Cell["\<\
+Wolfram Language's image processing functions can extract additional \
+information from the retrieved satellite imagery on the client side.\
+\>", "Text",ExpressionUUID->"32828e65-2143-ff47-9400-5df6ead1a268"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Retrieve", " ", "true"}], "-", 
+    RowBox[{"color", " ", "image", " ", "of", " ", "Lake", " ", "Erie"}]}], 
+   " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"erieRGB", " ", "=", " ", 
+     RowBox[{"GEEImage", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"41.7", ",", " ", 
+          RowBox[{"-", "83.0"}]}], "}"}], "]"}], ",", "\n", "  ", 
+       RowBox[{"s2Erie", " ", "//", " ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", 
+          
+          RowBox[{"\"\<B4\>\"", ",", " ", "\"\<B3\>\"", ",", 
+           " ", "\"\<B2\>\""}], "}"}], "]"}]}], ",", "\n", "  ", 
+       RowBox[{"GeoRange", " ", "->", " ", 
+        RowBox[{"Quantity", "[", 
+         RowBox[{"50", ",", " ", "\"\<Kilometers\>\""}], "]"}]}], ",", "\n", 
+       "  ", 
+       RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+        RowBox[{"<|", 
+         RowBox[{
+          RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+          RowBox[{"\"\<max\>\"", " ", "->", " ", "3000"}]}], "|>"}]}]}], 
+      "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Extract", " ", "dominant", " ", 
+     RowBox[{"colors", " ", "--"}], " ", "green", " ", "tints", " ", 
+     "indicate", " ", "algae"}], " ", "*)"}], "\n", 
+   RowBox[{"DominantColors", "[", 
+    RowBox[{"erieRGB", ",", " ", "5"}], "]"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Measure", " ", "how", " ", "\"\<green\>\"", " ", "the", " ", "water", " ",
+      "is", " ", "using", " ", "color", " ", "distance"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"greenRef", " ", "=", " ", 
+     RowBox[{"RGBColor", "[", 
+      RowBox[{"0.2", ",", " ", "0.5", ",", " ", "0.2"}], "]"}]}], ";"}], " ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"algal", " ", "green"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"blueRef", " ", "=", " ", 
+     RowBox[{"RGBColor", "[", 
+      RowBox[{"0.1", ",", " ", "0.2", ",", " ", "0.5"}], "]"}]}], ";"}], " ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"clean", " ", "water", " ", "blue"}], " ", "*)"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"pixels", " ", "=", " ", 
+     RowBox[{"ImageData", "[", "erieRGB", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"greenDist", " ", "=", " ", 
+     RowBox[{"Map", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"ColorDistance", "[", 
+         RowBox[{
+          RowBox[{"RGBColor", " ", "@@", " ", "#"}], ",", " ", "greenRef"}], 
+         "]"}], " ", "&"}], ",", " ", "pixels", ",", " ", 
+       RowBox[{"{", "2", "}"}]}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"blueDist", " ", "=", " ", 
+     RowBox[{"Map", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"ColorDistance", "[", 
+         RowBox[{
+          RowBox[{"RGBColor", " ", "@@", " ", "#"}], ",", " ", "blueRef"}], 
+         "]"}], " ", "&"}], ",", " ", "pixels", ",", " ", 
+       RowBox[{"{", "2", "}"}]}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Ratio", " ", 
+      RowBox[{"image", ":", " ", 
+       RowBox[{"low", " ", "values"}]}]}], " ", "=", " ", 
+     RowBox[{"more", " ", "green", " ", 
+      RowBox[{"(", 
+       RowBox[{"potential", " ", "algae"}], ")"}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ratioImg", " ", "=", " ", 
+     RowBox[{"Image", "[", 
+      RowBox[{"greenDist", " ", "/", " ", 
+       RowBox[{"(", 
+        RowBox[{"blueDist", " ", "+", " ", "0.01"}], ")"}]}], "]"}]}], ";"}], 
+   "\n", 
+   RowBox[{"Labeled", "[", 
+    RowBox[{"ratioImg", ",", " ", "\"\<Green/Blue Color Distance Ratio\>\""}],
+     "]"}]}]}]], "Input",ExpressionUUID->"6fd0d3d1-7453-014e-9d57-\
+b45264b6cd32"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"031370a0-c9e1-d742-b965-108fac2250c1"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.7 Wetland Mapping", "Chapter",ExpressionUUID->"99553172-9860-264e-b266-135c2f23ab66"],
+
+Cell[CellGroupData[{
+
+Cell["Multi-Index Wetland Classification", "Section",ExpressionUUID->"78a26089-5ea2-aa48-8d37-8cb872dcf5c0"],
+
+Cell["\<\
+Wetlands occupy the boundary between terrestrial and aquatic systems. They \
+support dense vegetation (high NDVI) while maintaining high soil moisture or \
+standing water (moderate NDWI). A combination of spectral indices can \
+distinguish wetlands from pure water bodies and dry land.\
+\>", "Text",ExpressionUUID->"ee7e17f8-a839-c44e-96a5-b3efd9451b2c"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Target", ":", " ", 
+     RowBox[{"Okavango", " ", "Delta"}]}], ",", " ", "Botswana"}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"okBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"22.0", ",", " ", 
+       RowBox[{"-", "20.0"}], ",", " ", "24.0", ",", " ", 
+       RowBox[{"-", "18.5"}]}], "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"s2Okavango", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+         "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+         " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2024-03-01\>\"", ",", " ", "\"\<2024-06-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "okBox", "]"}]}], " ", "//", "\n", 
+       "    ", 
+       RowBox[{"GEEFilterProperty", "[", 
+        RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", 
+         " ", "\"\<LessThan\>\"", ",", " ", "15"}], "]"}]}], " ", "//", "\n", 
+      "    ", "GEEMedian"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Compute", " ", "indices"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"ndvi", " ", "=", " ", 
+     RowBox[{"s2Okavango", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B8\>\"", ",", " ", "\"\<B4\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", 
+   RowBox[{
+    RowBox[{"ndwi", " ", "=", " ", 
+     RowBox[{"s2Okavango", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+    ";"}], "\n", 
+   RowBox[{
+    RowBox[{"mndwi", " ", "=", " ", 
+     RowBox[{"s2Okavango", " ", "//", " ", 
+      RowBox[{"GEENormalizedDifference", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B11\>\""}], "}"}], "]"}]}]}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"ab53efe6-4d87-734d-98f7-\
+4fa2deaef228"],
+
+Cell["\<\
+Apply classification rules to separate water, wetland, and dryland.\
+\>", "Text",ExpressionUUID->"88efcf57-e015-cc40-a72c-6bd57f26e078"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Open", " ", 
+    RowBox[{"water", ":", " ", 
+     RowBox[{"NDWI", " ", ">", " ", "0.3"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"openWater", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"ndwi", " ", "//", "\n", "  ", 
+       RowBox[{"GEEGreaterThan", "[", "0.3", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Wetland", " ", 
+     RowBox[{"vegetation", ":", " ", 
+      RowBox[{"NDVI", " ", ">", " ", 
+       RowBox[{"0.2", " ", "AND", " ", "NDWI"}], " ", ">", " ", 
+       RowBox[{"-", "0.1"}]}]}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"wetlandVeg", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"GEEAnd", "[", "\n", "  ", 
+       RowBox[{
+        RowBox[{"ndvi", " ", "//", " ", 
+         RowBox[{"GEEGreaterThan", "[", "0.2", "]"}]}], ",", "\n", "  ", 
+        RowBox[{"ndwi", " ", "//", " ", 
+         RowBox[{"GEEGreaterThan", "[", 
+          RowBox[{"-", "0.1"}], "]"}]}]}], "\n", "]"}], " ", "//", " ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Build", " ", "a", " ", "classified", " ", "image", " ", "using", " ", 
+     "GEEWhere"}], " ", "*)"}], "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Start", " ", "with", " ", "a", " ", "constant", " ", "image", " ", "of", 
+     " ", "0", " ", 
+     RowBox[{"(", "unclassified", ")"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"classified", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"GEEConstant", "[", "0", "]"}], " ", "//", "\n", "  ", 
+        RowBox[{"GEEWhere", "[", 
+         RowBox[{
+          RowBox[{"ndwi", " ", "//", " ", 
+           RowBox[{"GEEGreaterThan", "[", 
+            RowBox[{"-", "0.1"}], "]"}]}], ",", " ", "1"}], "]"}]}], " ", "//",
+        "   ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"moist", " ", "soil"}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"GEEWhere", "[", 
+        RowBox[{"wetlandVeg", ",", " ", "2"}], "]"}]}], " ", "//", 
+      "                       ", 
+      RowBox[{"(*", " ", "wetland", " ", "*)"}], "\n", "  ", 
+      RowBox[{"GEEWhere", "[", 
+       RowBox[{"openWater", ",", " ", "3"}], "]"}]}]}], ";"}], 
+   "                          ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"open", " ", "water"}], " ", "*)"}], "\n", "\n", 
+   RowBox[{"classImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"okBox", ",", " ", "classified", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "3"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#D2B48C\>\"", ",", " ", "\"\<#90EE90\>\"", ",", 
+            " ", "\"\<#006400\>\"", ",", " ", "\"\<#0000FF\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"40f41619-94e0-a640-\
+9bbc-31ba7155db90"],
+
+Cell["\<\
+The resulting image shows four classes: dry land (tan), moist soil (light \
+green), wetland vegetation (dark green), and open water (blue).\
+\>", "Text",ExpressionUUID->"794ad034-7be2-c042-9ff7-b0ee210c10f1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Wetland Area by Class", "Section",ExpressionUUID->"ef256f2b-e157-3047-8a57-c820e74eedc9"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"okGeom", " ", "=", " ", 
+    RowBox[{"GEEGeometry", "[", "okBox", "]"}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Area", " ", "for", " ", "each", " ", "class"}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"wetlandClasses", " ", "=", " ", 
+    RowBox[{"Association", " ", "@@", " ", 
+     RowBox[{"Table", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Module", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"mask", ",", " ", "areaImg", ",", " ", "stats"}], "}"}], ",",
+          "\n", "    ", 
+         RowBox[{
+          RowBox[{"mask", " ", "=", " ", 
+           RowBox[{
+            RowBox[{"classified", " ", "//", " ", 
+             RowBox[{"GEEEquals", "[", "classVal", "]"}]}], " ", "//", " ", 
+            "GEESelfMask"}]}], ";", "\n", "    ", 
+          RowBox[{"areaImg", " ", "=", " ", 
+           RowBox[{"mask", " ", "//", " ", 
+            RowBox[{"GEEMultiply", "[", 
+             RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";", "\n", "    ", 
+          RowBox[{"stats", " ", "=", " ", 
+           RowBox[{"GEECompute", "[", "\n", "      ", 
+            RowBox[{"areaImg", " ", "//", " ", 
+             RowBox[{"GEEReduceRegion", "[", 
+              RowBox[{"okGeom", ",", " ", "\"\<sum\>\"", ",", " ", "30"}], 
+              "]"}]}], "\n", "    ", "]"}]}], ";", "\n", "    ", 
+          RowBox[{"className", " ", "->", " ", 
+           RowBox[{
+            RowBox[{"Lookup", "[", 
+             RowBox[{"stats", ",", " ", "\"\<constant\>\"", ",", " ", "0"}], 
+             "]"}], " ", "/", " ", "1.0*^6"}]}]}]}], "\n", "  ", "]"}], ",", 
+       "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"classVal", ",", " ", "className"}], "}"}], ",", "\n", 
+         "   ", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"1", ",", " ", "\"\<Moist Soil\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"2", ",", " ", "\"\<Wetland\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"3", ",", " ", "\"\<Open Water\>\""}], "}"}]}], "}"}]}], 
+        "}"}]}], "\n", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Display", " ", "as", " ", "a", " ", "Dataset"}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{"Dataset", "[", "wetlandClasses", "]"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Pie", " ", "chart"}], " ", "*)"}]}], "\n", 
+ RowBox[{"PieChart", "[", 
+  RowBox[{
+   RowBox[{"Values", "[", "wetlandClasses", "]"}], ",", "\n", "  ", 
+   RowBox[{"ChartLabels", " ", "->", " ", 
+    RowBox[{"Keys", "[", "wetlandClasses", "]"}]}], ",", "\n", "  ", 
+   RowBox[{"ChartStyle", " ", "->", " ", 
+    RowBox[{"{", 
+     RowBox[{"\"\<LightGreen\>\"", ",", " ", "\"\<DarkGreen\>\"", ",", 
+      " ", "\"\<Blue\>\""}], "}"}]}], ",", "\n", "  ", 
+   RowBox[{
+   "PlotLabel", " ", "->", 
+    " ", "\"\<Okavango Delta Land Cover (km\\[Superscript]2)\>\""}], ",", 
+   "\n", "  ", 
+   RowBox[{"ImageSize", " ", "->", " ", "400"}]}], "]"}]}], "Input",Expression\
+UUID->"54973a3b-53a3-bf46-8880-c84451ac2c13"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["ESA WorldCover Wetland Extraction", "Section",ExpressionUUID->"f75b2413-6280-9143-b428-d3ec8be915b4"],
+
+Cell["\<\
+The ESA WorldCover product provides a global land cover map at 10-meter \
+resolution. Class 90 corresponds to herbaceous wetlands.\
+\>", "Text",ExpressionUUID->"3fe3bbd0-123e-9a44-8245-fe779add6c21"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "ESA", " ", "WorldCover", " ", "v200", " ", "is", " ", "an", " ", 
+    "IMAGE_COLLECTION"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"worldCover", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"GEECollection", "[", "\"\<ESA/WorldCover/v200\>\"", "]"}], 
+       " ", "//", "\n", "  ", 
+       RowBox[{"GEEFilterDate", "[", 
+        RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+        "]"}]}], " ", "//", "\n", "  ", "GEEMosaic"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Extract", " ", "wetland", " ", "class", " ", 
+     RowBox[{"(", 
+      RowBox[{"value", " ", "=", " ", "90"}], ")"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"wetlands", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"worldCover", " ", "//", "\n", "  ", 
+        RowBox[{"GEESelectBands", "[", 
+         RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+       RowBox[{"GEEEquals", "[", "90", "]"}]}], " ", "//", "\n", "  ", 
+      "GEESelfMask"}]}], ";"}], "\n", "\n", 
+   RowBox[{"wetlandImg", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"okBox", ",", " ", "wetlands", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "1"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", "\"\<#006400\>\"", "}"}]}]}], "|>"}]}]}], "]"}]}], 
+   "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Compute", " ", "wetland", " ", "area"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"wetlandArea", " ", "=", " ", 
+     RowBox[{"wetlands", " ", "//", " ", 
+      RowBox[{"GEEMultiply", "[", 
+       RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"wetlandStats", " ", "=", " ", 
+     RowBox[{"GEECompute", "[", "\n", "  ", 
+      RowBox[{"wetlandArea", " ", "//", " ", 
+       RowBox[{"GEEReduceRegion", "[", 
+        RowBox[{"okGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], "]"}]}], 
+      "\n", "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"Quantity", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Lookup", "[", 
+       RowBox[{"wetlandStats", ",", " ", "\"\<Map\>\"", ",", " ", "0"}], 
+       "]"}], " ", "/", " ", "1.0*^6"}], ",", " ", 
+     RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}]}]], "Input",Expressio\
+nUUID->"5d203c71-2bdc-da49-8b08-83b611d95d8f"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"28d0a2fc-0cbe-0a45-8e75-4996b3774cb3"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.8 Watershed-Scale Analysis", "Chapter",ExpressionUUID->"03c6add3-ad9b-3144-8a4e-024f613582cb"],
+
+Cell[CellGroupData[{
+
+Cell["Building a Water Budget", "Section",ExpressionUUID->"fd711b3c-417e-f84b-914f-e09f4f49fb07"],
+
+Cell["\<\
+A watershed water budget balances inputs (precipitation) against outputs \
+(evapotranspiration, runoff, groundwater recharge). At the simplest level:\
+\>", "Text",ExpressionUUID->"1dbcdf41-e640-ac44-ad87-e5615be94e23"],
+
+Cell["Net Water = Precipitation - Evapotranspiration", "Program",ExpressionUUID->"c8922978-5dcd-714f-b667-a180d299d67e"],
+
+Cell["\<\
+Both terms come from satellite data: CHIRPS for precipitation and MODIS \
+MOD16A2 for evapotranspiration (ET).\
+\>", "Text",ExpressionUUID->"6f9871ab-454e-ec40-9776-2d2d7f57953f"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Define", " ", "a", " ", 
+     RowBox[{"watershed", ":", " ", 
+      RowBox[{"Upper", " ", "Blue", " ", "Nile", " ", "Basin"}]}]}], ",", " ",
+     "Ethiopia"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"nileCoords", " ", "=", " ", 
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"37.0", ",", " ", "8.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"40.0", ",", " ", "8.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"40.0", ",", " ", "12.0"}], "}"}], ",", "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{"37.5", ",", " ", "13.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"35.5", ",", " ", "12.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"35.5", ",", " ", "9.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"37.0", ",", " ", "8.0"}], "}"}]}], "\n", "}"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"nilePolygon", " ", "=", " ", 
+     RowBox[{"GEEPolygon", "[", "nileCoords", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"nileBbox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"35.5", ",", " ", "8.0", ",", " ", "40.0", ",", " ", "13.0"}], 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Monthly", " ", "water", " ", "budget", " ", "for", " ", "2023"}],
+     " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"waterBudgetMonth", "[", 
+     RowBox[{"year_Integer", ",", " ", "month_Integer"}], "]"}], " ", ":=", 
+    " ", 
+    RowBox[{"Module", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+       "startDate", ",", " ", "endDate", ",", " ", "precip", ",", " ", "et", ",",
+         " ", "precipStats", ",", " ", "etStats", ",", " ", "pMm", ",", " ", 
+        "etMm"}], "}"}], ",", "\n", "\n", "  ", 
+      RowBox[{
+       RowBox[{"startDate", " ", "=", " ", 
+        RowBox[{"DateString", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+          " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "  ", 
+       RowBox[{"endDate", " ", "=", " ", 
+        RowBox[{"DateString", "[", 
+         RowBox[{
+          RowBox[{"DatePlus", "[", 
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+            " ", 
+            RowBox[{"{", 
+             RowBox[{"1", ",", " ", "\"\<Month\>\""}], "}"}]}], "]"}], ",", 
+          " ", "\"\<ISODate\>\""}], "]"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"CHIRPS", " ", "precipitation", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"mm", "/", "day"}], " ", "->", " ", 
+           RowBox[{
+            RowBox[{"mm", "/", "month"}], " ", "via", " ", "sum"}]}], ")"}]}],
+         " ", "*)"}], "\n", "  ", 
+       RowBox[{"precip", " ", "=", "\n", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}], " ",
+             "//", "\n", "      ", 
+            RowBox[{"GEEFilterDate", "[", 
+             RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//", 
+           "\n", "      ", 
+           RowBox[{"GEEFilterBounds", "[", "nileBbox", "]"}]}], " ", "//", 
+          "\n", "      ", "GEECollectionSum"}], " ", "//", "\n", "      ", 
+         RowBox[{"GEEClip", "[", "nilePolygon", "]"}]}]}], ";", "\n", "\n", 
+       "  ", 
+       RowBox[{"precipStats", " ", "=", " ", 
+        RowBox[{"GEECompute", "[", "\n", "    ", 
+         RowBox[{"precip", " ", "//", " ", 
+          RowBox[{"GEEReduceRegion", "[", 
+           RowBox[{
+           "nilePolygon", ",", " ", "\"\<mean\>\"", ",", " ", "5000"}], 
+           "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"MODIS", " ", "ET", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{"kg", "/", 
+              RowBox[{"m", "^", "2"}]}], "/", "8"}], "day"}], " ", "->", " ", 
+           RowBox[{"sum", " ", "and", " ", "scale"}]}], ")"}]}], " ", "*)"}], 
+       "\n", "  ", 
+       RowBox[{"et", " ", "=", "\n", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{
+             RowBox[{
+              RowBox[{
+              "GEECollection", "[", "\"\<MODIS/061/MOD16A2GF\>\"", "]"}], " ",
+               "//", "\n", "      ", 
+              RowBox[{"GEEFilterDate", "[", 
+               RowBox[{"startDate", ",", " ", "endDate"}], "]"}]}], " ", "//",
+              "\n", "      ", 
+             RowBox[{"GEEFilterBounds", "[", "nileBbox", "]"}]}], " ", "//", 
+            "\n", "      ", 
+            RowBox[{"GEESelectBands", "[", 
+             RowBox[{"{", "\"\<ET\>\"", "}"}], "]"}]}], " ", "//", "\n", 
+           "      ", "GEECollectionSum"}], " ", "//", "\n", "      ", 
+          RowBox[{"GEEMultiply", "[", "0.1", "]"}]}], " ", "//", "   ", 
+         RowBox[{"(*", " ", 
+          RowBox[{
+           RowBox[{"Scale", " ", 
+            RowBox[{"factor", ":", " ", 
+             RowBox[{"0.1", " ", 
+              RowBox[{"kg", "/", 
+               RowBox[{"m", "^", "2"}]}]}]}]}], " ", "=", " ", 
+           RowBox[{"0.1", " ", "mm"}]}], " ", "*)"}], "\n", "      ", 
+         RowBox[{"GEEClip", "[", "nilePolygon", "]"}]}]}], ";", "\n", "\n", 
+       "  ", 
+       RowBox[{"etStats", " ", "=", " ", 
+        RowBox[{"GEECompute", "[", "\n", "    ", 
+         RowBox[{"et", " ", "//", " ", 
+          RowBox[{"GEEReduceRegion", "[", 
+           RowBox[{"nilePolygon", ",", " ", "\"\<mean\>\"", ",", " ", "500"}],
+            "]"}]}], "\n", "  ", "]"}]}], ";", "\n", "\n", "  ", 
+       RowBox[{"pMm", " ", "=", " ", 
+        RowBox[{"Lookup", "[", 
+         RowBox[{
+         "precipStats", ",", " ", "\"\<precipitation\>\"", ",", " ", "0"}], 
+         "]"}]}], ";", "\n", "  ", 
+       RowBox[{"etMm", " ", "=", " ", 
+        RowBox[{"Lookup", "[", 
+         RowBox[{"etStats", ",", " ", "\"\<ET\>\"", ",", " ", "0"}], "]"}]}], 
+       ";", "\n", "\n", "  ", 
+       RowBox[{"<|", "\n", "    ", 
+        RowBox[{
+         RowBox[{"\"\<Month\>\"", " ", "->", " ", 
+          RowBox[{"DateObject", "[", 
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"year", ",", " ", "month", ",", " ", "1"}], "}"}], ",", 
+            " ", "\"\<Month\>\""}], "]"}]}], ",", "\n", "    ", 
+         RowBox[{"\"\<Precipitation_mm\>\"", " ", "->", " ", "pMm"}], ",", 
+         "\n", "    ", 
+         RowBox[{"\"\<ET_mm\>\"", " ", "->", " ", "etMm"}], ",", "\n", "    ", 
+         RowBox[{"\"\<NetWater_mm\>\"", " ", "->", " ", 
+          RowBox[{"pMm", " ", "-", " ", "etMm"}]}]}], "\n", "  ", "|>"}]}]}], 
+     "\n", "]"}]}]}]}]], "Input",ExpressionUUID->"984c27d0-b0b7-5d4e-b13f-\
+0bf275ffba3e"],
+
+Cell["Build the full annual water budget.", "Text",ExpressionUUID->"129afdc6-73e6-0740-bb3c-8fc9a7153312"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"budgetData", " ", "=", " ", 
+    RowBox[{"Table", "[", "\n", "  ", 
+     RowBox[{
+      RowBox[{"waterBudgetMonth", "[", 
+       RowBox[{"2023", ",", " ", "m"}], "]"}], ",", "\n", "  ", 
+      RowBox[{"{", 
+       RowBox[{"m", ",", " ", "1", ",", " ", "12"}], "}"}]}], "\n", "]"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"budgetDS", " ", "=", " ", 
+    RowBox[{"Dataset", "[", "budgetData", "]"}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Display", " ", "the", " ", "table"}], " ", "*)"}]}], "\n", 
+ RowBox[{"budgetDS", "[", 
+  RowBox[{"All", ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"\"\<Month\>\"", ",", " ", "\"\<Precipitation_mm\>\"", ",", 
+     " ", "\"\<ET_mm\>\"", ",", " ", "\"\<NetWater_mm\>\""}], "}"}]}], 
+  "]"}]}], "Input",ExpressionUUID->"a2b0dfb2-0b36-6840-84b7-378cd3508b01"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Visualizing the Water Budget", "Section",ExpressionUUID->"e25530bc-0297-034a-bd85-1f798966bfa9"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Extract", " ", "columns", " ", "for", " ", "plotting"}], " ", 
+   "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"months", " ", "=", " ", 
+     RowBox[{"Normal", "[", 
+      RowBox[{"budgetDS", "[", 
+       RowBox[{"All", ",", " ", "\"\<Month\>\""}], "]"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"precip", " ", "=", " ", 
+     RowBox[{"Normal", "[", 
+      RowBox[{"budgetDS", "[", 
+       RowBox[{"All", ",", " ", "\"\<Precipitation_mm\>\""}], "]"}], "]"}]}], 
+    ";"}], "\n", 
+   RowBox[{
+    RowBox[{"et", " ", "=", " ", 
+     RowBox[{"Normal", "[", 
+      RowBox[{"budgetDS", "[", 
+       RowBox[{"All", ",", " ", "\"\<ET_mm\>\""}], "]"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"netWater", " ", "=", " ", 
+     RowBox[{"Normal", "[", 
+      RowBox[{"budgetDS", "[", 
+       RowBox[{"All", ",", " ", "\"\<NetWater_mm\>\""}], "]"}], "]"}]}], 
+    ";"}], "\n", "\n", 
+   RowBox[{"DateListPlot", "[", "\n", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"TimeSeries", "[", 
+        RowBox[{"Transpose", "[", 
+         RowBox[{"{", 
+          RowBox[{"months", ",", " ", "precip"}], "}"}], "]"}], "]"}], ",", 
+       "\n", "   ", 
+       RowBox[{"TimeSeries", "[", 
+        RowBox[{"Transpose", "[", 
+         RowBox[{"{", 
+          RowBox[{"months", ",", " ", "et"}], "}"}], "]"}], "]"}], ",", "\n", 
+       "   ", 
+       RowBox[{"TimeSeries", "[", 
+        RowBox[{"Transpose", "[", 
+         RowBox[{"{", 
+          RowBox[{"months", ",", " ", "netWater"}], "}"}], "]"}], "]"}]}], 
+      "}"}], ",", "\n", "  ", 
+     RowBox[{"PlotLegends", " ", "->", " ", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Precipitation\>\"", ",", " ", "\"\<ET\>\"", ",", 
+        " ", "\"\<Net (P - ET)\>\""}], "}"}]}], ",", "\n", "  ", 
+     RowBox[{
+     "PlotLabel", " ", "->", 
+      " ", "\"\<Upper Blue Nile Water Budget (2023)\>\""}], ",", "\n", "  ", 
+     RowBox[{"FrameLabel", " ", "->", " ", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Month\>\"", ",", " ", "\"\<Water Depth (mm)\>\""}], 
+       "}"}]}], ",", "\n", "  ", 
+     RowBox[{"PlotStyle", " ", "->", " ", 
+      RowBox[{"{", 
+       RowBox[{"Blue", ",", " ", "Red", ",", " ", 
+        RowBox[{"Directive", "[", 
+         RowBox[{"Thick", ",", " ", 
+          RowBox[{"Darker", "[", "Green", "]"}]}], "]"}]}], "}"}]}], ",", 
+     "\n", "  ", 
+     RowBox[{"Filling", " ", "->", " ", 
+      RowBox[{"{", 
+       RowBox[{"3", " ", "->", " ", "Axis"}], "}"}]}], ",", "\n", "  ", 
+     RowBox[{"FillingStyle", " ", "->", " ", 
+      RowBox[{"Directive", "[", 
+       RowBox[{
+        RowBox[{"Opacity", "[", "0.1", "]"}], ",", " ", "Green"}], "]"}]}], ",",
+      "\n", "  ", 
+     RowBox[{"GridLines", " ", "->", " ", "Automatic"}], ",", "\n", "  ", 
+     RowBox[{"ImageSize", " ", "->", " ", "Large"}]}], "]"}]}]}]], "Input",Exp\
+ressionUUID->"508b7430-124f-fb46-8b81-985a1b1f6978"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Volume Conversion with Wolfram Units", "Section",ExpressionUUID->"eb5ca139-b0eb-d346-b7af-63745dce911d"],
+
+Cell["\<\
+Convert the water budget from depth (mm) to volume (cubic meters) using the \
+watershed area and Wolfram Language's unit system.\
+\>", "Text",ExpressionUUID->"08dd2cf0-b586-f64d-ada1-bd05f7ec448b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Compute", " ", "watershed", " ", "area"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"watershedAreaM2", " ", "=", " ", 
+     RowBox[{"GEECompute", "[", 
+      RowBox[{"GEEArea", "[", "nilePolygon", "]"}], "]"}]}], ";"}], "\n", 
+   "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Annual", " ", "totals"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"annualPrecipMm", " ", "=", " ", 
+     RowBox[{"Total", "[", "precip", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"annualETMm", " ", "=", " ", 
+     RowBox[{"Total", "[", "et", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"annualNetMm", " ", "=", " ", 
+     RowBox[{"annualPrecipMm", " ", "-", " ", "annualETMm"}]}], ";"}], "\n", 
+   "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Convert", ":", " ", 
+      RowBox[{"mm", " ", "over", " ", "area"}]}], " ", "->", " ", 
+     RowBox[{"m", "^", "3"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"volumeConvert", "[", 
+     RowBox[{"depthMm_", ",", " ", "areaM2_"}], "]"}], " ", ":=", "\n", "  ", 
+    RowBox[{"UnitConvert", "[", "\n", "    ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Quantity", "[", 
+        RowBox[{"depthMm", ",", " ", "\"\<Millimeters\>\""}], "]"}], " ", "*",
+        " ", 
+       RowBox[{"Quantity", "[", 
+        RowBox[{"areaM2", ",", " ", 
+         RowBox[{"\"\<Meters\>\"", "^", "2"}]}], "]"}]}], ",", "\n", "    ", 
+      RowBox[{"\"\<Meters\>\"", "^", "3"}]}], "\n", "  ", "]"}]}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"annualPrecipVol", " ", "=", " ", 
+     RowBox[{"volumeConvert", "[", 
+      RowBox[{"annualPrecipMm", ",", " ", "watershedAreaM2"}], "]"}]}], ";"}],
+    "\n", 
+   RowBox[{
+    RowBox[{"annualETVol", " ", "=", " ", 
+     RowBox[{"volumeConvert", "[", 
+      RowBox[{"annualETMm", ",", " ", "watershedAreaM2"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"annualNetVol", " ", "=", " ", 
+     RowBox[{"volumeConvert", "[", 
+      RowBox[{"annualNetMm", ",", " ", "watershedAreaM2"}], "]"}]}], ";"}], 
+   "\n", "\n", 
+   RowBox[{"(*", " ", "Summary", " ", "*)"}], "\n", 
+   RowBox[{"Dataset", "[", 
+    RowBox[{"<|", "\n", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Annual Precipitation\>\"", " ", "->", " ", 
+       RowBox[{"UnitConvert", "[", 
+        RowBox[{"annualPrecipVol", ",", " ", 
+         RowBox[{"\"\<Kilometers\>\"", "^", "3"}]}], "]"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Annual ET\>\"", " ", "->", " ", 
+       RowBox[{"UnitConvert", "[", 
+        RowBox[{"annualETVol", ",", " ", 
+         RowBox[{"\"\<Kilometers\>\"", "^", "3"}]}], "]"}]}], ",", "\n", "  ", 
+      RowBox[{"\"\<Net Water Availability\>\"", " ", "->", " ", 
+       RowBox[{"UnitConvert", "[", 
+        RowBox[{"annualNetVol", ",", " ", 
+         RowBox[{"\"\<Kilometers\>\"", "^", "3"}]}], "]"}]}]}], "\n", "|>"}], 
+    "]"}]}]}]], "Input",ExpressionUUID->"a54bc603-78bb-c54a-8d00-\
+7a4394e4b738"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Spatial P-ET Map", "Section",ExpressionUUID->"cecff218-5909-074a-9298-5d49b9cef037"],
+
+Cell["\<\
+Instead of basin-average values, compute the spatial pattern of P - ET to \
+identify which sub-regions generate the most runoff.\
+\>", "Text",ExpressionUUID->"4d9c4f0d-f8f0-6b49-b035-56aed9d9ed1f"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Annual", " ", "precipitation"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"annualP", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}],
+          " ", "//", "\n", "    ", 
+         RowBox[{"GEEFilterDate", "[", 
+          RowBox[{"\"\<2023-01-01\>\"", ",", " ", "\"\<2024-01-01\>\""}], 
+          "]"}]}], " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterBounds", "[", "nileBbox", "]"}]}], " ", "//", "\n", 
+       "    ", "GEECollectionSum"}], " ", "//", "\n", "    ", 
+      RowBox[{"GEEClip", "[", "nilePolygon", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Annual", " ", "ET"}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"annualET", " ", "=", "\n", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"GEECollection", "[", "\"\<MODIS/061/MOD16A2GF\>\"", "]"}],
+            " ", "//", "\n", "    ", 
+           RowBox[{"GEEFilterDate", "[", 
+            RowBox[{"\"\<2023-01-01\>\"", ",", " ", "\"\<2024-01-01\>\""}], 
+            "]"}]}], " ", "//", "\n", "    ", 
+          RowBox[{"GEEFilterBounds", "[", "nileBbox", "]"}]}], " ", "//", 
+         "\n", "    ", 
+         RowBox[{"GEESelectBands", "[", 
+          RowBox[{"{", "\"\<ET\>\"", "}"}], "]"}]}], " ", "//", "\n", "    ", 
+        "GEECollectionSum"}], " ", "//", "\n", "    ", 
+       RowBox[{"GEEMultiply", "[", "0.1", "]"}]}], " ", "//", "\n", "    ", 
+      RowBox[{"GEEClip", "[", "nilePolygon", "]"}]}]}], ";"}], "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Spatial", " ", "net", " ", "water"}], " ", "=", " ", 
+     RowBox[{"P", " ", "-", " ", "ET"}]}], " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"netWaterMap", " ", "=", " ", 
+     RowBox[{"GEESubtract", "[", 
+      RowBox[{"annualP", ",", " ", "annualET"}], "]"}]}], ";"}], "\n", "\n", 
+   RowBox[{"netWaterImage", " ", "=", " ", 
+    RowBox[{"GEEComputePixels", "[", 
+     RowBox[{"nileBbox", ",", " ", "netWaterMap", ",", "\n", "  ", 
+      RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<min\>\"", " ", "->", " ", 
+          RowBox[{"-", "200"}]}], ",", " ", 
+         RowBox[{"\"\<max\>\"", " ", "->", " ", "1000"}], ",", "\n", "    ", 
+         RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+          RowBox[{"{", 
+           
+           RowBox[{"\"\<#FF0000\>\"", ",", " ", "\"\<#FFFF00\>\"", ",", 
+            " ", "\"\<#00FF00\>\"", ",", " ", "\"\<#0000FF\>\""}], "}"}]}]}], 
+        "|>"}]}]}], "]"}]}]}]}]], "Input",ExpressionUUID->"4c279a30-de46-7149-\
+aa8a-52b0923f63b0"],
+
+Cell["\<\
+Red areas experience water deficit (ET exceeds P); blue areas produce surplus \
+water that becomes runoff or groundwater recharge.\
+\>", "Text",ExpressionUUID->"8cbe59d8-dce0-fe4a-9296-0ab7ce34e423"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"64326095-c932-bc46-95f9-b1cf364606ce"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.9 Putting It All Together: Integrated Watershed Assessment", "Chapter",ExpressionUUID->"d10f09fe-1b18-a64f-ab15-117a8a3107e8"],
+
+Cell["\<\
+This section combines techniques from throughout the chapter into a single \
+watershed assessment workflow.\
+\>", "Text",ExpressionUUID->"cbea11db-38e7-934b-80b6-702c551898e3"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Target", ":", " ", 
+     RowBox[{"Mekong", " ", "Delta"}]}], ",", " ", "Vietnam"}], " ", "*)"}], 
+  "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"mekongBox", " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"105.0", ",", " ", "9.0", ",", " ", "107.0", ",", " ", "11.0"}],
+       "}"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"mekongCoords", " ", "=", " ", 
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"105.0", ",", " ", "9.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"107.0", ",", " ", "9.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"107.0", ",", " ", "11.0"}], "}"}], ",", "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{"105.0", ",", " ", "11.0"}], "}"}], ",", " ", 
+       RowBox[{"{", 
+        RowBox[{"105.0", ",", " ", "9.0"}], "}"}]}], "\n", "}"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"mekongPoly", " ", "=", " ", 
+     RowBox[{"GEEPolygon", "[", "mekongCoords", "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"mekongGeom", " ", "=", " ", 
+     RowBox[{"GEEGeometry", "[", "mekongBox", "]"}]}], ";"}]}]}]], "Input",Exp\
+ressionUUID->"67cef7af-5142-524f-8a17-a0c6b8216bdb"],
+
+Cell[CellGroupData[{
+
+Cell["Step 1: Map Current Water Bodies", "Section",ExpressionUUID->"42813b20-4a4d-7d4d-81eb-835e59e77e5c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"s2Mekong", " ", "=", "\n", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{
+        "GEECollection", "[", "\"\<COPERNICUS/S2_SR_HARMONIZED\>\"", "]"}], 
+        " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2024-01-01\>\"", ",", " ", "\"\<2024-04-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "    ", 
+       RowBox[{"GEEFilterBounds", "[", "mekongBox", "]"}]}], " ", "//", "\n", 
+      "    ", 
+      RowBox[{"GEEFilterProperty", "[", 
+       RowBox[{"\"\<CLOUDY_PIXEL_PERCENTAGE\>\"", ",", " ", "\"\<LessThan\>\"",
+         ",", " ", "15"}], "]"}]}], " ", "//", "\n", "    ", "GEEMedian"}]}], 
+   ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"mekongNDWI", " ", "=", " ", 
+   RowBox[{"s2Mekong", " ", "//", " ", 
+    RowBox[{"GEENormalizedDifference", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<B3\>\"", ",", " ", "\"\<B8\>\""}], "}"}], "]"}]}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"mekongWater", " ", "=", " ", 
+    RowBox[{
+     RowBox[{"mekongNDWI", " ", "//", " ", 
+      RowBox[{"GEEGreaterThan", "[", "0", "]"}]}], " ", "//", " ", 
+     "GEESelfMask"}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Water", " ", "area"}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{"waterAreaImg", " ", "=", " ", 
+   RowBox[{"mekongWater", " ", "//", " ", 
+    RowBox[{"GEEMultiply", "[", 
+     RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"waterStats", " ", "=", " ", 
+    RowBox[{"GEECompute", "[", "\n", "  ", 
+     RowBox[{"waterAreaImg", " ", "//", " ", 
+      RowBox[{"GEEReduceRegion", "[", 
+       RowBox[{"mekongGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}], 
+       "]"}]}], "\n", "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"mekongWaterKm2", " ", "=", " ", 
+   RowBox[{
+    RowBox[{"Lookup", "[", 
+     RowBox[{"waterStats", ",", " ", "\"\<nd\>\"", ",", " ", "0"}], "]"}], 
+    " ", "/", " ", "1.0*^6"}]}], ";"}]}], "Input",ExpressionUUID->"428d0e11-\
+4472-4246-8638-bc3bb8236fa3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Step 2: Seasonal Precipitation", "Section",ExpressionUUID->"15e196af-f96d-0045-b8a8-7aaf8a262206"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"mekongPrecip", " ", "=", "\n", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"GEECollection", "[", "\"\<UCSB-CHG/CHIRPS/DAILY\>\"", "]"}], 
+        " ", "//", "\n", "    ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2023-01-01\>\"", ",", " ", "\"\<2024-01-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "    ", 
+       RowBox[{"GEEFilterBounds", "[", "mekongBox", "]"}]}], " ", "//", "\n", 
+      "    ", "GEECollectionSum"}], " ", "//", "\n", "    ", 
+     RowBox[{"GEEClip", "[", "mekongPoly", "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"precipMean", " ", "=", " ", 
+   RowBox[{"GEECompute", "[", "\n", "  ", 
+    RowBox[{"mekongPrecip", " ", "//", " ", 
+     RowBox[{"GEEReduceRegion", "[", 
+      RowBox[{"mekongPoly", ",", " ", "\"\<mean\>\"", ",", " ", "5000"}], 
+      "]"}]}], "\n", "]"}]}], ";"}]}], "Input",ExpressionUUID->"9fd99cc1-93e2-\
+3d4e-b76b-0b8d1a5ad671"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Step 3: Land Cover Composition", "Section",ExpressionUUID->"04c43a92-f0e6-5743-bbd5-19052fdccbcd"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"mekongLC", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"GEECollection", "[", "\"\<ESA/WorldCover/v200\>\"", "]"}], 
+        " ", "//", "\n", "  ", 
+        RowBox[{"GEEFilterDate", "[", 
+         RowBox[{"\"\<2021-01-01\>\"", ",", " ", "\"\<2022-01-01\>\""}], 
+         "]"}]}], " ", "//", "\n", "  ", "GEEMosaic"}], " ", "//", "\n", "  ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<Map\>\"", "}"}], "]"}]}], " ", "//", "\n", "  ", 
+     RowBox[{"GEEClip", "[", "mekongPoly", "]"}]}]}], ";"}], "\n", "\n", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Extract", " ", "specific", " ", "classes"}], " ", "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"classAreas", " ", "=", " ", 
+    RowBox[{"Association", " ", "@@", " ", 
+     RowBox[{"Table", "[", "\n", "  ", 
+      RowBox[{
+       RowBox[{"Module", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"mask", ",", " ", "areaImg", ",", " ", "stats"}], "}"}], ",",
+          "\n", "    ", 
+         RowBox[{
+          RowBox[{"mask", " ", "=", " ", 
+           RowBox[{
+            RowBox[{"mekongLC", " ", "//", " ", 
+             RowBox[{"GEEEquals", "[", "classVal", "]"}]}], " ", "//", " ", 
+            "GEESelfMask"}]}], ";", "\n", "    ", 
+          RowBox[{"areaImg", " ", "=", " ", 
+           RowBox[{"mask", " ", "//", " ", 
+            RowBox[{"GEEMultiply", "[", 
+             RowBox[{"GEEPixelArea", "[", "]"}], "]"}]}]}], ";", "\n", "    ", 
+          RowBox[{"stats", " ", "=", " ", 
+           RowBox[{"GEECompute", "[", "\n", "      ", 
+            RowBox[{"areaImg", " ", "//", " ", 
+             RowBox[{"GEEReduceRegion", "[", 
+              RowBox[{"mekongGeom", ",", " ", "\"\<sum\>\"", ",", " ", "10"}],
+               "]"}]}], "\n", "    ", "]"}]}], ";", "\n", "    ", 
+          RowBox[{"className", " ", "->", " ", 
+           RowBox[{
+            RowBox[{"Lookup", "[", 
+             RowBox[{"stats", ",", " ", "\"\<Map\>\"", ",", " ", "0"}], "]"}],
+             " ", "/", " ", "1.0*^6"}]}]}]}], "\n", "  ", "]"}], ",", "\n", 
+       "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"classVal", ",", " ", "className"}], "}"}], ",", " ", 
+         RowBox[{"{", "\n", "    ", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"10", ",", " ", "\"\<Tree Cover\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"20", ",", " ", "\"\<Shrubland\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"30", ",", " ", "\"\<Grassland\>\""}], "}"}], ",", "\n", 
+           "    ", 
+           RowBox[{"{", 
+            RowBox[{"40", ",", " ", "\"\<Cropland\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"50", ",", " ", "\"\<Built-up\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"60", ",", " ", "\"\<Bare\>\""}], "}"}], ",", "\n", 
+           "    ", 
+           RowBox[{"{", 
+            RowBox[{"80", ",", " ", "\"\<Water\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"90", ",", " ", "\"\<Wetland\>\""}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"95", ",", " ", "\"\<Mangroves\>\""}], "}"}]}], "\n", 
+          "  ", "}"}]}], "}"}]}], "\n", "]"}]}]}], ";"}], "\n"}], "\n", 
+ RowBox[{"Dataset", "[", "classAreas", "]"}]}], "Input",ExpressionUUID->\
+"61575b45-8bf5-0143-a13d-1670237ec83f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Step 4: Water Quality Assessment", "Section",ExpressionUUID->"a21291a4-f9fd-6c47-a3cf-c2132733a343"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Turbidity", " ", "proxy", " ", "across", " ", "the", " ", "delta", " ", 
+    "waterways"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"mekongRedBand", " ", "=", " ", 
+     RowBox[{"s2Mekong", " ", "//", " ", 
+      RowBox[{"GEESelectBands", "[", 
+       RowBox[{"{", "\"\<B4\>\"", "}"}], "]"}]}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"mekongTurbidity", " ", "=", " ", 
+     RowBox[{"mekongRedBand", " ", "//", " ", 
+      RowBox[{"GEEUpdateMask", "[", "mekongWater", "]"}]}]}], ";"}], "\n", 
+   "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Sample", " ", "turbidity", " ", "at", " ", "key", " ", "locations"}], 
+    " ", "*)"}], "\n", 
+   RowBox[{
+    RowBox[{"samplePoints", " ", "=", " ", 
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"10.0", ",", " ", "106.7"}], "}"}], "]"}], ",", "   ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"Ho", " ", "Chi", " ", "Minh", " ", "City"}], " ", "*)"}], 
+       "\n", "  ", 
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"10.3", ",", " ", "106.1"}], "}"}], "]"}], ",", "   ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"Upper", " ", "delta"}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"9.5", ",", " ", "106.3"}], "}"}], "]"}], ",", "    ", 
+       RowBox[{"(*", " ", 
+        RowBox[{"Lower", " ", "delta"}], " ", "*)"}], "\n", "  ", 
+       RowBox[{"GeoPosition", "[", 
+        RowBox[{"{", 
+         RowBox[{"9.8", ",", " ", "105.5"}], "}"}], "]"}]}], "     ", 
+      RowBox[{"(*", " ", 
+       RowBox[{"Ca", " ", "Mau", " ", "peninsula"}], " ", "*)"}], "\n", 
+      "}"}]}], ";"}], "\n", "\n", 
+   RowBox[{
+    RowBox[{"turbiditySamples", " ", "=", " ", 
+     RowBox[{"GEEGetSamples", "[", 
+      RowBox[{"samplePoints", ",", " ", "mekongTurbidity"}], "]"}]}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"b772583a-60c0-2246-a385-\
+ae6cd8516069"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Step 5: Summary Dashboard", "Section",ExpressionUUID->"792b04b3-a9d0-6543-be2b-49e781fb4afe"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Compile", " ", "all", " ", "results", " ", "into", " ", "a", " ", 
+    "summary", " ", "Dataset"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"summary", " ", "=", " ", 
+     RowBox[{"Dataset", "[", 
+      RowBox[{"<|", "\n", "  ", 
+       RowBox[{
+        RowBox[{"\"\<Water Body Area\>\"", " ", "->", " ", 
+         RowBox[{"Quantity", "[", 
+          RowBox[{"mekongWaterKm2", ",", " ", 
+           RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}], ",", "\n", 
+        "  ", 
+        RowBox[{"\"\<Mean Annual Precipitation\>\"", " ", "->", "\n", "    ", 
+         RowBox[{"Quantity", "[", 
+          RowBox[{
+           RowBox[{"Lookup", "[", 
+            RowBox[{
+            "precipMean", ",", " ", "\"\<precipitation\>\"", ",", " ", "0"}], 
+            "]"}], ",", " ", "\"\<Millimeters\>\""}], "]"}]}], ",", "\n", 
+        "  ", 
+        RowBox[{"\"\<Cropland Area\>\"", " ", "->", " ", 
+         RowBox[{"Quantity", "[", 
+          RowBox[{
+           RowBox[{"Lookup", "[", 
+            RowBox[{
+            "classAreas", ",", " ", "\"\<Cropland\>\"", ",", " ", "0"}], 
+            "]"}], ",", " ", 
+           RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}], ",", "\n", 
+        "  ", 
+        RowBox[{"\"\<Wetland Area\>\"", " ", "->", " ", 
+         RowBox[{"Quantity", "[", 
+          RowBox[{
+           RowBox[{"Lookup", "[", 
+            RowBox[{
+            "classAreas", ",", " ", "\"\<Wetland\>\"", ",", " ", "0"}], "]"}],
+            ",", " ", 
+           RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}], ",", "\n", 
+        "  ", 
+        RowBox[{"\"\<Water Area (WorldCover)\>\"", " ", "->", "\n", "    ", 
+         RowBox[{"Quantity", "[", 
+          RowBox[{
+           RowBox[{"Lookup", "[", 
+            RowBox[{"classAreas", ",", " ", "\"\<Water\>\"", ",", " ", "0"}], 
+            "]"}], ",", " ", 
+           RowBox[{"\"\<Kilometers\>\"", "^", "2"}]}], "]"}]}]}], "\n", 
+       "|>"}], "]"}]}], ";"}], "\n", "\n", "summary", "\n", "\n", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Multi", "-", 
+     RowBox[{"panel", " ", "visualization"}]}], " ", "*)"}], "\n", 
+   RowBox[{"GraphicsGrid", "[", 
+    RowBox[{
+     RowBox[{"{", "\n", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"GEEComputePixels", "[", 
+          RowBox[{"mekongBox", ",", "\n", "     ", 
+           RowBox[{"s2Mekong", " ", "//", " ", 
+            RowBox[{"GEESelectBands", "[", 
+             RowBox[{"{", 
+              
+              RowBox[{"\"\<B4\>\"", ",", " ", "\"\<B3\>\"", ",", 
+               " ", "\"\<B2\>\""}], "}"}], "]"}]}], ",", "\n", "     ", 
+           RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+            RowBox[{"<|", 
+             RowBox[{
+              RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+              RowBox[{"\"\<max\>\"", " ", "->", " ", "3000"}]}], "|>"}]}]}], 
+          "]"}], ",", "\n", "   ", 
+         RowBox[{"GEEComputePixels", "[", 
+          RowBox[{"mekongBox", ",", " ", "mekongNDWI", ",", "\n", "     ", 
+           RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+            RowBox[{"<|", 
+             RowBox[{
+              RowBox[{"\"\<min\>\"", " ", "->", " ", 
+               RowBox[{"-", "0.5"}]}], ",", " ", 
+              RowBox[{"\"\<max\>\"", " ", "->", " ", "0.5"}], ",", "\n", 
+              "       ", 
+              RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+               RowBox[{"{", 
+                
+                RowBox[{"\"\<#8B4513\>\"", ",", " ", "\"\<#FFFFFF\>\"", ",", 
+                 " ", "\"\<#0000FF\>\""}], "}"}]}]}], "|>"}]}]}], "]"}]}], 
+        "}"}], ",", "\n", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"GEEComputePixels", "[", 
+          RowBox[{
+          "mekongBox", ",", " ", "mekongTurbidity", ",", "\n", "     ", 
+           RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+            RowBox[{"<|", 
+             RowBox[{
+              RowBox[{"\"\<min\>\"", " ", "->", " ", "0"}], ",", " ", 
+              RowBox[{"\"\<max\>\"", " ", "->", " ", "1500"}], ",", "\n", 
+              "       ", 
+              RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+               RowBox[{"{", 
+                
+                RowBox[{"\"\<#0000FF\>\"", ",", " ", "\"\<#00FF00\>\"", ",", 
+                 " ", "\"\<#FF0000\>\""}], "}"}]}]}], "|>"}]}]}], "]"}], ",", 
+         "\n", "   ", 
+         RowBox[{"GEEComputePixels", "[", 
+          RowBox[{"mekongBox", ",", " ", "mekongLC", ",", "\n", "     ", 
+           RowBox[{"\"\<VisParams\>\"", " ", "->", " ", 
+            RowBox[{"<|", 
+             RowBox[{
+              RowBox[{"\"\<min\>\"", " ", "->", " ", "10"}], ",", " ", 
+              RowBox[{"\"\<max\>\"", " ", "->", " ", "95"}], ",", "\n", 
+              "       ", 
+              RowBox[{"\"\<palette\>\"", " ", "->", " ", 
+               RowBox[{"{", 
+                
+                RowBox[{"\"\<#006400\>\"", ",", " ", "\"\<#FFBB22\>\"", ",", 
+                 " ", "\"\<#FFFF4C\>\"", ",", "\n", 
+                 "         ", "\"\<#F096FF\>\"", ",", " ", "\"\<#FA0000\>\"", 
+                 ",", " ", "\"\<#B4B4B4\>\"", ",", " ", "\"\<#0064C8\>\"", ",",
+                  "\n", "         ", "\"\<#0096A0\>\"", ",", 
+                 " ", "\"\<#00CF75\>\""}], "}"}]}]}], "|>"}]}]}], "]"}]}], 
+        "}"}]}], "\n", "}"}], ",", " ", 
+     RowBox[{"ImageSize", " ", "->", " ", "800"}], ",", " ", 
+     RowBox[{"Spacings", " ", "->", " ", "5"}]}], "]"}]}]}]], "Input",Expressi\
+onUUID->"4437e951-1f09-c846-8265-652175e60b43"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"0d474d52-c30a-324e-954f-ceabc39fd4af"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Summary", "Chapter",ExpressionUUID->"0d1290d4-dd3f-6a48-b27a-d3a549994442"],
+
+Cell[BoxData[
+ TemplateBox[<|
+  "Summary" -> 
+   TemplateBox[<|
+     "RowCount" -> 31, "ColumnCount" -> 2, "ColumnTypes" -> 
+      Grid[{{"Function", "InertExpression"}, {
+         "Purpose in This Chapter", "String"}}, Alignment -> Left], "Backend" -> 
+      "Tabular`Backend`WolframKernel", "UUID" -> 
+      "Tabular-b59d7e7f-3141-4c8f-829a-0aefb6afdd51", "Form" -> StandardForm, 
+      "Interpretable" -> True|>, "TabularSummary", 
+     BaseStyle -> (DynamicUpdating -> True)], "Main" -> TableViewBox[
+     Tabular[<|
+      "RawSchema" -> <|
+        "ColumnProperties" -> <|
+          "Function" -> <|"ElementType" -> "InertExpression"|>, 
+           "Purpose in This Chapter" -> <|"ElementType" -> "String"|>|>, 
+         "KeyColumns" -> None, "Backend" -> "WolframKernel"|>, 
+       "Options" -> {}, 
+       "BackendData" -> <|"ColumnData" -> DataStructure["ColumnTable", {{
+             TabularColumn[<|"Data" -> {{
+                  Style[
+                  "GEENormalizedDifference", "Code", "ShowStringCharacters" -> 
+                   False], 
+                  Style[
+                  "GEECollection", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEELoadImage", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEFilterDate", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEFilterBounds", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEFilterProperty", "Code", "ShowStringCharacters" -> 
+                   False], 
+                  Style[
+                  "GEESelectBands", "Code", "ShowStringCharacters" -> False], 
+                  Row[{
+                    Style[
+                    "GEEMedian", "Code", "ShowStringCharacters" -> False], 
+                    " / ", 
+                    Style[
+                    "GEEMean", "Code", "ShowStringCharacters" -> False]}], 
+                  Style[
+                  "GEECollectionSum", "Code", "ShowStringCharacters" -> 
+                   False], 
+                  Row[{
+                    Style[
+                    "GEEGreaterThan", "Code", "ShowStringCharacters" -> 
+                    False], " / ", 
+                    Style[
+                    "GEELessThan", "Code", "ShowStringCharacters" -> False]}], 
+                  Style[
+                  "GEESelfMask", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEUpdateMask", "Code", "ShowStringCharacters" -> False], 
+                  Row[{
+                    Style[
+                    "GEESubtract", "Code", "ShowStringCharacters" -> False], 
+                    " / ", 
+                    Style[
+                    "GEEDivide", "Code", "ShowStringCharacters" -> False]}], 
+                  Style[
+                  "GEEMultiply", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEPixelArea", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEReduceRegion", "Code", "ShowStringCharacters" -> False], 
+                  Style["GEEClip", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEPolygon", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEGeometry", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEConstant", "Code", "ShowStringCharacters" -> False], 
+                  Style["GEEWhere", "Code", "ShowStringCharacters" -> False], 
+                  Row[{
+                    Style["GEEAnd", "Code", "ShowStringCharacters" -> False], 
+                    " / ", 
+                    Style[
+                    "GEEEquals", "Code", "ShowStringCharacters" -> False]}], 
+                  Style[
+                  "GEEVisualize", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEComputePixels", "Code", "ShowStringCharacters" -> 
+                   False], 
+                  Style["GEEImage", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEGeoGraphics", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEIdentify", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEGetSamples", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEECompute", "Code", "ShowStringCharacters" -> False], 
+                  Style["GEEArea", "Code", "ShowStringCharacters" -> False], 
+                  Style[
+                  "GEEBuffer", "Code", "ShowStringCharacters" -> False]}, {}, 
+                 None}, "ElementType" -> "InertExpression", 
+               "CachedOriginalExpression" -> {
+                 Style[
+                 "GEENormalizedDifference", "Code", "ShowStringCharacters" -> 
+                  False], 
+                 Style[
+                 "GEECollection", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEELoadImage", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEFilterDate", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEFilterBounds", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEFilterProperty", "Code", "ShowStringCharacters" -> 
+                  False], 
+                 Style[
+                 "GEESelectBands", "Code", "ShowStringCharacters" -> False], 
+                 Row[{
+                   Style[
+                   "GEEMedian", "Code", "ShowStringCharacters" -> False], 
+                   " / ", 
+                   Style[
+                   "GEEMean", "Code", "ShowStringCharacters" -> False]}], 
+                 Style[
+                 "GEECollectionSum", "Code", "ShowStringCharacters" -> False], 
+                 Row[{
+                   Style[
+                   "GEEGreaterThan", "Code", "ShowStringCharacters" -> False],
+                    " / ", 
+                   Style[
+                   "GEELessThan", "Code", "ShowStringCharacters" -> False]}], 
+                 Style[
+                 "GEESelfMask", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEUpdateMask", "Code", "ShowStringCharacters" -> False], 
+                 Row[{
+                   Style[
+                   "GEESubtract", "Code", "ShowStringCharacters" -> False], 
+                   " / ", 
+                   Style[
+                   "GEEDivide", "Code", "ShowStringCharacters" -> False]}], 
+                 Style[
+                 "GEEMultiply", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEPixelArea", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEReduceRegion", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEEClip", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEEPolygon", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEGeometry", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEConstant", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEEWhere", "Code", "ShowStringCharacters" -> False], 
+                 Row[{
+                   Style["GEEAnd", "Code", "ShowStringCharacters" -> False], 
+                   " / ", 
+                   Style[
+                   "GEEEquals", "Code", "ShowStringCharacters" -> False]}], 
+                 Style[
+                 "GEEVisualize", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEComputePixels", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEEImage", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEGeoGraphics", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEIdentify", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEGetSamples", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEECompute", "Code", "ShowStringCharacters" -> False], 
+                 Style["GEEArea", "Code", "ShowStringCharacters" -> False], 
+                 Style[
+                 "GEEBuffer", "Code", "ShowStringCharacters" -> False]}|>], 
+             
+             TabularColumn[<|
+              "Data" -> {{
+                 3, {0, 47, 101, 152, 197, 236, 278, 313, 341, 380, 415, 450, 
+                  486, 530, 561, 599, 631, 667, 708, 745, 773, 801, 853, 888, 
+                  914, 940, 978, 1006, 1043, 1084, 1125, 1163}, 
+                  "Compute NDWI, MNDWI, NDVI, NDSI from band pairsLoad \
+Sentinel-2, Sentinel-1, MODIS, CHIRPS collectionsLoad single-image assets \
+(JRC Global Surface Water)Restrict collections to specific time \
+windowsSpatial filtering to region of interestCloud filtering, instrument \
+mode selectionExtract specific bands for analysisCreate cloud-free \
+compositesAccumulate daily rainfall, ET over timeThreshold indices into \
+binary masksRemove zero/false pixels from masksApply one image as a mask on \
+anotherBand math: SAR change detection, band ratiosScale factors, area \
+computationPixel area in m^2 for areal statisticsZonal statistics over a \
+geometryClip rasters to watershed boundariesDefine custom watershed/region \
+geometriesCreate point and rectangle geometriesInitialize classified \
+imagesConditional pixel assignmentLogical operations for multi-criteria \
+classificationServer-side rendering with palettesRetrieve processed \
+imageryGeo-tagged image retrievalOverlay results on geographic basemapsPoint \
+queries on raster dataMulti-point extraction for validationExecute arbitrary \
+server-side expressionsCompute geometry area for unit conversionBuffer \
+geometries for spatial analysis"}, {}, None}, "ElementType" -> 
+               "String"|>]}}]|>|>], Expression, 
+     AppearanceElements -> {"RowHeaders", "ColumnHeaders", "ResizeArea"}, 
+     DefaultBaseStyle -> "TabularTableview", 
+     TableViewBoxAlignment -> <|"ColumnsIndexed" -> {1 -> Left, 2 -> Left}|>, 
+     "TableViewBoxFieldType" -> <|
+      "ColumnsIndexed" -> {1 -> Expression, 2 -> String}|>, 
+     "TableViewBoxItemDisplayRules" -> <|
+      "Columns" -> {{{Blank[Missing] -> (MakeBoxes[#, TraditionalForm]& )}}}, 
+       "ColumnsIndexed" -> {
+        1 -> {Blank[] -> 
+           Function[{
+             Tabular`Typesetting`TableView`Private`val$, 
+              Tabular`Typesetting`TableView`Private`pos$}, 
+             
+             Function[{
+              Tabular`Typesetting`TableView`Private`val, 
+               Tabular`Typesetting`TableView`Private`pos}, 
+              MakeBoxes[Tabular`Typesetting`TableView`Private`val]][
+              RawBoxes[
+               (Tabular`Typesetting`ToBoxesWithMinimalSummary[#]& )[
+               Tabular`Typesetting`TableView`Private`val$, 
+                Tabular`Typesetting`TableView`Private`pos$]], 
+              Tabular`Typesetting`TableView`Private`pos$]], Blank[] :> 
+           Function[{
+             Tabular`Typesetting`TableView`Private`val, 
+              Tabular`Typesetting`TableView`Private`pos}, 
+             MakeBoxes[Tabular`Typesetting`TableView`Private`val]]}, 
+         2 -> {Blank[] :> 
+           Function[{
+             Tabular`Typesetting`TableView`Private`val, 
+              Tabular`Typesetting`TableView`Private`pos}, 
+             MakeBoxes[Tabular`Typesetting`TableView`Private`val]]}}|>, 
+     "TableViewBoxHeaders" -> <|
+      "ColumnsIndexed" -> {
+        1 -> TemplateBox[{"\"Function\""}, "InertExpressionTabularHeader"], 2 -> 
+         TemplateBox[{"\"Purpose in This Chapter\""}, 
+           "StringTabularHeader"]}|>, 
+     TableViewBoxItemSize -> <|"ColumnsIndexed" -> {2 -> 24, 1 -> 6}|>], 
+   "ItemSizeConstraints" -> <|
+    "ColumnsIndexed" -> {2 -> {3, 34}, 1 -> Missing[]}|>|>,
+  "Tabular"]], "Input",ExpressionUUID->"b5a4cfba-ba1b-5e42-b9f7-85afa58cf08f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Further Reading", "Chapter",ExpressionUUID->"2d18c676-a1e3-0a43-bd2b-3b07426cc9b5"],
+
+Cell[TextData[{
+ "McFeeters, S.K. (1996). \"The use of the Normalized Difference Water Index \
+(NDWI) in the delineation of open water features.\" ",
+ StyleBox["International Journal of",
+  FontSlant->Italic],
+ StyleBox[" ",
+  FontSlant->Italic],
+ StyleBox["Remote Sensing",
+  FontSlant->Italic],
+ ", 17(7), 1425-1432."
+}], "Item",ExpressionUUID->"d2386506-0c6f-7142-875b-01083adb6dfe"],
+
+Cell[TextData[{
+ "Xu, H. (2006). \"Modification of normalised difference water index (NDWI) \
+to enhance open water features in remotely sensed imagery.\" ",
+ StyleBox["International Journal",
+  FontSlant->Italic],
+ StyleBox[" ",
+  FontSlant->Italic],
+ StyleBox["of Remote Sensing",
+  FontSlant->Italic],
+ ", 27(14), 3025-3033."
+}], "Item",ExpressionUUID->"10098e95-4b82-a246-8427-1690b5c42e55"],
+
+Cell[TextData[{
+ "Pekel, J.F. et al. (2016). \"High-resolution mapping of global surface \
+water and its long-term changes.\" ",
+ StyleBox["Nature",
+  FontSlant->Italic],
+ ", 540, 418-422."
+}], "Item",ExpressionUUID->"78fdfc48-92ab-ed46-a0d2-d74742dc004b"],
+
+Cell[TextData[{
+ "Funk, C. et al. (2015). \"The climate hazards infrared precipitation with \
+stations -- a new environmental record for monitoring extremes.\" ",
+ StyleBox["Scientific",
+  FontSlant->Italic],
+ StyleBox[" ",
+  FontSlant->Italic],
+ StyleBox["Data",
+  FontSlant->Italic],
+ ", 2, 150066."
+}], "Item",ExpressionUUID->"61924f88-c8c1-5743-865f-844aa6250452"],
+
+Cell["", "Text",
+ CellFrame->{{0, 0}, {0, 
+  1}},ExpressionUUID->"44498eec-924a-5b45-b111-9a4deedabe41"],
+
+Cell[TextData[{
+ StyleBox["Next: ",
+  FontSlant->Italic],
+ StyleBox[ButtonBox["Chapter 7: Urban and Population Analysis",
+  BaseStyle->"Hyperlink",
+  ButtonData->{
+    URL["chapter-07-urban-population.md"], None},
+  ButtonNote->"chapter-07-urban-population.md"],
+  FontSlant->Italic]
+}], "Text",ExpressionUUID->"bc42a937-c97b-1d49-b67b-fe7b722bb2bc"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 654},
+WindowMargins->{{993, Automatic}, {Automatic, 171.75}},
+FrontEndVersion->"14.3 for Microsoft Windows (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"84b089aa-5435-5044-a2a2-2a2d76844ba1"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 112, 0, 157, "Title",ExpressionUUID->"5ba8ec8f-5e58-6d46-bc21-38faf9f4d7d9"],
+Cell[691, 24, 669, 9, 186, "Text",ExpressionUUID->"7e4a3c90-5b98-ba4c-9682-8f906c59faee"],
+Cell[1363, 35, 673, 10, 164, "Text",ExpressionUUID->"fb4ece1d-2053-144f-8723-dd7241bd6bbb"],
+Cell[2039, 47, 313, 7, 55, "Text",ExpressionUUID->"a5a42c20-2ff2-104d-97c1-7a2f64b56522"],
+Cell[2355, 56, 104, 2, 42, "Text",ExpressionUUID->"47176136-0e5b-024d-9735-595e89019583"],
+Cell[CellGroupData[{
+Cell[2484, 62, 98, 0, 67, "Chapter",ExpressionUUID->"7b9b42c2-7cee-e848-9d8b-ee4a516e52cb"],
+Cell[CellGroupData[{
+Cell[2607, 66, 115, 0, 66, "Section",ExpressionUUID->"8094d843-a6fa-fe4f-89e6-9f8dcf5f0b05"],
+Cell[2725, 68, 351, 5, 99, "Text",ExpressionUUID->"e9d6b9c0-1501-c249-bd95-291103ff26af"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3113, 78, 115, 0, 70, "Section",ExpressionUUID->"840b035f-03cd-294c-8778-06fbd2ece109"],
+Cell[3231, 80, 419, 6, 70, "Text",ExpressionUUID->"70de5398-5907-ae4e-ab51-656161aec133"],
+Cell[3653, 88, 3014, 78, 70, "Input",ExpressionUUID->"866c4531-620e-ae47-9e4f-39bf0ba9b73d"],
+Cell[6670, 168, 210, 3, 70, "Text",ExpressionUUID->"f839c915-2511-d347-8923-87dc7af45494"],
+Cell[6883, 173, 804, 18, 70, "Input",ExpressionUUID->"55e1db0a-2219-f945-acd5-5423221adb3c"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7724, 196, 112, 0, 70, "Section",ExpressionUUID->"dcf8d4a4-bf19-7944-b309-bfbf541d23cb"],
+Cell[7839, 198, 414, 6, 70, "Text",ExpressionUUID->"6c6b2904-edf0-754d-8622-8cc2d6eb7d00"],
+Cell[8256, 206, 214, 3, 70, "Text",ExpressionUUID->"18317470-d448-1b47-9dfd-ed34b834258b"],
+Cell[8473, 211, 4284, 107, 70, "Input",ExpressionUUID->"95abe7d9-6827-5343-8b97-9acb966038fe"],
+Cell[12760, 320, 227, 3, 70, "Text",ExpressionUUID->"1b49e1d9-4a05-6040-88cb-7ec39d8d6ff2"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[13024, 328, 127, 0, 70, "Section",ExpressionUUID->"5768e52e-b2f7-7945-b92b-be45e844a705"],
+Cell[13154, 330, 517, 9, 70, "Text",ExpressionUUID->"f7fa153c-ed9f-a947-8eba-c045814025e8"],
+Cell[13674, 341, 1930, 48, 70, "Input",ExpressionUUID->"08be6988-f420-4e47-87c8-ebb3ec899c40"],
+Cell[15607, 391, 143, 2, 70, "Text",ExpressionUUID->"a89c7e2d-0821-df44-93c1-a6ce2d4a8244"],
+Cell[15753, 395, 2350, 57, 70, "Input",ExpressionUUID->"fac40e85-70e6-3e40-8b38-2f901f021ba4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[18140, 457, 112, 0, 70, "Section",ExpressionUUID->"f487d4e4-909b-3e41-a6b4-935796065891"],
+Cell[18255, 459, 283, 6, 70, "Text",ExpressionUUID->"930e695f-ac91-e047-9c0c-32541653b73b"],
+Cell[18541, 467, 1006, 26, 70, "Input",ExpressionUUID->"ceac8083-d39a-2942-9878-2569fdafb196"],
+Cell[19550, 495, 104, 2, 70, "Text",ExpressionUUID->"5c748a3b-5057-1845-af23-b81d5ef87829"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[19703, 503, 107, 0, 70, "Chapter",ExpressionUUID->"6aada422-f1aa-3f47-bb45-ca198aa34b4e"],
+Cell[CellGroupData[{
+Cell[19835, 507, 115, 0, 70, "Section",ExpressionUUID->"d9c2a107-04a3-3c47-be8b-43f1dffa5424"],
+Cell[19953, 509, 259, 4, 70, "Text",ExpressionUUID->"bc999ae0-1e08-6048-991b-f44496df2976"],
+Cell[20215, 515, 5144, 119, 70, "Input",ExpressionUUID->"c6ce7c2a-bd20-5743-b35a-b77051944aab"],
+Cell[25362, 636, 116, 0, 70, "Text",ExpressionUUID->"e3c61fd7-aa3a-dc42-88e1-662662cba78d"],
+Cell[25481, 638, 2155, 51, 70, "Input",ExpressionUUID->"2411e203-67a7-7d41-afa7-a138c84b1449"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[27673, 694, 105, 0, 70, "Section",ExpressionUUID->"f34dcc9f-43da-cc4e-8e76-b0197b958a5e"],
+Cell[27781, 696, 255, 4, 70, "Text",ExpressionUUID->"da2f0a6e-9ea2-2045-97e0-1dc17a55f9c5"],
+Cell[28039, 702, 4445, 112, 70, "Input",ExpressionUUID->"9819bd5e-35d2-6140-9213-6d7b3d91e670"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[32521, 819, 114, 0, 70, "Section",ExpressionUUID->"a8d03131-709f-1640-8646-8f826a8eed62"],
+Cell[32638, 821, 311, 5, 70, "Text",ExpressionUUID->"a39bcd47-c1f8-8f4f-be85-de0c2f9e6785"],
+Cell[32952, 828, 1449, 36, 70, "Input",ExpressionUUID->"6a5aea4f-524b-6b44-a9ef-d6e1c9442c0e"],
+Cell[34404, 866, 104, 2, 70, "Text",ExpressionUUID->"95d2a9e1-123d-dc41-84c4-9d62b8c577ad"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[34557, 874, 91, 0, 70, "Chapter",ExpressionUUID->"ba632468-9f8e-c14e-bab9-15e0d8668c70"],
+Cell[CellGroupData[{
+Cell[34673, 878, 99, 0, 70, "Section",ExpressionUUID->"ab5f3b2f-2b52-2744-a754-dfc31a293d1e"],
+Cell[34775, 880, 613, 9, 70, "Text",ExpressionUUID->"6db4fd96-4d80-e242-8ba6-1f7334e1510d"],
+Cell[35391, 891, 3810, 93, 70, "Input",ExpressionUUID->"d153e114-a59c-5245-accb-670605167b44"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[39238, 989, 110, 0, 70, "Section",ExpressionUUID->"d6debebb-a72f-504b-ae0a-5c20ee3043be"],
+Cell[39351, 991, 306, 4, 70, "Text",ExpressionUUID->"e82753fd-81c0-4646-a656-700b6a6bea26"],
+Cell[39660, 997, 1114, 27, 70, "Input",ExpressionUUID->"9d269f8c-ce80-b946-b0f6-a4438327f1ae"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[40811, 1029, 101, 0, 70, "Section",ExpressionUUID->"a646630f-9f5f-a04a-96e8-d4492551da14"],
+Cell[40915, 1031, 232, 3, 70, "Text",ExpressionUUID->"cd5bebb4-f1ca-3948-8890-4a707c51ddd4"],
+Cell[41150, 1036, 1222, 32, 70, "Input",ExpressionUUID->"12d36c8b-5a0e-8f42-a30f-38ee6ddbb640"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[42409, 1073, 107, 0, 70, "Section",ExpressionUUID->"fe4ae537-cbcf-de47-9daa-ed2bc404a363"],
+Cell[42519, 1075, 206, 3, 70, "Text",ExpressionUUID->"69c07a60-78d5-de41-a5a5-59eef0812a9e"],
+Cell[42728, 1080, 2081, 53, 70, "Input",ExpressionUUID->"8b28d849-79ca-974e-9cbe-1a876dd51026"],
+Cell[44812, 1135, 272, 5, 70, "Text",ExpressionUUID->"5676443d-d851-4440-8644-c5e1c631e9e5"],
+Cell[45087, 1142, 1163, 27, 70, "Input",ExpressionUUID->"c7ef06bd-432d-3f4f-b25f-b0470f6cf645"],
+Cell[46253, 1171, 104, 2, 70, "Text",ExpressionUUID->"0945bc53-e199-b047-ae85-518b24524a2a"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[46406, 1179, 90, 0, 70, "Chapter",ExpressionUUID->"591e3f3d-39c9-f044-9374-9017fb2eb170"],
+Cell[CellGroupData[{
+Cell[46521, 1183, 96, 0, 70, "Section",ExpressionUUID->"c8fb67d9-1da1-ae4c-8c1b-4216e10d837b"],
+Cell[46620, 1185, 484, 8, 70, "Text",ExpressionUUID->"c5384d48-b983-cb48-a065-07b6426c8e52"],
+Cell[47107, 1195, 1796, 45, 70, "Input",ExpressionUUID->"de01f0b7-e9d2-d04c-8caf-5aa991bf6356"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[48940, 1245, 126, 0, 70, "Section",ExpressionUUID->"78bbb6f3-b16e-3649-8c92-32e3d004abc8"],
+Cell[49069, 1247, 278, 4, 70, "Text",ExpressionUUID->"a5756284-fd5b-194e-9a4e-480453eda639"],
+Cell[49350, 1253, 2498, 58, 70, "Input",ExpressionUUID->"66af4f2a-954f-4a4e-9d42-bdea843d1e44"],
+Cell[51851, 1313, 154, 2, 70, "Text",ExpressionUUID->"eb595de5-8f8b-5746-bcbe-95e3e3cbecfb"],
+Cell[52008, 1317, 3861, 102, 70, "Input",ExpressionUUID->"d8f08e8d-88a7-8f47-8ba4-c6cec29aeee1"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[55906, 1424, 112, 0, 70, "Section",ExpressionUUID->"ab47377e-621a-7d41-8414-f69ae6a0b30d"],
+Cell[56021, 1426, 411, 6, 70, "Text",ExpressionUUID->"fe9539a9-d83a-3945-9f45-7486306f59f0"],
+Cell[56435, 1434, 3996, 100, 70, "Input",ExpressionUUID->"fcfa657e-902d-294a-bdbd-99a2838b0509"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[60468, 1539, 109, 0, 70, "Section",ExpressionUUID->"978b41bc-9f01-5442-ab37-cc8bf1ab023e"],
+Cell[60580, 1541, 144, 2, 70, "Text",ExpressionUUID->"06137272-8046-9d4f-b4f2-e30c35bf855e"],
+Cell[60727, 1545, 4294, 103, 70, "Input",ExpressionUUID->"130a67d8-d416-8046-9b36-2f8860bb6c15"],
+Cell[65024, 1650, 104, 2, 70, "Text",ExpressionUUID->"122228d3-512e-8645-a44a-81efcca638b5"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[65177, 1658, 102, 0, 70, "Chapter",ExpressionUUID->"ac980d18-d42a-9a4c-bd84-cf1a2c18876a"],
+Cell[CellGroupData[{
+Cell[65304, 1662, 95, 0, 70, "Section",ExpressionUUID->"080b3cb3-c5ef-624c-8cc5-6a0406012373"],
+Cell[65402, 1664, 522, 7, 70, "Text",ExpressionUUID->"dbc1c9a7-a958-4441-9a63-2595682c8718"],
+Cell[65927, 1673, 2893, 74, 70, "Input",ExpressionUUID->"a95988d5-07d8-fb43-b80b-b53c482937cd"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[68857, 1752, 102, 0, 70, "Section",ExpressionUUID->"895b98dd-7bff-5341-b80a-ab2341d57246"],
+Cell[68962, 1754, 3142, 79, 70, "Input",ExpressionUUID->"27e2dc74-ff45-4242-8d32-6db6a7d969b6"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[72141, 1838, 102, 0, 70, "Section",ExpressionUUID->"fe9dd4c7-9938-3742-af08-9b49da0aa7f5"],
+Cell[72246, 1840, 143, 2, 70, "Text",ExpressionUUID->"6fa4c93c-868a-9e43-ba6e-a69a639655c6"],
+Cell[72392, 1844, 4323, 109, 70, "Input",ExpressionUUID->"6a72ff31-42e1-5a44-9785-98ed3953db94"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[76752, 1958, 102, 0, 70, "Section",ExpressionUUID->"78137b86-8124-c249-a4d7-fb4eb4ee9e06"],
+Cell[76857, 1960, 277, 4, 70, "Text",ExpressionUUID->"1e8a3e11-f0cd-ac43-8a33-a03052151234"],
+Cell[77137, 1966, 3838, 97, 70, "Input",ExpressionUUID->"d8035921-2f0c-3b49-b133-4ace75bdfec5"],
+Cell[80978, 2065, 104, 2, 70, "Text",ExpressionUUID->"7cf4e51c-e359-7948-bbe2-1d592bca2901"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[81131, 2073, 102, 0, 70, "Chapter",ExpressionUUID->"ad377bbb-5526-d749-b32b-b0aa27525b2b"],
+Cell[CellGroupData[{
+Cell[81258, 2077, 110, 0, 70, "Section",ExpressionUUID->"885d98ab-b243-9444-8d35-3bc4fe984e23"],
+Cell[81371, 2079, 376, 5, 70, "Text",ExpressionUUID->"e8a925a8-2f65-df42-91fe-2b17173544a0"],
+Cell[81750, 2086, 3015, 74, 70, "Input",ExpressionUUID->"30947aa0-31c2-4d4a-9fbe-798f2b603282"],
+Cell[84768, 2162, 334, 8, 70, "Text",ExpressionUUID->"378c44de-6425-0d4b-b9c0-1bd3e627a2bd"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[85139, 2175, 113, 0, 70, "Section",ExpressionUUID->"1fb1e1ef-ac2d-ef48-a5c6-b9ffd5950950"],
+Cell[85255, 2177, 298, 4, 70, "Text",ExpressionUUID->"32d3fd63-0137-0444-8318-eed36dafb7b6"],
+Cell[85556, 2183, 380, 8, 70, "Text",ExpressionUUID->"95e7b517-abb7-2a4a-871c-387f3edaa179"],
+Cell[85939, 2193, 3349, 81, 70, "Input",ExpressionUUID->"0ffbad8d-1cc1-8948-944c-5caf04e030de"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[89325, 2279, 101, 0, 70, "Section",ExpressionUUID->"d803eede-9d5f-394f-a82d-8046f6f96fdc"],
+Cell[89429, 2281, 1668, 43, 70, "Input",ExpressionUUID->"8f45f215-943d-ff4f-a5b4-beaa353f1f66"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[91134, 2329, 115, 0, 70, "Section",ExpressionUUID->"213a8bbe-3940-4846-a9f2-eae7d7045f47"],
+Cell[91252, 2331, 218, 3, 70, "Text",ExpressionUUID->"32828e65-2143-ff47-9400-5df6ead1a268"],
+Cell[91473, 2336, 3708, 95, 70, "Input",ExpressionUUID->"6fd0d3d1-7453-014e-9d57-b45264b6cd32"],
+Cell[95184, 2433, 104, 2, 70, "Text",ExpressionUUID->"031370a0-c9e1-d742-b965-108fac2250c1"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[95337, 2441, 93, 0, 70, "Chapter",ExpressionUUID->"99553172-9860-264e-b266-135c2f23ab66"],
+Cell[CellGroupData[{
+Cell[95455, 2445, 108, 0, 70, "Section",ExpressionUUID->"78a26089-5ea2-aa48-8d37-8cb872dcf5c0"],
+Cell[95566, 2447, 364, 5, 70, "Text",ExpressionUUID->"ee7e17f8-a839-c44e-96a5-b3efd9451b2c"],
+Cell[95933, 2454, 2057, 55, 70, "Input",ExpressionUUID->"ab53efe6-4d87-734d-98f7-4fa2deaef228"],
+Cell[97993, 2511, 146, 2, 70, "Text",ExpressionUUID->"88efcf57-e015-cc40-a72c-6bd57f26e078"],
+Cell[98142, 2515, 3083, 76, 70, "Input",ExpressionUUID->"40f41619-94e0-a640-9bbc-31ba7155db90"],
+Cell[101228, 2593, 218, 3, 70, "Text",ExpressionUUID->"794ad034-7be2-c042-9ff7-b0ee210c10f1"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[101483, 2601, 95, 0, 70, "Section",ExpressionUUID->"ef256f2b-e157-3047-8a57-c820e74eedc9"],
+Cell[101581, 2603, 3144, 74, 70, "Input",ExpressionUUID->"54973a3b-53a3-bf46-8880-c84451ac2c13"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[104762, 2682, 107, 0, 70, "Section",ExpressionUUID->"f75b2413-6280-9143-b428-d3ec8be915b4"],
+Cell[104872, 2684, 209, 3, 70, "Text",ExpressionUUID->"3fe3bbd0-123e-9a44-8245-fe779add6c21"],
+Cell[105084, 2689, 2566, 61, 70, "Input",ExpressionUUID->"5d203c71-2bdc-da49-8b08-83b611d95d8f"],
+Cell[107653, 2752, 104, 2, 70, "Text",ExpressionUUID->"28d0a2fc-0cbe-0a45-8e75-4996b3774cb3"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[107806, 2760, 102, 0, 70, "Chapter",ExpressionUUID->"03c6add3-ad9b-3144-8a4e-024f613582cb"],
+Cell[CellGroupData[{
+Cell[107933, 2764, 97, 0, 70, "Section",ExpressionUUID->"fd711b3c-417e-f84b-914f-e09f4f49fb07"],
+Cell[108033, 2766, 228, 3, 70, "Text",ExpressionUUID->"1dbcdf41-e640-ac44-ad87-e5615be94e23"],
+Cell[108264, 2771, 120, 0, 70, "Program",ExpressionUUID->"c8922978-5dcd-714f-b667-a180d299d67e"],
+Cell[108387, 2773, 189, 3, 70, "Text",ExpressionUUID->"6f9871ab-454e-ec40-9776-2d2d7f57953f"],
+Cell[108579, 2778, 6911, 165, 70, "Input",ExpressionUUID->"984c27d0-b0b7-5d4e-b13f-0bf275ffba3e"],
+Cell[115493, 2945, 106, 0, 70, "Text",ExpressionUUID->"129afdc6-73e6-0740-bb3c-8fc9a7153312"],
+Cell[115602, 2947, 874, 22, 70, "Input",ExpressionUUID->"a2b0dfb2-0b36-6840-84b7-378cd3508b01"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[116513, 2974, 102, 0, 70, "Section",ExpressionUUID->"e25530bc-0297-034a-bd85-1f798966bfa9"],
+Cell[116618, 2976, 2928, 75, 70, "Input",ExpressionUUID->"508b7430-124f-fb46-8b81-985a1b1f6978"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[119583, 3056, 110, 0, 70, "Section",ExpressionUUID->"eb5ca139-b0eb-d346-b7af-63745dce911d"],
+Cell[119696, 3058, 207, 3, 70, "Text",ExpressionUUID->"08dd2cf0-b586-f64d-ada1-bd05f7ec448b"],
+Cell[119906, 3063, 2916, 71, 70, "Input",ExpressionUUID->"a54bc603-78bb-c54a-8d00-7a4394e4b738"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[122859, 3139, 90, 0, 70, "Section",ExpressionUUID->"cecff218-5909-074a-9298-5d49b9cef037"],
+Cell[122952, 3141, 207, 3, 70, "Text",ExpressionUUID->"4d9c4f0d-f8f0-6b49-b035-56aed9d9ed1f"],
+Cell[123162, 3146, 2769, 64, 70, "Input",ExpressionUUID->"4c279a30-de46-7149-aa8a-52b0923f63b0"],
+Cell[125934, 3212, 209, 3, 70, "Text",ExpressionUUID->"8cbe59d8-dce0-fe4a-9296-0ab7ce34e423"],
+Cell[126146, 3217, 104, 2, 70, "Text",ExpressionUUID->"64326095-c932-bc46-95f9-b1cf364606ce"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[126299, 3225, 134, 0, 70, "Chapter",ExpressionUUID->"d10f09fe-1b18-a64f-ab15-117a8a3107e8"],
+Cell[126436, 3227, 186, 3, 70, "Text",ExpressionUUID->"cbea11db-38e7-934b-80b6-702c551898e3"],
+Cell[126625, 3232, 1227, 33, 70, "Input",ExpressionUUID->"67cef7af-5142-524f-8a17-a0c6b8216bdb"],
+Cell[CellGroupData[{
+Cell[127877, 3269, 106, 0, 70, "Section",ExpressionUUID->"42813b20-4a4d-7d4d-81eb-835e59e77e5c"],
+Cell[127986, 3271, 2086, 55, 70, "Input",ExpressionUUID->"428d0e11-4472-4246-8638-bc3bb8236fa3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[130109, 3331, 104, 0, 70, "Section",ExpressionUUID->"15e196af-f96d-0045-b8a8-7aaf8a262206"],
+Cell[130216, 3333, 986, 23, 70, "Input",ExpressionUUID->"9fd99cc1-93e2-3d4e-b76b-0b8d1a5ad671"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[131239, 3361, 104, 0, 70, "Section",ExpressionUUID->"04c43a92-f0e6-5743-bbd5-19052fdccbcd"],
+Cell[131346, 3363, 3461, 79, 70, "Input",ExpressionUUID->"61575b45-8bf5-0143-a13d-1670237ec83f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[134844, 3447, 106, 0, 70, "Section",ExpressionUUID->"a21291a4-f9fd-6c47-a3cf-c2132733a343"],
+Cell[134953, 3449, 2033, 52, 70, "Input",ExpressionUUID->"b772583a-60c0-2246-a385-ae6cd8516069"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[137023, 3506, 99, 0, 70, "Section",ExpressionUUID->"792b04b3-a9d0-6543-be2b-49e781fb4afe"],
+Cell[137125, 3508, 5570, 126, 70, "Input",ExpressionUUID->"4437e951-1f09-c846-8265-652175e60b43"],
+Cell[142698, 3636, 104, 2, 70, "Text",ExpressionUUID->"0d474d52-c30a-324e-954f-ceabc39fd4af"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[142851, 3644, 81, 0, 70, "Chapter",ExpressionUUID->"0d1290d4-dd3f-6a48-b27a-d3a549994442"],
+Cell[142935, 3646, 12107, 235, 70, "Input",ExpressionUUID->"b5a4cfba-ba1b-5e42-b9f7-85afa58cf08f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[155079, 3886, 89, 0, 70, "Chapter",ExpressionUUID->"2d18c676-a1e3-0a43-bd2b-3b07426cc9b5"],
+Cell[155171, 3888, 386, 10, 70, "Item",ExpressionUUID->"d2386506-0c6f-7142-875b-01083adb6dfe"],
+Cell[155560, 3900, 395, 10, 70, "Item",ExpressionUUID->"10098e95-4b82-a246-8427-1690b5c42e55"],
+Cell[155958, 3912, 256, 6, 70, "Item",ExpressionUUID->"78fdfc48-92ab-ed46-a0d2-d74742dc004b"],
+Cell[156217, 3920, 368, 10, 70, "Item",ExpressionUUID->"61924f88-c8c1-5743-865f-844aa6250452"],
+Cell[156588, 3932, 104, 2, 70, "Text",ExpressionUUID->"44498eec-924a-5b45-b111-9a4deedabe41"],
+Cell[156695, 3936, 350, 9, 70, "Text",ExpressionUUID->"bc42a937-c97b-1d49-b67b-fe7b722bb2bc"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+
